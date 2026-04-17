@@ -81,6 +81,51 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          accion: string
+          created_at: string
+          datos_anteriores: Json | null
+          datos_nuevos: Json | null
+          descripcion: string | null
+          entidad: string
+          entidad_id: string | null
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accion: string
+          created_at?: string
+          datos_anteriores?: Json | null
+          datos_nuevos?: Json | null
+          descripcion?: string | null
+          entidad: string
+          entidad_id?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accion?: string
+          created_at?: string
+          datos_anteriores?: Json | null
+          datos_nuevos?: Json | null
+          descripcion?: string | null
+          entidad?: string
+          entidad_id?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       horarios_profesional: {
         Row: {
           activo: boolean
@@ -121,6 +166,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      login_attempts: {
+        Row: {
+          created_at: string
+          email: string
+          exitoso: boolean
+          id: string
+          ip_address: string | null
+          motivo: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          exitoso: boolean
+          id?: string
+          ip_address?: string | null
+          motivo?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          exitoso?: boolean
+          id?: string
+          ip_address?: string | null
+          motivo?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       obras_sociales: {
         Row: {
@@ -384,6 +462,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_audit_event: {
+        Args: {
+          _accion: string
+          _descripcion?: string
+          _entidad: string
+          _entidad_id?: string
+        }
+        Returns: string
       }
     }
     Enums: {
