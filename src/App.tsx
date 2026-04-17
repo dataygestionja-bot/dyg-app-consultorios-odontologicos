@@ -16,6 +16,7 @@ import ObrasSociales from "./pages/ObrasSociales";
 import Turnos from "./pages/Turnos";
 import Atenciones from "./pages/Atenciones";
 import AtencionForm from "./pages/AtencionForm";
+import Usuarios from "./pages/Usuarios";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,9 @@ const App = () => (
             <Route path="/turnos" element={<Private><Turnos /></Private>} />
             <Route path="/atenciones" element={<Private><Atenciones /></Private>} />
             <Route path="/atenciones/:id" element={<Private><AtencionForm /></Private>} />
+            <Route path="/usuarios" element={
+              <ProtectedRoute roles={["admin"]}><AppLayout><Usuarios /></AppLayout></ProtectedRoute>
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
