@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import CuentaCorriente from "@/components/paciente/CuentaCorriente";
 
 interface ObraSocial { id: string; nombre: string; }
 
@@ -136,6 +137,7 @@ export default function PacienteForm() {
             <TabsTrigger value="obra">Obra social</TabsTrigger>
             <TabsTrigger value="clinica">Ficha clínica</TabsTrigger>
             <TabsTrigger value="otros">Observaciones</TabsTrigger>
+            {isEdit && <TabsTrigger value="cuenta">Cuenta corriente</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="datos">
@@ -211,6 +213,10 @@ export default function PacienteForm() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {isEdit && (
+          <div className="hidden">{/* placeholder para mantener estructura */}</div>
+        )}
 
         <div className="flex justify-end gap-2 mt-6">
           <Button type="button" variant="outline" onClick={() => navigate("/pacientes")}>Cancelar</Button>
