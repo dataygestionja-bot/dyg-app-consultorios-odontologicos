@@ -86,8 +86,14 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-md bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-bold">
-            O
+          <div className="relative h-8 w-8 rounded-md bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground">
+            <span className="font-semibold text-base leading-none">O</span>
+            <span
+              aria-hidden="true"
+              className="absolute top-1 right-1 text-[10px] leading-none font-semibold"
+            >
+              +
+            </span>
           </div>
           {!collapsed && (
             <div className="flex flex-col">
