@@ -212,11 +212,13 @@ export default function PacienteForm() {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
 
-        {isEdit && (
-          <div className="hidden">{/* placeholder para mantener estructura */}</div>
-        )}
+          {isEdit && (
+            <TabsContent value="cuenta">
+              <CuentaCorriente pacienteId={id!} />
+            </TabsContent>
+          )}
+        </Tabs>
 
         <div className="flex justify-end gap-2 mt-6">
           <Button type="button" variant="outline" onClick={() => navigate("/pacientes")}>Cancelar</Button>
