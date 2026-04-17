@@ -121,6 +121,49 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {visibleGes.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Gestión</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <Collapsible open={collapsed ? true : gesOpen} onOpenChange={setGesOpen}>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent/50">
+                        <Briefcase className="h-4 w-4" />
+                        {!collapsed && (
+                          <>
+                            <span className="flex-1 text-left">Gestión</span>
+                            <ChevronDown className={`h-4 w-4 transition-transform ${gesOpen ? "rotate-180" : ""}`} />
+                          </>
+                        )}
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {visibleGes.map((item) => (
+                          <SidebarMenuSubItem key={item.title}>
+                            <SidebarMenuSubButton asChild>
+                              <NavLink
+                                to={item.url}
+                                className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                                activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                              >
+                                <item.icon className="h-4 w-4" />
+                                {!collapsed && <span>{item.title}</span>}
+                              </NavLink>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         {visibleSeg.length > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel>Administración</SidebarGroupLabel>
