@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      atencion_practicas: {
+        Row: {
+          atencion_id: string
+          cantidad: number
+          cara_dental: string | null
+          created_at: string
+          id: string
+          observacion: string | null
+          orden: number
+          pieza_dental: string | null
+          prestacion_id: string
+          updated_at: string
+        }
+        Insert: {
+          atencion_id: string
+          cantidad?: number
+          cara_dental?: string | null
+          created_at?: string
+          id?: string
+          observacion?: string | null
+          orden?: number
+          pieza_dental?: string | null
+          prestacion_id: string
+          updated_at?: string
+        }
+        Update: {
+          atencion_id?: string
+          cantidad?: number
+          cara_dental?: string | null
+          created_at?: string
+          id?: string
+          observacion?: string | null
+          orden?: number
+          pieza_dental?: string | null
+          prestacion_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atencion_practicas_atencion_id_fkey"
+            columns: ["atencion_id"]
+            isOneToOne: false
+            referencedRelation: "atenciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atencion_practicas_prestacion_id_fkey"
+            columns: ["prestacion_id"]
+            isOneToOne: false
+            referencedRelation: "prestaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atenciones: {
         Row: {
           created_at: string
@@ -25,6 +79,7 @@ export type Database = {
           observaciones: string | null
           paciente_id: string
           profesional_id: string
+          proxima_visita_sugerida: string | null
           tratamiento_realizado: string | null
           turno_id: string | null
           updated_at: string
@@ -39,6 +94,7 @@ export type Database = {
           observaciones?: string | null
           paciente_id: string
           profesional_id: string
+          proxima_visita_sugerida?: string | null
           tratamiento_realizado?: string | null
           turno_id?: string | null
           updated_at?: string
@@ -53,6 +109,7 @@ export type Database = {
           observaciones?: string | null
           paciente_id?: string
           profesional_id?: string
+          proxima_visita_sugerida?: string | null
           tratamiento_realizado?: string | null
           turno_id?: string | null
           updated_at?: string
