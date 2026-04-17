@@ -70,7 +70,7 @@ export default function PresupuestoDetalle() {
 
   async function actualizarCabecera(patch: Record<string, any>) {
     if (!id) return;
-    const { error } = await supabase.from("presupuestos").update(patch).eq("id", id);
+    const { error } = await supabase.from("presupuestos").update(patch as any).eq("id", id);
     if (error) return toast.error("No se pudo guardar", { description: error.message });
     toast.success("Guardado");
     cargar();
