@@ -49,6 +49,7 @@ export default function CuentaCorriente({ pacienteId }: { pacienteId: string }) 
   const [loading, setLoading] = useState(true);
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
   const [cobros, setCobros] = useState<Cobro[]>([]);
+  const [cobroOpen, setCobroOpen] = useState(false);
 
   useEffect(() => {
     cargar();
