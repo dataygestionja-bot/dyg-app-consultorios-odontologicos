@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { format, addDays, startOfWeek, parseISO, isSameDay } from "date-fns";
+import { format, addDays, startOfWeek, parseISO, isSameDay, isValid } from "date-fns";
 import { es } from "date-fns/locale";
 import { TURNO_ESTADOS, TURNO_ESTADO_LABELS, TURNO_ESTADO_CLASSES, type TurnoEstado } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
@@ -209,8 +209,12 @@ export default function Turnos() {
             </Button>
             <Input
               type="date"
-              value={format(fecha, "yyyy-MM-dd")}
-              onChange={(e) => e.target.value && setFecha(parseISO(e.target.value))}
+              value={isValid(fecha) ? format(fecha, "yyyy-MM-dd") : ""}
+              onChange={(e) => {
+                if (!e.target.value) return;
+                const d = parseISO(e.target.value);
+                if (isValid(d)) setFecha(d);
+              }}
               className="w-[150px] border-0 focus-visible:ring-0"
             />
             <Button variant="ghost" size="icon" onClick={() => setFecha(addDays(fecha, vista === "dia" ? 1 : 7))}>
