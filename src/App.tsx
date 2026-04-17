@@ -16,13 +16,23 @@ import ObrasSociales from "./pages/ObrasSociales";
 import Turnos from "./pages/Turnos";
 import Atenciones from "./pages/Atenciones";
 import AtencionForm from "./pages/AtencionForm";
-import Usuarios from "./pages/Usuarios";
+import Seguridad from "./pages/seguridad/Seguridad";
+import Usuarios from "./pages/seguridad/Usuarios";
+import Perfiles from "./pages/seguridad/Perfiles";
+import Reportes from "./pages/seguridad/Reportes";
+import Auditoria from "./pages/seguridad/Auditoria";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
 const Private = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
+    <AppLayout>{children}</AppLayout>
+  </ProtectedRoute>
+);
+
+const AdminOnly = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute roles={["admin"]}>
     <AppLayout>{children}</AppLayout>
   </ProtectedRoute>
 );
@@ -39,21 +49,25 @@ const App = () => (
             <Route path="/" element={<Private><Dashboard /></Private>} />
             <Route path="/pacientes" element={<Private><Pacientes /></Private>} />
             <Route path="/pacientes/:id" element={<Private><PacienteForm /></Private>} />
-            <Route path="/profesionales" element={
-              <ProtectedRoute roles={["admin"]}><AppLayout><Profesionales /></AppLayout></ProtectedRoute>
-            } />
-            <Route path="/profesionales/:id" element={
-              <ProtectedRoute roles={["admin"]}><AppLayout><ProfesionalForm /></AppLayout></ProtectedRoute>
-            } />
+            <Route path="/profesionales" element={<AdminOnly><Profesionales /></AdminOnly>} />
+            <Route path="/profesionales/:id" element={<AdminOnly><ProfesionalForm /></AdminOnly>} />
             <Route path="/obras-sociales" element={
               <ProtectedRoute roles={["admin", "recepcion"]}><AppLayout><ObrasSociales /></AppLayout></ProtectedRoute>
             } />
             <Route path="/turnos" element={<Private><Turnos /></Private>} />
             <Route path="/atenciones" element={<Private><Atenciones /></Private>} />
             <Route path="/atenciones/:id" element={<Private><AtencionForm /></Private>} />
-            <Route path="/usuarios" element={
-              <ProtectedRoute roles={["admin"]}><AppLayout><Usuarios /></AppLayout></ProtectedRoute>
-            } />
+
+            {/* Administración de seguridad */}
+            <Route path="/seguridad" element={<AdminOnly><Seguridad /></AdminOnly>} />
+            <Route path="/seguridad/usuarios" element={<AdminOnly><Usuarios /></AdminOnly>} />
+            <Route path="/seguridad/perfiles" element={<Private><Perfiles /></Private>} />
+            <Route path="/seguridad/reportes" element={<AdminOnly><Reportes /></AdminOnly>} />
+            <Route path="/seguridad/auditoria" element={<AdminOnly><Auditoria /></AdminOnly>} />
+
+            {/* Compatibilidad ruta vieja */}
+            <Route path="/usuarios" element={<AdminOnly><Usuarios /></AdminOnly>} />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

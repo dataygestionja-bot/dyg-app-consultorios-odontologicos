@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Stethoscope } from "lucide-react";
+import { registrarIntentoLogin } from "@/lib/audit";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -40,11 +41,17 @@ export default function AuthPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: loginEmail,
       password: loginPassword,
     });
     setSubmitting(false);
+    await registrarIntentoLogin({
+      email: loginEmail,
+      exitoso: !error,
+      motivo: error?.message,
+      userId: data?.user?.id ?? null,
+    });
     if (error) {
       toast.error("No pudimos iniciar sesión", { description: error.message });
       return;
