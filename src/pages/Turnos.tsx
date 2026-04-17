@@ -15,6 +15,16 @@ import { toast } from "sonner";
 import { format, addDays, startOfWeek, parseISO, isSameDay, isValid } from "date-fns";
 import { es } from "date-fns/locale";
 import { TURNO_ESTADOS, TURNO_ESTADO_LABELS, TURNO_ESTADO_CLASSES, type TurnoEstado } from "@/lib/constants";
+
+const safeFormat = (d: Date | null | undefined, fmt: string, opts?: Parameters<typeof format>[2]) => {
+  if (!d || !isValid(d)) return "";
+  try { return format(d, fmt, opts); } catch { return ""; }
+};
+const safeParseISO = (s: string | null | undefined): Date | null => {
+  if (!s) return null;
+  const d = parseISO(s);
+  return isValid(d) ? d : null;
+};
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -209,11 +219,11 @@ export default function Turnos() {
             </Button>
             <Input
               type="date"
-              value={isValid(fecha) ? format(fecha, "yyyy-MM-dd") : ""}
+              value={safeFormat(fecha, "yyyy-MM-dd")}
               onChange={(e) => {
                 if (!e.target.value) return;
-                const d = parseISO(e.target.value);
-                if (isValid(d)) setFecha(d);
+                const d = safeParseISO(e.target.value);
+                if (d) setFecha(d);
               }}
               className="w-[150px] border-0 focus-visible:ring-0"
             />
@@ -235,7 +245,7 @@ export default function Turnos() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                {format(fecha, "EEEE d 'de' MMMM yyyy", { locale: es })}
+                {safeFormat(fecha, "EEEE d 'de' MMMM yyyy", { locale: es })}
                 {profActual && <span className="text-muted-foreground font-normal"> · {profActual.apellido}, {profActual.nombre}</span>}
               </CardTitle>
             </CardHeader>
@@ -256,7 +266,7 @@ export default function Turnos() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                Semana del {format(dias[0], "d MMM", { locale: es })} al {format(dias[6], "d MMM yyyy", { locale: es })}
+                Semana del {safeFormat(dias[0], "d MMM", { locale: es })} al {safeFormat(dias[6], "d MMM yyyy", { locale: es })}
                 {profActual && <span className="text-muted-foreground font-normal"> · {profActual.apellido}, {profActual.nombre}</span>}
               </CardTitle>
             </CardHeader>
@@ -282,12 +292,12 @@ export default function Turnos() {
           <div className="space-y-4 py-2">
             {slot && (
               <p className="text-sm text-muted-foreground">
-                {format(parseISO(slot.fecha), "EEEE d 'de' MMMM", { locale: es })} · {slot.hora_inicio} - {slot.hora_fin}
+                {safeFormat(safeParseISO(slot.fecha), "EEEE d 'de' MMMM", { locale: es })} · {slot.hora_inicio} - {slot.hora_fin}
               </p>
             )}
             {editing && (
               <p className="text-sm text-muted-foreground">
-                {format(parseISO(editing.fecha), "EEEE d 'de' MMMM", { locale: es })} · {editing.hora_inicio.slice(0, 5)} - {editing.hora_fin.slice(0, 5)}
+                {safeFormat(safeParseISO(editing.fecha), "EEEE d 'de' MMMM", { locale: es })} · {editing.hora_inicio.slice(0, 5)} - {editing.hora_fin.slice(0, 5)}
               </p>
             )}
 
@@ -388,7 +398,7 @@ function CalendarGrid({
         <div />
         {dias.map((d) => (
           <div key={d.toISOString()} className="text-center text-xs font-medium text-muted-foreground pb-2">
-            {format(d, "EEE d", { locale: es })}
+            {safeFormat(d, "EEE d", { locale: es })}
           </div>
         ))}
 
