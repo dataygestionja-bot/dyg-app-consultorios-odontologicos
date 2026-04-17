@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Stethoscope, CalendarDays, ClipboardList, BadgeCheck } from "lucide-react";
+import { LayoutDashboard, Users, Stethoscope, CalendarDays, ClipboardList, BadgeCheck, Shield } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -29,6 +29,7 @@ const items: Item[] = [
   { title: "Atenciones", url: "/atenciones", icon: ClipboardList },
   { title: "Profesionales", url: "/profesionales", icon: Stethoscope },
   { title: "Obras sociales", url: "/obras-sociales", icon: BadgeCheck, roles: ["admin", "recepcion"] },
+  { title: "Usuarios", url: "/usuarios", icon: Shield, roles: ["admin"] },
 ];
 
 export function AppSidebar() {
