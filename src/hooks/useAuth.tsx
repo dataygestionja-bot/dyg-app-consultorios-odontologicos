@@ -61,6 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
+    try {
+      await supabase.rpc("log_audit_event", {
+        _accion: "LOGOUT",
+        _entidad: "auth",
+        _descripcion: "Cierre de sesión",
+      });
+    } catch (e) {
+      console.warn("No se pudo registrar logout", e);
+    }
     await supabase.auth.signOut();
     setRoles([]);
   }
