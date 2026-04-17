@@ -1,0 +1,536 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  public: {
+    Tables: {
+      atenciones: {
+        Row: {
+          created_at: string
+          diagnostico: string | null
+          fecha: string
+          id: string
+          indicaciones: string | null
+          motivo: string | null
+          observaciones: string | null
+          paciente_id: string
+          profesional_id: string
+          tratamiento_realizado: string | null
+          turno_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          diagnostico?: string | null
+          fecha?: string
+          id?: string
+          indicaciones?: string | null
+          motivo?: string | null
+          observaciones?: string | null
+          paciente_id: string
+          profesional_id: string
+          tratamiento_realizado?: string | null
+          turno_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          diagnostico?: string | null
+          fecha?: string
+          id?: string
+          indicaciones?: string | null
+          motivo?: string | null
+          observaciones?: string | null
+          paciente_id?: string
+          profesional_id?: string
+          tratamiento_realizado?: string | null
+          turno_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atenciones_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atenciones_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atenciones_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "turnos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      horarios_profesional: {
+        Row: {
+          activo: boolean
+          created_at: string
+          dia_semana: number
+          duracion_slot_min: number
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          profesional_id: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          dia_semana: number
+          duracion_slot_min?: number
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          profesional_id: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          dia_semana?: number
+          duracion_slot_min?: number
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          profesional_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "horarios_profesional_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      obras_sociales: {
+        Row: {
+          activo: boolean
+          created_at: string
+          id: string
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pacientes: {
+        Row: {
+          activo: boolean
+          alergias: string | null
+          antecedentes_medicos: string | null
+          apellido: string
+          contacto_emergencia_nombre: string | null
+          contacto_emergencia_telefono: string | null
+          created_at: string
+          dni: string
+          domicilio: string | null
+          email: string | null
+          fecha_nacimiento: string | null
+          id: string
+          localidad: string | null
+          medicacion_actual: string | null
+          nombre: string
+          numero_afiliado: string | null
+          obra_social_id: string | null
+          observaciones: string | null
+          telefono: string | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          alergias?: string | null
+          antecedentes_medicos?: string | null
+          apellido: string
+          contacto_emergencia_nombre?: string | null
+          contacto_emergencia_telefono?: string | null
+          created_at?: string
+          dni: string
+          domicilio?: string | null
+          email?: string | null
+          fecha_nacimiento?: string | null
+          id?: string
+          localidad?: string | null
+          medicacion_actual?: string | null
+          nombre: string
+          numero_afiliado?: string | null
+          obra_social_id?: string | null
+          observaciones?: string | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          alergias?: string | null
+          antecedentes_medicos?: string | null
+          apellido?: string
+          contacto_emergencia_nombre?: string | null
+          contacto_emergencia_telefono?: string | null
+          created_at?: string
+          dni?: string
+          domicilio?: string | null
+          email?: string | null
+          fecha_nacimiento?: string | null
+          id?: string
+          localidad?: string | null
+          medicacion_actual?: string | null
+          nombre?: string
+          numero_afiliado?: string | null
+          obra_social_id?: string | null
+          observaciones?: string | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pacientes_obra_social_id_fkey"
+            columns: ["obra_social_id"]
+            isOneToOne: false
+            referencedRelation: "obras_sociales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profesionales: {
+        Row: {
+          activo: boolean
+          apellido: string
+          color_agenda: string
+          created_at: string
+          email: string | null
+          especialidad: string | null
+          id: string
+          matricula: string | null
+          nombre: string
+          telefono: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          activo?: boolean
+          apellido: string
+          color_agenda?: string
+          created_at?: string
+          email?: string | null
+          especialidad?: string | null
+          id?: string
+          matricula?: string | null
+          nombre: string
+          telefono?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          activo?: boolean
+          apellido?: string
+          color_agenda?: string
+          created_at?: string
+          email?: string | null
+          especialidad?: string | null
+          id?: string
+          matricula?: string | null
+          nombre?: string
+          telefono?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          apellido: string | null
+          created_at: string
+          email: string | null
+          id: string
+          nombre: string | null
+          updated_at: string
+        }
+        Insert: {
+          apellido?: string | null
+          created_at?: string
+          email?: string | null
+          id: string
+          nombre?: string | null
+          updated_at?: string
+        }
+        Update: {
+          apellido?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nombre?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      turnos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          estado: Database["public"]["Enums"]["turno_estado"]
+          fecha: string
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          motivo_consulta: string | null
+          paciente_id: string
+          profesional_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["turno_estado"]
+          fecha: string
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          motivo_consulta?: string | null
+          paciente_id: string
+          profesional_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["turno_estado"]
+          fecha?: string
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          motivo_consulta?: string | null
+          paciente_id?: string
+          profesional_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turnos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turnos_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+    }
+    Enums: {
+      app_role: "admin" | "recepcion" | "profesional"
+      turno_estado:
+        | "reservado"
+        | "confirmado"
+        | "atendido"
+        | "cancelado"
+        | "ausente"
+        | "reprogramado"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      app_role: ["admin", "recepcion", "profesional"],
+      turno_estado: [
+        "reservado",
+        "confirmado",
+        "atendido",
+        "cancelado",
+        "ausente",
+        "reprogramado",
+      ],
+    },
+  },
+} as const
