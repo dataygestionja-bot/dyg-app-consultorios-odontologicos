@@ -11,6 +11,10 @@ import {
   FileBarChart,
   ScrollText,
   ChevronDown,
+  Briefcase,
+  ListChecks,
+  FileText,
+  Wallet,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -49,6 +53,12 @@ const itemsOperatoria: Item[] = [
   { title: "Obras sociales", url: "/obras-sociales", icon: BadgeCheck, roles: ["admin", "recepcion"] },
 ];
 
+const itemsGestion: Item[] = [
+  { title: "Prestaciones", url: "/prestaciones", icon: ListChecks, roles: ["admin", "recepcion"] },
+  { title: "Presupuestos", url: "/presupuestos", icon: FileText, roles: ["admin", "recepcion"] },
+  { title: "Cobros", url: "/cobros", icon: Wallet, roles: ["admin", "recepcion"] },
+];
+
 const itemsSeguridad: Item[] = [
   { title: "Usuarios", url: "/seguridad/usuarios", icon: Users, roles: ["admin"] },
   { title: "Perfiles", url: "/seguridad/perfiles", icon: UserCog },
@@ -64,10 +74,13 @@ export function AppSidebar() {
 
   const canSee = (i: Item) => !i.roles || i.roles.some((r) => roles.includes(r));
   const visibleOp = itemsOperatoria.filter(canSee);
+  const visibleGes = itemsGestion.filter(canSee);
   const visibleSeg = itemsSeguridad.filter(canSee);
 
   const segActive = location.pathname.startsWith("/seguridad") || location.pathname === "/usuarios";
   const [segOpen, setSegOpen] = useState(segActive);
+  const gesActive = ["/prestaciones", "/presupuestos", "/cobros"].some((p) => location.pathname.startsWith(p));
+  const [gesOpen, setGesOpen] = useState(gesActive);
 
   return (
     <Sidebar collapsible="icon">
@@ -107,6 +120,49 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {visibleGes.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Gestión</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <Collapsible open={collapsed ? true : gesOpen} onOpenChange={setGesOpen}>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent/50">
+                        <Briefcase className="h-4 w-4" />
+                        {!collapsed && (
+                          <>
+                            <span className="flex-1 text-left">Gestión</span>
+                            <ChevronDown className={`h-4 w-4 transition-transform ${gesOpen ? "rotate-180" : ""}`} />
+                          </>
+                        )}
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {visibleGes.map((item) => (
+                          <SidebarMenuSubItem key={item.title}>
+                            <SidebarMenuSubButton asChild>
+                              <NavLink
+                                to={item.url}
+                                className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                                activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                              >
+                                <item.icon className="h-4 w-4" />
+                                {!collapsed && <span>{item.title}</span>}
+                              </NavLink>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {visibleSeg.length > 0 && (
           <SidebarGroup>

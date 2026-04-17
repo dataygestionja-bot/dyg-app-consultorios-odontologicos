@@ -126,6 +126,102 @@ export type Database = {
         }
         Relationships: []
       }
+      cobro_aplicaciones: {
+        Row: {
+          atencion_id: string | null
+          cobro_id: string
+          created_at: string
+          id: string
+          importe_aplicado: number
+          presupuesto_id: string | null
+        }
+        Insert: {
+          atencion_id?: string | null
+          cobro_id: string
+          created_at?: string
+          id?: string
+          importe_aplicado: number
+          presupuesto_id?: string | null
+        }
+        Update: {
+          atencion_id?: string | null
+          cobro_id?: string
+          created_at?: string
+          id?: string
+          importe_aplicado?: number
+          presupuesto_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobro_aplicaciones_atencion_id_fkey"
+            columns: ["atencion_id"]
+            isOneToOne: false
+            referencedRelation: "atenciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobro_aplicaciones_cobro_id_fkey"
+            columns: ["cobro_id"]
+            isOneToOne: false
+            referencedRelation: "cobros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobro_aplicaciones_presupuesto_id_fkey"
+            columns: ["presupuesto_id"]
+            isOneToOne: false
+            referencedRelation: "presupuestos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cobros: {
+        Row: {
+          created_at: string
+          fecha: string
+          id: string
+          importe: number
+          medio_pago: Database["public"]["Enums"]["medio_pago"]
+          observaciones: string | null
+          paciente_id: string
+          referencia: string | null
+          updated_at: string
+          usuario_registro: string | null
+        }
+        Insert: {
+          created_at?: string
+          fecha?: string
+          id?: string
+          importe: number
+          medio_pago?: Database["public"]["Enums"]["medio_pago"]
+          observaciones?: string | null
+          paciente_id: string
+          referencia?: string | null
+          updated_at?: string
+          usuario_registro?: string | null
+        }
+        Update: {
+          created_at?: string
+          fecha?: string
+          id?: string
+          importe?: number
+          medio_pago?: Database["public"]["Enums"]["medio_pago"]
+          observaciones?: string | null
+          paciente_id?: string
+          referencia?: string | null
+          updated_at?: string
+          usuario_registro?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobros_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       horarios_profesional: {
         Row: {
           activo: boolean
@@ -297,6 +393,144 @@ export type Database = {
             columns: ["obra_social_id"]
             isOneToOne: false
             referencedRelation: "obras_sociales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prestaciones: {
+        Row: {
+          activo: boolean
+          categoria: string | null
+          codigo: string
+          created_at: string
+          descripcion: string
+          duracion_estimada_min: number
+          id: string
+          precio_base: number
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          categoria?: string | null
+          codigo: string
+          created_at?: string
+          descripcion: string
+          duracion_estimada_min?: number
+          id?: string
+          precio_base?: number
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          categoria?: string | null
+          codigo?: string
+          created_at?: string
+          descripcion?: string
+          duracion_estimada_min?: number
+          id?: string
+          precio_base?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      presupuesto_detalle: {
+        Row: {
+          cantidad: number
+          created_at: string
+          id: string
+          pieza_dental: string | null
+          precio_unitario: number
+          prestacion_id: string
+          presupuesto_id: string
+          subtotal: number | null
+        }
+        Insert: {
+          cantidad?: number
+          created_at?: string
+          id?: string
+          pieza_dental?: string | null
+          precio_unitario?: number
+          prestacion_id: string
+          presupuesto_id: string
+          subtotal?: number | null
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          id?: string
+          pieza_dental?: string | null
+          precio_unitario?: number
+          prestacion_id?: string
+          presupuesto_id?: string
+          subtotal?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "presupuesto_detalle_prestacion_id_fkey"
+            columns: ["prestacion_id"]
+            isOneToOne: false
+            referencedRelation: "prestaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presupuesto_detalle_presupuesto_id_fkey"
+            columns: ["presupuesto_id"]
+            isOneToOne: false
+            referencedRelation: "presupuestos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      presupuestos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          estado: Database["public"]["Enums"]["presupuesto_estado"]
+          fecha: string
+          id: string
+          observaciones: string | null
+          paciente_id: string
+          profesional_id: string | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["presupuesto_estado"]
+          fecha?: string
+          id?: string
+          observaciones?: string | null
+          paciente_id: string
+          profesional_id?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["presupuesto_estado"]
+          fecha?: string
+          id?: string
+          observaciones?: string | null
+          paciente_id?: string
+          profesional_id?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "presupuestos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presupuestos_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales"
             referencedColumns: ["id"]
           },
         ]
@@ -475,6 +709,20 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "recepcion" | "profesional"
+      medio_pago:
+        | "efectivo"
+        | "transferencia"
+        | "debito"
+        | "credito"
+        | "mercadopago"
+        | "otro"
+      presupuesto_estado:
+        | "borrador"
+        | "entregado"
+        | "aceptado"
+        | "rechazado"
+        | "parcialmente_ejecutado"
+        | "finalizado"
       turno_estado:
         | "reservado"
         | "confirmado"
@@ -610,6 +858,22 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "recepcion", "profesional"],
+      medio_pago: [
+        "efectivo",
+        "transferencia",
+        "debito",
+        "credito",
+        "mercadopago",
+        "otro",
+      ],
+      presupuesto_estado: [
+        "borrador",
+        "entregado",
+        "aceptado",
+        "rechazado",
+        "parcialmente_ejecutado",
+        "finalizado",
+      ],
       turno_estado: [
         "reservado",
         "confirmado",

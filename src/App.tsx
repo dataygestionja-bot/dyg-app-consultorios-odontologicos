@@ -16,6 +16,10 @@ import ObrasSociales from "./pages/ObrasSociales";
 import Turnos from "./pages/Turnos";
 import Atenciones from "./pages/Atenciones";
 import AtencionForm from "./pages/AtencionForm";
+import Prestaciones from "./pages/Prestaciones";
+import Presupuestos from "./pages/Presupuestos";
+import PresupuestoDetalle from "./pages/PresupuestoDetalle";
+import Cobros from "./pages/Cobros";
 import Seguridad from "./pages/seguridad/Seguridad";
 import Usuarios from "./pages/seguridad/Usuarios";
 import Perfiles from "./pages/seguridad/Perfiles";
@@ -57,6 +61,20 @@ const App = () => (
             <Route path="/turnos" element={<Private><Turnos /></Private>} />
             <Route path="/atenciones" element={<Private><Atenciones /></Private>} />
             <Route path="/atenciones/:id" element={<Private><AtencionForm /></Private>} />
+
+            {/* Gestión */}
+            <Route path="/prestaciones" element={
+              <ProtectedRoute roles={["admin", "recepcion"]}><AppLayout><Prestaciones /></AppLayout></ProtectedRoute>
+            } />
+            <Route path="/presupuestos" element={
+              <ProtectedRoute roles={["admin", "recepcion"]}><AppLayout><Presupuestos /></AppLayout></ProtectedRoute>
+            } />
+            <Route path="/presupuestos/:id" element={
+              <ProtectedRoute roles={["admin", "recepcion"]}><AppLayout><PresupuestoDetalle /></AppLayout></ProtectedRoute>
+            } />
+            <Route path="/cobros" element={
+              <ProtectedRoute roles={["admin", "recepcion"]}><AppLayout><Cobros /></AppLayout></ProtectedRoute>
+            } />
 
             {/* Administración de seguridad */}
             <Route path="/seguridad" element={<AdminOnly><Seguridad /></AdminOnly>} />
