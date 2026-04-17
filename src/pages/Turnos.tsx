@@ -15,6 +15,16 @@ import { toast } from "sonner";
 import { format, addDays, startOfWeek, parseISO, isSameDay, isValid } from "date-fns";
 import { es } from "date-fns/locale";
 import { TURNO_ESTADOS, TURNO_ESTADO_LABELS, TURNO_ESTADO_CLASSES, type TurnoEstado } from "@/lib/constants";
+
+const safeFormat = (d: Date | null | undefined, fmt: string, opts?: Parameters<typeof format>[2]) => {
+  if (!d || !isValid(d)) return "";
+  try { return format(d, fmt, opts); } catch { return ""; }
+};
+const safeParseISO = (s: string | null | undefined): Date | null => {
+  if (!s) return null;
+  const d = parseISO(s);
+  return isValid(d) ? d : null;
+};
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 
