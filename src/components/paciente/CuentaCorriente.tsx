@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Plus } from "lucide-react";
+import CobroDialog from "@/components/cobros/CobroDialog";
 
 const ESTADO_LABEL: Record<string, string> = {
   borrador: "Borrador",
@@ -48,6 +49,7 @@ export default function CuentaCorriente({ pacienteId }: { pacienteId: string }) 
   const [loading, setLoading] = useState(true);
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
   const [cobros, setCobros] = useState<Cobro[]>([]);
+  const [cobroOpen, setCobroOpen] = useState(false);
 
   useEffect(() => {
     cargar();
@@ -121,6 +123,19 @@ export default function CuentaCorriente({ pacienteId }: { pacienteId: string }) 
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end">
+        <Button onClick={() => setCobroOpen(true)} size="sm">
+          <Plus className="h-4 w-4" /> Registrar cobro
+        </Button>
+      </div>
+
+      <CobroDialog
+        open={cobroOpen}
+        onOpenChange={setCobroOpen}
+        pacienteId={pacienteId}
+        onSaved={cargar}
+      />
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <SummaryCard label="Total facturado" hint="Presupuestos con deuda activa" value={fmt(totalFacturado)} />
         <SummaryCard label="Aplicado a presupuestos" value={fmt(totalAplicado)} />
