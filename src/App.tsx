@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import AuthPage from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Pacientes from "./pages/Pacientes";
@@ -31,13 +32,17 @@ const queryClient = new QueryClient();
 
 const Private = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
-    <AppLayout>{children}</AppLayout>
+    <AppLayout>
+      <ErrorBoundary>{children}</ErrorBoundary>
+    </AppLayout>
   </ProtectedRoute>
 );
 
 const AdminOnly = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute roles={["admin"]}>
-    <AppLayout>{children}</AppLayout>
+    <AppLayout>
+      <ErrorBoundary>{children}</ErrorBoundary>
+    </AppLayout>
   </ProtectedRoute>
 );
 
