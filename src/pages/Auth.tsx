@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Stethoscope } from "lucide-react";
+import { Stethoscope, Eye, EyeOff } from "lucide-react";
 import { registrarIntentoLogin } from "@/lib/audit";
 import { resolvePostLoginPath } from "@/lib/landing";
 
