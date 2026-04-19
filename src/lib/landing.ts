@@ -20,14 +20,8 @@ const NON_RETURNABLE = new Set<string>(["/auth", "/", ""]);
 
 export function resolvePostLoginPath(
   roles: AppRole[],
-  attemptedPath?: string | null,
+  _attemptedPath?: string | null,
 ): string {
-  const landing = getLandingPathForRoles(roles);
-  if (!attemptedPath) return landing;
-  if (NON_RETURNABLE.has(attemptedPath)) return landing;
-
-  // Para perfil recepción, siempre forzamos Dashboard al iniciar sesión.
-  if (roles.includes("recepcion")) return landing;
-
-  return attemptedPath;
+  // Todos los perfiles aterrizan en el Dashboard tras iniciar sesión.
+  return getLandingPathForRoles(roles);
 }
