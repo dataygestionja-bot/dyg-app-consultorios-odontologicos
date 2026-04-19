@@ -10,11 +10,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Stethoscope } from "lucide-react";
 import { registrarIntentoLogin } from "@/lib/audit";
+import { resolvePostLoginPath } from "@/lib/landing";
 
 export default function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, loading } = useAuth();
+  const { user, loading, roles } = useAuth();
   const [submitting, setSubmitting] = useState(false);
 
   // Login
@@ -33,10 +34,11 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? "/";
-      navigate(from, { replace: true });
+      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? null;
+      const target = resolvePostLoginPath(roles, from);
+      navigate(target, { replace: true });
     }
-  }, [user, loading, navigate, location]);
+  }, [user, loading, roles, navigate, location]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
