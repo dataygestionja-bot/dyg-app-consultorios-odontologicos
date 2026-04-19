@@ -17,6 +17,8 @@ export default function AuthPage() {
   const location = useLocation();
   const { user, loading, roles } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
 
   // Login
   const [loginEmail, setLoginEmail] = useState("");
