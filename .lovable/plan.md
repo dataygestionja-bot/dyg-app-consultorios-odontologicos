@@ -1,6 +1,6 @@
 
 
-User picked Opción B: switch to admin account. No code changes needed for the access issue — just instructions. But the "loop in Atenciones" still needs diagnosis.
+User wants ALL users (any role) to land on Dashboard after login. Currently `landing.ts` already returns "/" for all roles, but `resolvePostLoginPath` preserves `attemptedPath` for non-recepcion roles. User wants Dashboard always.
 
-Let me check current admin user and see Atenciones code briefly.
+Simple change: make `resolvePostLoginPath` always return `/` for any role after login.
 
