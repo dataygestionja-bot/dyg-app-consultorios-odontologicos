@@ -30,12 +30,18 @@ export default function Atenciones() {
 
   async function cargar() {
     setLoading(true);
-    const { data } = await supabase
-      .from("atenciones")
-      .select("id, fecha, motivo, diagnostico, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido)")
-      .order("fecha", { ascending: false });
-    setRows((data ?? []) as unknown as Row[]);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from("atenciones")
+        .select("id, fecha, motivo, diagnostico, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido)")
+        .order("fecha", { ascending: false });
+      if (error) console.error("Error cargando atenciones:", error);
+      setRows((data ?? []) as unknown as Row[]);
+    } catch (e) {
+      console.error("Error inesperado cargando atenciones:", e);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const filtered = rows.filter((r) => {

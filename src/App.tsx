@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import AuthPage from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Pacientes from "./pages/Pacientes";
@@ -31,13 +32,31 @@ const queryClient = new QueryClient();
 
 const Private = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
-    <AppLayout>{children}</AppLayout>
+    <AppLayout>
+      <ErrorBoundary>{children}</ErrorBoundary>
+    </AppLayout>
   </ProtectedRoute>
 );
 
 const AdminOnly = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute roles={["admin"]}>
-    <AppLayout>{children}</AppLayout>
+    <AppLayout>
+      <ErrorBoundary>{children}</ErrorBoundary>
+    </AppLayout>
+  </ProtectedRoute>
+);
+
+const RoleProtected = ({
+  roles,
+  children,
+}: {
+  roles: ("admin" | "recepcion" | "profesional")[];
+  children: React.ReactNode;
+}) => (
+  <ProtectedRoute roles={roles}>
+    <AppLayout>
+      <ErrorBoundary>{children}</ErrorBoundary>
+    </AppLayout>
   </ProtectedRoute>
 );
 
@@ -56,7 +75,7 @@ const App = () => (
             <Route path="/profesionales" element={<AdminOnly><Profesionales /></AdminOnly>} />
             <Route path="/profesionales/:id" element={<AdminOnly><ProfesionalForm /></AdminOnly>} />
             <Route path="/obras-sociales" element={
-              <ProtectedRoute roles={["admin", "recepcion"]}><AppLayout><ObrasSociales /></AppLayout></ProtectedRoute>
+              <RoleProtected roles={["admin", "recepcion"]}><ObrasSociales /></RoleProtected>
             } />
             <Route path="/turnos" element={<Private><Turnos /></Private>} />
             <Route path="/atenciones" element={<Private><Atenciones /></Private>} />
@@ -64,16 +83,16 @@ const App = () => (
 
             {/* Gestión */}
             <Route path="/prestaciones" element={
-              <ProtectedRoute roles={["admin", "recepcion"]}><AppLayout><Prestaciones /></AppLayout></ProtectedRoute>
+              <RoleProtected roles={["admin", "recepcion"]}><Prestaciones /></RoleProtected>
             } />
             <Route path="/presupuestos" element={
-              <ProtectedRoute roles={["admin", "recepcion"]}><AppLayout><Presupuestos /></AppLayout></ProtectedRoute>
+              <RoleProtected roles={["admin", "recepcion"]}><Presupuestos /></RoleProtected>
             } />
             <Route path="/presupuestos/:id" element={
-              <ProtectedRoute roles={["admin", "recepcion"]}><AppLayout><PresupuestoDetalle /></AppLayout></ProtectedRoute>
+              <RoleProtected roles={["admin", "recepcion"]}><PresupuestoDetalle /></RoleProtected>
             } />
             <Route path="/cobros" element={
-              <ProtectedRoute roles={["admin", "recepcion"]}><AppLayout><Cobros /></AppLayout></ProtectedRoute>
+              <RoleProtected roles={["admin", "recepcion"]}><Cobros /></RoleProtected>
             } />
 
             {/* Administración de seguridad */}
