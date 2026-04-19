@@ -92,12 +92,21 @@ export default function Turnos() {
       supabase.from("profesionales").select("id, nombre, apellido, color_agenda").eq("activo", true).order("apellido"),
       supabase.from("horarios_profesional").select("*").eq("activo", true),
       supabase.from("pacientes").select("id, nombre, apellido, dni").eq("activo", true).order("apellido"),
-    ]).then(([pr, ho, pa]) => {
-      setProfesionales((pr.data ?? []) as Profesional[]);
-      setHorarios((ho.data ?? []) as Horario[]);
-      setPacientes((pa.data ?? []) as Paciente[]);
-      if (pr.data && pr.data.length > 0) setProfSel(pr.data[0].id);
-    });
+    ])
+      .then(([pr, ho, pa]) => {
+        if (pr.error) console.error("Error cargando profesionales:", pr.error);
+        if (ho.error) console.error("Error cargando horarios:", ho.error);
+        if (pa.error) console.error("Error cargando pacientes:", pa.error);
+        const profs = (pr.data ?? []) as Profesional[];
+        setProfesionales(profs);
+        setHorarios((ho.data ?? []) as Horario[]);
+        setPacientes((pa.data ?? []) as Paciente[]);
+        if (profs.length > 0) setProfSel(profs[0].id);
+      })
+      .catch((e) => {
+        console.error("Error inesperado cargando datos de turnos:", e);
+        toast.error("No se pudieron cargar los datos de la agenda");
+      });
   }, []);
 
   useEffect(() => {
@@ -105,16 +114,24 @@ export default function Turnos() {
   }, [fecha, vista, profSel]);
 
   async function cargarTurnos() {
-    const desde = vista === "dia" ? fecha : startOfWeek(fecha, { weekStartsOn: 1 });
-    const hasta = vista === "dia" ? fecha : addDays(desde, 6);
-    let q = supabase
-      .from("turnos")
-      .select("*, paciente:pacientes(nombre, apellido)")
-      .gte("fecha", format(desde, "yyyy-MM-dd"))
-      .lte("fecha", format(hasta, "yyyy-MM-dd"));
-    if (profSel) q = q.eq("profesional_id", profSel);
-    const { data } = await q;
-    setTurnos((data ?? []) as unknown as Turno[]);
+    try {
+      const desde = vista === "dia" ? fecha : startOfWeek(fecha, { weekStartsOn: 1 });
+      const hasta = vista === "dia" ? fecha : addDays(desde, 6);
+      let q = supabase
+        .from("turnos")
+        .select("*, paciente:pacientes(nombre, apellido)")
+        .gte("fecha", format(desde, "yyyy-MM-dd"))
+        .lte("fecha", format(hasta, "yyyy-MM-dd"));
+      if (profSel) q = q.eq("profesional_id", profSel);
+      const { data, error } = await q;
+      if (error) {
+        console.error("Error cargando turnos:", error);
+        return;
+      }
+      setTurnos((data ?? []) as unknown as Turno[]);
+    } catch (e) {
+      console.error("Error inesperado cargando turnos:", e);
+    }
   }
 
   function abrirSlot(profesional_id: string, dia: Date, s: Slot) {
