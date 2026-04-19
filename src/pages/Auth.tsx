@@ -186,15 +186,27 @@ export default function AuthPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="reg-password">Contraseña</Label>
-                    <Input
-                      id="reg-password"
-                      type="password"
-                      autoComplete="new-password"
-                      minLength={6}
-                      value={regPassword}
-                      onChange={(e) => setRegPassword(e.target.value)}
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        id="reg-password"
+                        type={showRegPassword ? "text" : "password"}
+                        autoComplete="new-password"
+                        minLength={6}
+                        value={regPassword}
+                        onChange={(e) => setRegPassword(e.target.value)}
+                        required
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowRegPassword((v) => !v)}
+                        tabIndex={-1}
+                        aria-label={showRegPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+                      >
+                        {showRegPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                     <p className="text-xs text-muted-foreground">Mínimo 6 caracteres.</p>
                   </div>
                   <Button type="submit" className="w-full" disabled={submitting}>
