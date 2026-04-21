@@ -75,6 +75,8 @@ export default function AtencionForm() {
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickTargetIdx, setQuickTargetIdx] = useState<number | null>(null);
 
+  const [turnosDisponibles, setTurnosDisponibles] = useState<TurnoOpcion[]>([]);
+
   useEffect(() => {
     document.title = isEdit ? "Editar atención | Consultorio" : "Nueva atención | Consultorio";
     Promise.all([
@@ -100,6 +102,7 @@ export default function AtencionForm() {
             observaciones: data.observaciones ?? "",
             proxima_visita_sugerida: (data as any).proxima_visita_sugerida ?? "",
             turno_id: data.turno_id,
+            tipo_atencion: ((data as any).tipo_atencion ?? "con_turno") as TipoAtencion,
           });
         });
       supabase.from("atencion_practicas").select("*").eq("atencion_id", id).order("orden")
@@ -126,10 +129,37 @@ export default function AtencionForm() {
             fecha: data.fecha,
             motivo: data.motivo_consulta ?? "",
             turno_id: turnoIdParam,
+            tipo_atencion: "con_turno",
           }));
         });
     }
   }, [id, isEdit, turnoIdParam]);
+
+  // Cargar turnos disponibles del paciente cuando es "con_turno"
+  useEffect(() => {
+    if (form.tipo_atencion !== "con_turno" || !form.paciente_id) {
+      setTurnosDisponibles([]);
+      return;
+    }
+    supabase
+      .from("turnos")
+      .select("id, fecha, hora_inicio, motivo_consulta, paciente_id, profesional_id")
+      .eq("paciente_id", form.paciente_id)
+      .in("estado", ["confirmado", "en_atencion", "reservado"])
+      .order("fecha", { ascending: false })
+      .limit(50)
+      .then(({ data }) => setTurnosDisponibles((data ?? []) as TurnoOpcion[]));
+  }, [form.tipo_atencion, form.paciente_id]);
+
+  function setTipoAtencion(tipo: TipoAtencion) {
+    setForm((f) => ({
+      ...f,
+      tipo_atencion: tipo,
+      // Si pasa a urgencia/espontanea, limpiar turno
+      turno_id: tipo === "con_turno" ? f.turno_id : null,
+    }));
+  }
+
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
