@@ -143,7 +143,8 @@ export default function AtencionForm() {
       .select("id, fecha, hora_inicio, motivo_consulta, paciente_id, profesional_id")
       .eq("paciente_id", form.paciente_id)
       .in("estado", ["confirmado", "en_atencion", "reservado"])
-      .order("fecha", { ascending: false })
+      .order("fecha", { ascending: true })
+      .order("hora_inicio", { ascending: true })
       .limit(50)
       .then(({ data }) => setTurnosDisponibles((data ?? []) as TurnoOpcion[]));
   }, [form.tipo_atencion, form.paciente_id]);
@@ -333,7 +334,15 @@ export default function AtencionForm() {
                 </Label>
                 <Select
                   value={form.turno_id ?? ""}
-                  onValueChange={(v) => set("turno_id", v || null)}
+                  onValueChange={(v) => {
+                    const turnoId = v || null;
+                    const turno = turnoId ? turnosDisponibles.find((t) => t.id === turnoId) : null;
+                    setForm((f) => ({
+                      ...f,
+                      turno_id: turnoId,
+                      profesional_id: turno?.profesional_id ?? f.profesional_id,
+                    }));
+                  }}
                   disabled={form.tipo_atencion !== "con_turno" || !form.paciente_id || !!turnoIdParam}
                 >
                   <SelectTrigger>
