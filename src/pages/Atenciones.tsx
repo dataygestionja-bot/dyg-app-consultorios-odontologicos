@@ -38,6 +38,7 @@ export default function Atenciones() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [orden, setOrden] = useState<"desc" | "asc">("desc");
 
   useEffect(() => {
     document.title = "Atenciones | Consultorio";
