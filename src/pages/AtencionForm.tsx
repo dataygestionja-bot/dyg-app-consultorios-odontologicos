@@ -334,7 +334,15 @@ export default function AtencionForm() {
                 </Label>
                 <Select
                   value={form.turno_id ?? ""}
-                  onValueChange={(v) => set("turno_id", v || null)}
+                  onValueChange={(v) => {
+                    const turnoId = v || null;
+                    const turno = turnoId ? turnosDisponibles.find((t) => t.id === turnoId) : null;
+                    setForm((f) => ({
+                      ...f,
+                      turno_id: turnoId,
+                      profesional_id: turno?.profesional_id ?? f.profesional_id,
+                    }));
+                  }}
                   disabled={form.tipo_atencion !== "con_turno" || !form.paciente_id || !!turnoIdParam}
                 >
                   <SelectTrigger>
