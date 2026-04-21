@@ -411,18 +411,14 @@ export default function Turnos() {
           <DialogHeader>
             <DialogTitle>{editing ? "Editar turno" : "Nuevo turno"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 max-h-[70vh] overflow-y-auto pr-1">
             {slot && (
               <p className="text-sm text-muted-foreground">
                 {safeFormat(safeParseISO(slot.fecha), "EEEE d 'de' MMMM", { locale: es })} · {slot.hora_inicio} - {slot.hora_fin}
               </p>
             )}
-            {editing && (
-              <p className="text-sm text-muted-foreground">
-                {safeFormat(safeParseISO(editing.fecha), "EEEE d 'de' MMMM", { locale: es })} · {editing.hora_inicio.slice(0, 5)} - {editing.hora_fin.slice(0, 5)}
-              </p>
-            )}
 
+            {/* NUEVO TURNO: paciente */}
             {!editing && (
               <div className="space-y-2">
                 <Label>Paciente</Label>
@@ -442,7 +438,63 @@ export default function Turnos() {
               </div>
             )}
 
-            {editing && (
+            {/* EDITAR TURNO */}
+            {editing && isSystemManaged && (
+              <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+                Este turno está en un estado gestionado por el sistema ({TURNO_ESTADO_LABELS[editing.estado as TurnoEstado] ?? editing.estado}).
+                Solo se puede editar el motivo.
+              </div>
+            )}
+
+            {editing && !isSystemManaged && (
+              <>
+                <div className="space-y-2">
+                  <Label>Paciente</Label>
+                  <Input
+                    placeholder="Buscar por nombre, apellido o DNI..."
+                    value={pacienteSearch}
+                    onChange={(e) => setPacienteSearch(e.target.value)}
+                  />
+                  <Select value={pacienteId} onValueChange={setPacienteId}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar paciente" /></SelectTrigger>
+                    <SelectContent>
+                      {pacientesFiltrados.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre} · {p.dni}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Profesional</Label>
+                  <Select value={editProfId} onValueChange={setEditProfId}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar profesional" /></SelectTrigger>
+                    <SelectContent>
+                      {profesionales.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-2">
+                    <Label>Fecha</Label>
+                    <Input type="date" value={editFecha} onChange={(e) => setEditFecha(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Hora inicio</Label>
+                    <Input type="time" value={editHoraInicio} onChange={(e) => onChangeHoraInicio(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Hora fin</Label>
+                    <Input type="time" value={editHoraFin} onChange={(e) => setEditHoraFin(e.target.value)} />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {editing && isSystemManaged && (
               <div className="space-y-1">
                 <Label>Paciente</Label>
                 <p className="text-sm font-medium">
@@ -455,25 +507,38 @@ export default function Turnos() {
               <Label>Motivo de consulta</Label>
               <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={2} />
             </div>
+
             <div className="space-y-2">
               <Label>Estado</Label>
-              <Select value={estado} onValueChange={(v) => setEstado(v as TurnoEstado)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {TURNO_ESTADOS.map((e) => (
-                    <SelectItem key={e} value={e}>{TURNO_ESTADO_LABELS[e]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {editing && isSystemManaged ? (
+                <>
+                  <Input value={TURNO_ESTADO_LABELS[editing.estado as TurnoEstado] ?? editing.estado} disabled />
+                  <p className="text-xs text-muted-foreground">Estado gestionado por el sistema</p>
+                </>
+              ) : (
+                <Select value={estado} onValueChange={(v) => setEstado(v as TurnoEstado)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(editing ? ESTADOS_MANUALES : TURNO_ESTADOS).map((e) => (
+                      <SelectItem key={e} value={e}>{TURNO_ESTADO_LABELS[e]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
-          <DialogFooter className="flex justify-between sm:justify-between">
-            {editing && canEdit ? (
-              <Button type="button" variant="destructive" onClick={eliminar}>Eliminar</Button>
-            ) : <div />}
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-between">
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              {canEdit && <Button onClick={guardar}>Guardar</Button>}
+              {editing && canEdit && (
+                <Button type="button" variant="destructive" onClick={eliminar}>Eliminar</Button>
+              )}
+              {editing && canEdit && !isSystemManaged && estado !== "cancelado" && (
+                <Button type="button" variant="outline" onClick={cancelarTurno}>Cancelar turno</Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cerrar</Button>
+              {canEdit && <Button onClick={guardar} disabled={saving}>{saving ? "Guardando..." : "Guardar"}</Button>}
             </div>
           </DialogFooter>
         </DialogContent>
