@@ -309,6 +309,59 @@ export default function AtencionForm() {
               </div>
             </div>
 
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Tipo de atención *</Label>
+                <Select
+                  value={form.tipo_atencion}
+                  onValueChange={(v) => setTipoAtencion(v as TipoAtencion)}
+                  disabled={!!turnoIdParam}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TIPO_ATENCION_LABELS) as TipoAtencion[]).map((t) => (
+                      <SelectItem key={t} value={t}>{TIPO_ATENCION_LABELS[t]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {turnoIdParam && (
+                  <p className="text-xs text-muted-foreground">
+                    Atención iniciada desde un turno: el tipo queda fijo en "Con turno".
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>
+                  Turno asociado {form.tipo_atencion === "con_turno" ? "*" : ""}
+                </Label>
+                <Select
+                  value={form.turno_id ?? ""}
+                  onValueChange={(v) => set("turno_id", v || null)}
+                  disabled={form.tipo_atencion !== "con_turno" || !form.paciente_id || !!turnoIdParam}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={
+                      form.tipo_atencion !== "con_turno"
+                        ? "No aplica para urgencia/espontánea"
+                        : !form.paciente_id
+                          ? "Primero seleccioná un paciente"
+                          : turnosDisponibles.length === 0
+                            ? "Sin turnos disponibles"
+                            : "Seleccionar turno..."
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {turnosDisponibles.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {format(new Date(t.fecha + "T00:00:00"), "dd/MM/yyyy")} · {t.hora_inicio?.slice(0, 5)} · {t.motivo_consulta}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label>Motivo</Label>
               <Textarea value={form.motivo} onChange={(e) => set("motivo", e.target.value)} rows={2} />
