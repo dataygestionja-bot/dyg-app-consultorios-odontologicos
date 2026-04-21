@@ -1,38 +1,42 @@
 
 
-## Historial de atenciones en ficha del paciente
+## Vista de detalle (solo lectura) para atenciones
 
-Agregar una nueva pestaña **"Atenciones"** dentro de la edición de paciente (`/pacientes/:id`) que muestre el historial cronológico de atenciones clínicas que tuvo ese paciente.
+Hoy el ícono ojo en el listado de **Atenciones** y en la solapa **Atenciones** del paciente abre `/atenciones/:id`, que en realidad renderiza `AtencionForm` en modo edición. El usuario espera ver los datos sin poder modificarlos.
+
+### Solución
+
+Crear una nueva página **`/atenciones/:id/ver`** que muestra la atención en modo solo lectura, y redirigir todos los íconos "ojo" a esa ruta. La edición sigue accesible desde un botón **"Editar"** dentro de la vista de detalle.
 
 ### Cambios
 
-**1. Nuevo componente `src/components/paciente/HistorialAtenciones.tsx`**
+**1. Nueva página `src/pages/AtencionDetalle.tsx`**
 
-- Recibe `pacienteId` como prop.
-- Consulta a `atenciones` filtrando por `paciente_id`, ordenadas por `fecha` descendente (más reciente primero), trayendo además `profesional:profesionales(nombre, apellido)` y `turno:turnos(motivo_consulta)`.
-- Renderiza una `Card` con tabla de columnas:
-  - **Fecha** (formateada `dd/MM/yyyy`)
-  - **Tipo** (badge: Con turno / Urgencia / Espontánea, mismos colores que `Atenciones.tsx`)
-  - **Profesional** (apellido, nombre)
-  - **Motivo** (del turno, o el tipo si no aplica)
-  - **Diagnóstico** (truncado con tooltip)
-  - **Acciones**: botón "Ver" → `Link` a `/atenciones/:id`
-- Estado vacío: "Sin atenciones registradas".
-- Estado de carga: "Cargando atenciones...".
+- Lee `:id` desde la URL.
+- Trae la atención con joins: paciente, profesional, turno y prácticas (`atencion_practicas` con su prestación).
+- Renderiza en `Card`s de solo lectura (texto plano, sin inputs):
+  - **Encabezado**: botón ← volver, título "Detalle de atención", botón **Editar** a la derecha (`Link` a `/atenciones/:id`).
+  - **Datos generales**: fecha, paciente, profesional, tipo de atención (badge), turno asociado (motivo + fecha/hora si existe), próxima visita sugerida.
+  - **Prácticas realizadas**: tabla con prestación (código + descripción), pieza, cara, cantidad, observación.
+  - **Diagnóstico**, **Indicaciones**, **Observaciones** como bloques de texto (mostrar "—" si vacíos).
+- Estado de carga y "no encontrado".
 
-**2. `src/pages/PacienteForm.tsx`**
+**2. Registrar la ruta en `src/App.tsx`**
 
-- Importar `HistorialAtenciones`.
-- Agregar nuevo `<TabsTrigger value="atenciones">Atenciones</TabsTrigger>` (solo si `isEdit`), entre **Observaciones** y **Cuenta corriente**.
-- Agregar el `<TabsContent value="atenciones">` correspondiente que renderiza `<HistorialAtenciones pacienteId={id!} />`.
+Agregar `<Route path="/atenciones/:id/ver" element={<AtencionDetalle />} />` dentro del bloque protegido, **antes** de `/atenciones/:id` para evitar conflictos.
+
+**3. Cambiar destino del ícono ojo**
+
+- `src/pages/Atenciones.tsx` (línea 161): `to={`/atenciones/${a.id}/ver`}`.
+- `src/components/paciente/HistorialAtenciones.tsx` (línea ~117): mismo cambio.
 
 ### Lo que NO se toca
 
-- Esquema de base de datos (la tabla `atenciones` ya existe con `paciente_id`).
-- RLS ni permisos.
-- Página `/atenciones` ni `AtencionForm`.
+- `AtencionForm.tsx` sigue siendo el modo crear/editar; se accede desde el botón **Editar** del detalle o desde "Nueva atención".
+- Permisos / RLS / base de datos.
+- Otras vistas (Dashboard, Turnos).
 
 ### Resultado
 
-Al abrir cualquier paciente, una nueva solapa **Atenciones** lista todo su historial clínico ordenado de más reciente a más antiguo, con acceso directo al detalle de cada atención.
+Al hacer clic en el ojo desde el listado de Atenciones o desde la ficha del paciente, se abre una vista de **solo lectura** con todos los datos de la atención. Para modificarla, el usuario usa el botón **Editar** que la lleva al formulario actual.
 
