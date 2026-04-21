@@ -125,7 +125,6 @@ export default function AtencionForm() {
             paciente_id: data.paciente_id,
             profesional_id: data.profesional_id,
             fecha: data.fecha,
-            motivo: data.motivo_consulta ?? "",
             turno_id: turnoIdParam,
             tipo_atencion: "con_turno",
           }));
