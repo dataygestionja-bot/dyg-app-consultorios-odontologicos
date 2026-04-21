@@ -85,6 +85,18 @@ export default function Turnos() {
   const [motivo, setMotivo] = useState("");
   const [estado, setEstado] = useState<TurnoEstado>("reservado");
   const [pacienteSearch, setPacienteSearch] = useState("");
+  // Editable fields when editing
+  const [editProfId, setEditProfId] = useState("");
+  const [editFecha, setEditFecha] = useState("");
+  const [editHoraInicio, setEditHoraInicio] = useState("");
+  const [editHoraFin, setEditHoraFin] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const ESTADOS_SISTEMA: TurnoEstado[] = ["atendido"] as TurnoEstado[];
+  // System-managed states present in DB enum but not always in TURNO_ESTADOS
+  const SYSTEM_STATES = new Set<string>(["atendido", "en_atencion", "pendiente_cierre"]);
+  const ESTADOS_MANUALES: TurnoEstado[] = TURNO_ESTADOS.filter((e) => !SYSTEM_STATES.has(e)) as TurnoEstado[];
+  const isSystemManaged = editing ? SYSTEM_STATES.has(editing.estado) : false;
 
   useEffect(() => {
     document.title = "Turnos | Consultorio";
