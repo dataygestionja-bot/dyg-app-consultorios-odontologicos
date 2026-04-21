@@ -14,6 +14,7 @@ import {
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import CuentaCorriente from "@/components/paciente/CuentaCorriente";
+import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
 
 interface ObraSocial { id: string; nombre: string; }
 
@@ -137,6 +138,7 @@ export default function PacienteForm() {
             <TabsTrigger value="obra">Obra social</TabsTrigger>
             <TabsTrigger value="clinica">Ficha clínica</TabsTrigger>
             <TabsTrigger value="otros">Observaciones</TabsTrigger>
+            {isEdit && <TabsTrigger value="atenciones">Atenciones</TabsTrigger>}
             {isEdit && <TabsTrigger value="cuenta">Cuenta corriente</TabsTrigger>}
           </TabsList>
 
@@ -212,6 +214,12 @@ export default function PacienteForm() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {isEdit && (
+            <TabsContent value="atenciones">
+              <HistorialAtenciones pacienteId={id!} />
+            </TabsContent>
+          )}
 
           {isEdit && (
             <TabsContent value="cuenta">
