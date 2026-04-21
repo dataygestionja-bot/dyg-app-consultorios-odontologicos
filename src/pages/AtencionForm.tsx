@@ -48,6 +48,7 @@ const empty = {
   observaciones: "",
   proxima_visita_sugerida: "",
   turno_id: null as string | null,
+  tipo_atencion: "con_turno" as TipoAtencion,
 };
 
 const newPractica = (orden: number): PracticaRow => ({
