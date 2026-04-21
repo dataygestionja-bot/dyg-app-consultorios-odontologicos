@@ -95,50 +95,62 @@ export default function Atenciones() {
               className="max-w-md"
             />
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Paciente</TableHead>
-                <TableHead>Profesional</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Motivo del turno</TableHead>
-                <TableHead>Diagnóstico</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin atenciones</TableCell></TableRow>
-              ) : (
-                filtered.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell>{format(parseISO(a.fecha), "dd/MM/yyyy", { locale: es })}</TableCell>
-                    <TableCell className="font-medium">
-                      {a.paciente ? `${a.paciente.apellido}, ${a.paciente.nombre}` : "—"}
-                    </TableCell>
-                    <TableCell>
-                      {a.profesional ? `${a.profesional.apellido}, ${a.profesional.nombre}` : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={TIPO_VARIANT[a.tipo_atencion]}>{TIPO_LABEL[a.tipo_atencion]}</Badge>
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {a.turno?.motivo_consulta ?? (a.tipo_atencion !== "con_turno" ? TIPO_LABEL[a.tipo_atencion] : "—")}
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate">{a.diagnostico ?? "—"}</TableCell>
-                    <TableCell className="text-right">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link to={`/atenciones/${a.id}`}><Eye className="h-4 w-4" /></Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Fecha</TableHead>
+                  <TableHead>Paciente</TableHead>
+                  <TableHead className="hidden lg:table-cell">Profesional</TableHead>
+                  <TableHead className="whitespace-nowrap">Tipo</TableHead>
+                  <TableHead className="min-w-[180px]">Motivo del turno</TableHead>
+                  <TableHead className="hidden md:table-cell">Diagnóstico</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin atenciones</TableCell></TableRow>
+                ) : (
+                  filtered.map((a) => (
+                    <TableRow key={a.id}>
+                      <TableCell className="whitespace-nowrap">{format(parseISO(a.fecha), "dd/MM/yyyy", { locale: es })}</TableCell>
+                      <TableCell className="font-medium">
+                        <div>{a.paciente ? `${a.paciente.apellido}, ${a.paciente.nombre}` : "—"}</div>
+                        <div className="text-xs text-muted-foreground lg:hidden">
+                          {a.profesional ? `${a.profesional.apellido}, ${a.profesional.nombre}` : "—"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        {a.profesional ? `${a.profesional.apellido}, ${a.profesional.nombre}` : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={TIPO_VARIANT[a.tipo_atencion]} className="whitespace-nowrap">
+                          {TIPO_LABEL[a.tipo_atencion]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-[180px] sm:max-w-[240px]">
+                        <div className="truncate" title={a.turno?.motivo_consulta ?? ""}>
+                          {a.turno?.motivo_consulta ?? (a.tipo_atencion !== "con_turno" ? TIPO_LABEL[a.tipo_atencion] : "—")}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate md:hidden" title={a.diagnostico ?? ""}>
+                          {a.diagnostico ?? ""}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell max-w-[200px] truncate">{a.diagnostico ?? "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <Button asChild variant="ghost" size="sm">
+                          <Link to={`/atenciones/${a.id}`}><Eye className="h-4 w-4" /></Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
