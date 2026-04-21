@@ -1,43 +1,32 @@
 
 
-## Diagnóstico
+## Quitar el campo "Motivo" del módulo Atención
 
-El error `Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node` que se muestra en el ErrorBoundary es uno de los bugs más reportados de React (issue [#11538](https://github.com/facebook/react/issues/11538)). **No es un bug de tu código**: ocurre cuando algo modifica el DOM "por afuera" de React, y la causa más común (en ~95% de los casos) es:
+El motivo de consulta ya se carga obligatoriamente en el turno (`turnos.motivo_consulta NOT NULL`), por lo que duplicarlo en la atención no aporta valor y genera confusión.
 
-> **Google Translate** (u otra extensión de traducción del navegador) traduciendo automáticamente la página y reemplazando nodos de texto. Cuando React intenta remover esos nodos en un re-render, ya no son hijos del padre original → crash.
+### Cambios
 
-Síntomas que confirman el diagnóstico:
-- Tu `index.html` declara `<html lang="en">` pero el contenido está en español → Chrome ofrece traducir automáticamente.
-- El error aparece en módulos con muchos re-renders y nodos de texto dinámicos (Turnos tiene Selects, Tabs, fechas, listados; Atenciones tiene tablas con datos dinámicos).
-- Pasa solo a algunos usuarios (los que tienen Translate activo).
+**1. `src/pages/AtencionForm.tsx`**
+- Eliminar el `Textarea` de "Motivo" (líneas 365–368) del card "Datos generales".
+- Eliminar `motivo` del estado `empty`, del setter en el `useEffect` de edición y del precargado por turno.
+- Eliminar `motivo` del `payload` enviado a `supabase.from("atenciones")`.
+- En el listado de turnos disponibles (Select "Turno asociado") ya se muestra `motivo_consulta`, lo cual queda como referencia visible para el profesional.
+- Cuando se inicia desde un turno, el motivo del turno queda accesible en la cabecera del Select de turno; opcionalmente mostrar una línea informativa de solo lectura debajo del Select cuando hay `turno_id` seleccionado: *"Motivo del turno: {motivo_consulta}"*.
 
-## Plan — 3 cambios mínimos y seguros
+**2. `src/pages/Atenciones.tsx` (listado)**
+- Reemplazar la columna "Motivo" por "Motivo del turno" obtenida vía join: `turno:turnos(motivo_consulta)`.
+- Ajustar el filtro de búsqueda para usar `r.turno?.motivo_consulta` en lugar de `r.motivo`.
+- Para atenciones sin turno (urgencia/espontánea) mostrar `—` o el `tipo_atencion` (Urgencia / Espontánea) como contexto.
+- Sumar pequeña columna/badge "Tipo" para distinguir `con_turno`, `urgencia`, `espontanea`.
 
-### 1. Declarar el idioma correcto en `index.html`
-Cambiar `<html lang="en">` por `<html lang="es">`. Esto evita que Chrome ofrezca traducir la página (causa raíz del 95% de los casos).
+**3. Base de datos — `atenciones.motivo`**
+No se elimina la columna ahora para no romper datos históricos. Queda nullable (ya lo es) y deja de escribirse desde la UI. Si más adelante se confirma que no hay datos útiles, se puede dropear en una migración futura.
 
-### 2. Bloquear traducción automática (defensa adicional)
-Agregar dos meta tags en `<head>` y el atributo `translate="no"` en el body:
-```html
-<meta name="google" content="notranslate" />
-<meta http-equiv="Content-Language" content="es" />
-```
-Esto le indica explícitamente a Google Translate, Edge Translate, Safari, etc. que no toquen el DOM.
+### Lo que NO se toca
+- `turnos.motivo_consulta` sigue siendo obligatorio (ya lo es).
+- Triggers y reglas de negocio definidas previamente quedan intactas.
+- `diagnostico`, `tratamiento_realizado`, `indicaciones`, `observaciones` y `proxima_visita_sugerida` siguen en el form de atención.
 
-### 3. Mejorar el ErrorBoundary para auto-recuperarse
-Si el error vuelve a ocurrir por otra causa, en lugar de quedar trabado en la pantalla de error, agregar:
-- Detección específica del mensaje "removeChild" / "insertBefore" → mostrar mensaje amigable "Desactivá el traductor del navegador para esta página".
-- Botón "Reintentar" que solo resetea el estado del boundary (sin recargar toda la página).
-
-### Archivos a modificar
-- `index.html` — cambiar lang + agregar meta notranslate
-- `src/components/ErrorBoundary.tsx` — mensaje contextual + botón reintentar sin recargar
-
-### Lo que NO hace falta
-- No tocar Turnos.tsx ni Atenciones.tsx (el código está bien).
-- No tocar router ni layout.
-- No requiere cambios de backend ni migraciones.
-
-### Después de aplicar
-Republicar la app (Publish → Update) y probar de nuevo con el usuario `recepcion`. Si el usuario tiene Google Translate activo manualmente (no automático), pedirle que lo desactive para `consultoriosdg.lovable.app`.
+### Resultado
+El profesional ve el motivo desde el turno asociado (y al elegirlo en el Select), sin tener que reescribirlo. El listado de Atenciones muestra el motivo proveniente del turno, evitando inconsistencia de datos.
 
