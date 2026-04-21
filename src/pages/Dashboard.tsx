@@ -168,25 +168,6 @@ export default function Dashboard() {
                   );
                 })}
               </ul>
-                        className="h-9 w-1.5 rounded-full shrink-0"
-                        style={{ backgroundColor: t.profesional?.color_agenda ?? "hsl(var(--primary))" }}
-                      />
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">
-                          {t.paciente ? `${t.paciente.apellido}, ${t.paciente.nombre}` : "—"}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {t.hora_inicio.slice(0, 5)} · Dr. {t.profesional?.apellido ?? "—"}
-                          {t.motivo_consulta ? ` · ${t.motivo_consulta}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge className={TURNO_ESTADO_CLASSES[t.estado]}>
-                      {TURNO_ESTADO_LABELS[t.estado]}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
             )}
           </CardContent>
         </Card>
