@@ -169,42 +169,135 @@ export default function Turnos() {
     setMotivo(t.motivo_consulta ?? "");
     setEstado(t.estado);
     setPacienteSearch("");
+    setEditProfId(t.profesional_id);
+    setEditFecha(t.fecha);
+    setEditHoraInicio(t.hora_inicio.slice(0, 5));
+    setEditHoraFin(t.hora_fin.slice(0, 5));
     setOpen(true);
   }
 
-  async function guardar() {
-    if (editing) {
-      const { error } = await supabase
-        .from("turnos")
-        .update({ motivo_consulta: motivo || null, estado })
-        .eq("id", editing.id);
-      if (error) return toast.error("No se pudo actualizar", { description: error.message });
-      toast.success("Turno actualizado");
-    } else if (slot) {
-      if (!pacienteId) return toast.error("Seleccioná un paciente");
-      const { error } = await supabase.from("turnos").insert({
-        paciente_id: pacienteId,
-        profesional_id: slot.profesional_id,
-        fecha: slot.fecha,
-        hora_inicio: slot.hora_inicio,
-        hora_fin: slot.hora_fin,
-        motivo_consulta: motivo || null,
-        estado,
-      });
-      if (error) {
-        const msg = error.message.includes("turnos_no_overlap")
-          ? "Ese horario ya tiene un turno para el profesional"
-          : error.message;
-        return toast.error("No se pudo crear", { description: msg });
+  function onChangeHoraInicio(nuevaHora: string) {
+    if (editing && editHoraInicio && editHoraFin) {
+      // Mantener duración original del turno editado
+      const [h1, m1] = editHoraInicio.split(":").map(Number);
+      const [h2, m2] = editHoraFin.split(":").map(Number);
+      const dur = h2 * 60 + m2 - (h1 * 60 + m1);
+      const [nh, nm] = nuevaHora.split(":").map(Number);
+      if (!isNaN(nh) && !isNaN(nm) && dur > 0) {
+        const tot = nh * 60 + nm + dur;
+        const fh = String(Math.floor(tot / 60) % 24).padStart(2, "0");
+        const fm = String(tot % 60).padStart(2, "0");
+        setEditHoraFin(`${fh}:${fm}`);
       }
-      toast.success("Turno creado");
     }
+    setEditHoraInicio(nuevaHora);
+  }
+
+  async function guardar() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      if (editing) {
+        if (isSystemManaged) {
+          // Solo permitir cambios menores en estados gestionados
+          const { error } = await supabase
+            .from("turnos")
+            .update({ motivo_consulta: motivo.trim() || editing.motivo_consulta || "" })
+            .eq("id", editing.id);
+          if (error) return toast.error("No se pudo actualizar", { description: error.message });
+          toast.success("Turno actualizado");
+          setOpen(false);
+          cargarTurnos();
+          return;
+        }
+
+        // Validaciones
+        if (!pacienteId) return toast.error("Seleccioná un paciente");
+        if (!editProfId) return toast.error("Seleccioná un profesional");
+        if (!editFecha) return toast.error("La fecha es obligatoria");
+        if (!editHoraInicio || !editHoraFin) return toast.error("Las horas son obligatorias");
+        if (editHoraFin <= editHoraInicio) return toast.error("La hora de fin debe ser mayor a la de inicio");
+        if (motivo.trim() === "") return toast.error("El motivo es obligatorio");
+
+        // Chequeo de superposición
+        const { data: choques, error: errChoque } = await supabase
+          .from("turnos")
+          .select("id, hora_inicio, hora_fin")
+          .eq("profesional_id", editProfId)
+          .eq("fecha", editFecha)
+          .neq("id", editing.id)
+          .in("estado", ["reservado", "confirmado", "en_atencion"]);
+        if (errChoque) return toast.error("No se pudo validar el horario", { description: errChoque.message });
+        const hi = editHoraInicio;
+        const hf = editHoraFin;
+        const overlap = (choques ?? []).some((c) => {
+          const ci = c.hora_inicio.slice(0, 5);
+          const cf = c.hora_fin.slice(0, 5);
+          return hi < cf && hf > ci;
+        });
+        if (overlap) return toast.error("El profesional ya tiene un turno en ese horario");
+
+        const { error } = await supabase
+          .from("turnos")
+          .update({
+            paciente_id: pacienteId,
+            profesional_id: editProfId,
+            fecha: editFecha,
+            hora_inicio: editHoraInicio,
+            hora_fin: editHoraFin,
+            motivo_consulta: motivo.trim(),
+            estado,
+          })
+          .eq("id", editing.id);
+        if (error) {
+          const msg = error.message.includes("turnos_no_overlap")
+            ? "Ese horario ya tiene un turno para el profesional"
+            : error.message.includes("atendido sin una atención")
+            ? "Para marcar como atendido, registrá la atención desde el módulo Atenciones."
+            : error.message;
+          return toast.error("No se pudo actualizar", { description: msg });
+        }
+        toast.success("Turno actualizado");
+      } else if (slot) {
+        if (!pacienteId) return toast.error("Seleccioná un paciente");
+        if (motivo.trim() === "") return toast.error("El motivo es obligatorio");
+        const { error } = await supabase.from("turnos").insert({
+          paciente_id: pacienteId,
+          profesional_id: slot.profesional_id,
+          fecha: slot.fecha,
+          hora_inicio: slot.hora_inicio,
+          hora_fin: slot.hora_fin,
+          motivo_consulta: motivo.trim(),
+          estado,
+        });
+        if (error) {
+          const msg = error.message.includes("turnos_no_overlap")
+            ? "Ese horario ya tiene un turno para el profesional"
+            : error.message;
+          return toast.error("No se pudo crear", { description: msg });
+        }
+        toast.success("Turno creado");
+      }
+      setOpen(false);
+      cargarTurnos();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function cancelarTurno() {
+    if (!editing) return;
+    if (!confirm("¿Confirmar la cancelación de este turno?")) return;
+    const { error } = await supabase.from("turnos").update({ estado: "cancelado" }).eq("id", editing.id);
+    if (error) return toast.error("No se pudo cancelar", { description: error.message });
+    toast.success("Turno cancelado");
     setOpen(false);
     cargarTurnos();
   }
 
   async function eliminar() {
     if (!editing) return;
+    if (!confirm("¿Eliminar definitivamente este turno?")) return;
     const { error } = await supabase.from("turnos").delete().eq("id", editing.id);
     if (error) return toast.error("No se pudo eliminar", { description: error.message });
     toast.success("Turno eliminado");
