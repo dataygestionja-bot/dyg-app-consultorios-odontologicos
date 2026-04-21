@@ -85,6 +85,18 @@ export default function Turnos() {
   const [motivo, setMotivo] = useState("");
   const [estado, setEstado] = useState<TurnoEstado>("reservado");
   const [pacienteSearch, setPacienteSearch] = useState("");
+  // Editable fields when editing
+  const [editProfId, setEditProfId] = useState("");
+  const [editFecha, setEditFecha] = useState("");
+  const [editHoraInicio, setEditHoraInicio] = useState("");
+  const [editHoraFin, setEditHoraFin] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const ESTADOS_SISTEMA: TurnoEstado[] = ["atendido"] as TurnoEstado[];
+  // System-managed states present in DB enum but not always in TURNO_ESTADOS
+  const SYSTEM_STATES = new Set<string>(["atendido", "en_atencion", "pendiente_cierre"]);
+  const ESTADOS_MANUALES: TurnoEstado[] = TURNO_ESTADOS.filter((e) => !SYSTEM_STATES.has(e)) as TurnoEstado[];
+  const isSystemManaged = editing ? SYSTEM_STATES.has(editing.estado) : false;
 
   useEffect(() => {
     document.title = "Turnos | Consultorio";
@@ -157,42 +169,135 @@ export default function Turnos() {
     setMotivo(t.motivo_consulta ?? "");
     setEstado(t.estado);
     setPacienteSearch("");
+    setEditProfId(t.profesional_id);
+    setEditFecha(t.fecha);
+    setEditHoraInicio(t.hora_inicio.slice(0, 5));
+    setEditHoraFin(t.hora_fin.slice(0, 5));
     setOpen(true);
   }
 
-  async function guardar() {
-    if (editing) {
-      const { error } = await supabase
-        .from("turnos")
-        .update({ motivo_consulta: motivo || null, estado })
-        .eq("id", editing.id);
-      if (error) return toast.error("No se pudo actualizar", { description: error.message });
-      toast.success("Turno actualizado");
-    } else if (slot) {
-      if (!pacienteId) return toast.error("Seleccioná un paciente");
-      const { error } = await supabase.from("turnos").insert({
-        paciente_id: pacienteId,
-        profesional_id: slot.profesional_id,
-        fecha: slot.fecha,
-        hora_inicio: slot.hora_inicio,
-        hora_fin: slot.hora_fin,
-        motivo_consulta: motivo || null,
-        estado,
-      });
-      if (error) {
-        const msg = error.message.includes("turnos_no_overlap")
-          ? "Ese horario ya tiene un turno para el profesional"
-          : error.message;
-        return toast.error("No se pudo crear", { description: msg });
+  function onChangeHoraInicio(nuevaHora: string) {
+    if (editing && editHoraInicio && editHoraFin) {
+      // Mantener duración original del turno editado
+      const [h1, m1] = editHoraInicio.split(":").map(Number);
+      const [h2, m2] = editHoraFin.split(":").map(Number);
+      const dur = h2 * 60 + m2 - (h1 * 60 + m1);
+      const [nh, nm] = nuevaHora.split(":").map(Number);
+      if (!isNaN(nh) && !isNaN(nm) && dur > 0) {
+        const tot = nh * 60 + nm + dur;
+        const fh = String(Math.floor(tot / 60) % 24).padStart(2, "0");
+        const fm = String(tot % 60).padStart(2, "0");
+        setEditHoraFin(`${fh}:${fm}`);
       }
-      toast.success("Turno creado");
     }
+    setEditHoraInicio(nuevaHora);
+  }
+
+  async function guardar() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      if (editing) {
+        if (isSystemManaged) {
+          // Solo permitir cambios menores en estados gestionados
+          const { error } = await supabase
+            .from("turnos")
+            .update({ motivo_consulta: motivo.trim() || editing.motivo_consulta || "" })
+            .eq("id", editing.id);
+          if (error) return toast.error("No se pudo actualizar", { description: error.message });
+          toast.success("Turno actualizado");
+          setOpen(false);
+          cargarTurnos();
+          return;
+        }
+
+        // Validaciones
+        if (!pacienteId) return toast.error("Seleccioná un paciente");
+        if (!editProfId) return toast.error("Seleccioná un profesional");
+        if (!editFecha) return toast.error("La fecha es obligatoria");
+        if (!editHoraInicio || !editHoraFin) return toast.error("Las horas son obligatorias");
+        if (editHoraFin <= editHoraInicio) return toast.error("La hora de fin debe ser mayor a la de inicio");
+        if (motivo.trim() === "") return toast.error("El motivo es obligatorio");
+
+        // Chequeo de superposición
+        const { data: choques, error: errChoque } = await supabase
+          .from("turnos")
+          .select("id, hora_inicio, hora_fin")
+          .eq("profesional_id", editProfId)
+          .eq("fecha", editFecha)
+          .neq("id", editing.id)
+          .in("estado", ["reservado", "confirmado", "en_atencion"]);
+        if (errChoque) return toast.error("No se pudo validar el horario", { description: errChoque.message });
+        const hi = editHoraInicio;
+        const hf = editHoraFin;
+        const overlap = (choques ?? []).some((c) => {
+          const ci = c.hora_inicio.slice(0, 5);
+          const cf = c.hora_fin.slice(0, 5);
+          return hi < cf && hf > ci;
+        });
+        if (overlap) return toast.error("El profesional ya tiene un turno en ese horario");
+
+        const { error } = await supabase
+          .from("turnos")
+          .update({
+            paciente_id: pacienteId,
+            profesional_id: editProfId,
+            fecha: editFecha,
+            hora_inicio: editHoraInicio,
+            hora_fin: editHoraFin,
+            motivo_consulta: motivo.trim(),
+            estado,
+          })
+          .eq("id", editing.id);
+        if (error) {
+          const msg = error.message.includes("turnos_no_overlap")
+            ? "Ese horario ya tiene un turno para el profesional"
+            : error.message.includes("atendido sin una atención")
+            ? "Para marcar como atendido, registrá la atención desde el módulo Atenciones."
+            : error.message;
+          return toast.error("No se pudo actualizar", { description: msg });
+        }
+        toast.success("Turno actualizado");
+      } else if (slot) {
+        if (!pacienteId) return toast.error("Seleccioná un paciente");
+        if (motivo.trim() === "") return toast.error("El motivo es obligatorio");
+        const { error } = await supabase.from("turnos").insert({
+          paciente_id: pacienteId,
+          profesional_id: slot.profesional_id,
+          fecha: slot.fecha,
+          hora_inicio: slot.hora_inicio,
+          hora_fin: slot.hora_fin,
+          motivo_consulta: motivo.trim(),
+          estado,
+        });
+        if (error) {
+          const msg = error.message.includes("turnos_no_overlap")
+            ? "Ese horario ya tiene un turno para el profesional"
+            : error.message;
+          return toast.error("No se pudo crear", { description: msg });
+        }
+        toast.success("Turno creado");
+      }
+      setOpen(false);
+      cargarTurnos();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function cancelarTurno() {
+    if (!editing) return;
+    if (!confirm("¿Confirmar la cancelación de este turno?")) return;
+    const { error } = await supabase.from("turnos").update({ estado: "cancelado" }).eq("id", editing.id);
+    if (error) return toast.error("No se pudo cancelar", { description: error.message });
+    toast.success("Turno cancelado");
     setOpen(false);
     cargarTurnos();
   }
 
   async function eliminar() {
     if (!editing) return;
+    if (!confirm("¿Eliminar definitivamente este turno?")) return;
     const { error } = await supabase.from("turnos").delete().eq("id", editing.id);
     if (error) return toast.error("No se pudo eliminar", { description: error.message });
     toast.success("Turno eliminado");
@@ -306,18 +411,14 @@ export default function Turnos() {
           <DialogHeader>
             <DialogTitle>{editing ? "Editar turno" : "Nuevo turno"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 max-h-[70vh] overflow-y-auto pr-1">
             {slot && (
               <p className="text-sm text-muted-foreground">
                 {safeFormat(safeParseISO(slot.fecha), "EEEE d 'de' MMMM", { locale: es })} · {slot.hora_inicio} - {slot.hora_fin}
               </p>
             )}
-            {editing && (
-              <p className="text-sm text-muted-foreground">
-                {safeFormat(safeParseISO(editing.fecha), "EEEE d 'de' MMMM", { locale: es })} · {editing.hora_inicio.slice(0, 5)} - {editing.hora_fin.slice(0, 5)}
-              </p>
-            )}
 
+            {/* NUEVO TURNO: paciente */}
             {!editing && (
               <div className="space-y-2">
                 <Label>Paciente</Label>
@@ -337,7 +438,63 @@ export default function Turnos() {
               </div>
             )}
 
-            {editing && (
+            {/* EDITAR TURNO */}
+            {editing && isSystemManaged && (
+              <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+                Este turno está en un estado gestionado por el sistema ({TURNO_ESTADO_LABELS[editing.estado as TurnoEstado] ?? editing.estado}).
+                Solo se puede editar el motivo.
+              </div>
+            )}
+
+            {editing && !isSystemManaged && (
+              <>
+                <div className="space-y-2">
+                  <Label>Paciente</Label>
+                  <Input
+                    placeholder="Buscar por nombre, apellido o DNI..."
+                    value={pacienteSearch}
+                    onChange={(e) => setPacienteSearch(e.target.value)}
+                  />
+                  <Select value={pacienteId} onValueChange={setPacienteId}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar paciente" /></SelectTrigger>
+                    <SelectContent>
+                      {pacientesFiltrados.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre} · {p.dni}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Profesional</Label>
+                  <Select value={editProfId} onValueChange={setEditProfId}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar profesional" /></SelectTrigger>
+                    <SelectContent>
+                      {profesionales.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-2">
+                    <Label>Fecha</Label>
+                    <Input type="date" value={editFecha} onChange={(e) => setEditFecha(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Hora inicio</Label>
+                    <Input type="time" value={editHoraInicio} onChange={(e) => onChangeHoraInicio(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Hora fin</Label>
+                    <Input type="time" value={editHoraFin} onChange={(e) => setEditHoraFin(e.target.value)} />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {editing && isSystemManaged && (
               <div className="space-y-1">
                 <Label>Paciente</Label>
                 <p className="text-sm font-medium">
@@ -350,25 +507,38 @@ export default function Turnos() {
               <Label>Motivo de consulta</Label>
               <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={2} />
             </div>
+
             <div className="space-y-2">
               <Label>Estado</Label>
-              <Select value={estado} onValueChange={(v) => setEstado(v as TurnoEstado)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {TURNO_ESTADOS.map((e) => (
-                    <SelectItem key={e} value={e}>{TURNO_ESTADO_LABELS[e]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {editing && isSystemManaged ? (
+                <>
+                  <Input value={TURNO_ESTADO_LABELS[editing.estado as TurnoEstado] ?? editing.estado} disabled />
+                  <p className="text-xs text-muted-foreground">Estado gestionado por el sistema</p>
+                </>
+              ) : (
+                <Select value={estado} onValueChange={(v) => setEstado(v as TurnoEstado)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(editing ? ESTADOS_MANUALES : TURNO_ESTADOS).map((e) => (
+                      <SelectItem key={e} value={e}>{TURNO_ESTADO_LABELS[e]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
-          <DialogFooter className="flex justify-between sm:justify-between">
-            {editing && canEdit ? (
-              <Button type="button" variant="destructive" onClick={eliminar}>Eliminar</Button>
-            ) : <div />}
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-between">
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              {canEdit && <Button onClick={guardar}>Guardar</Button>}
+              {editing && canEdit && (
+                <Button type="button" variant="destructive" onClick={eliminar}>Eliminar</Button>
+              )}
+              {editing && canEdit && !isSystemManaged && estado !== "cancelado" && (
+                <Button type="button" variant="outline" onClick={cancelarTurno}>Cancelar turno</Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cerrar</Button>
+              {canEdit && <Button onClick={guardar} disabled={saving}>{saving ? "Guardando..." : "Guardar"}</Button>}
             </div>
           </DialogFooter>
         </DialogContent>
