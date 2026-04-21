@@ -134,10 +134,40 @@ export default function Dashboard() {
               <p className="text-sm text-muted-foreground">No hay turnos programados para hoy.</p>
             ) : (
               <ul className="divide-y">
-                {hoy.map((t) => (
+                {hoy.map((t) => {
+                  const horario = getHorarioInfo(t);
+                  return (
                   <li key={t.id} className="py-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div
+                        className="h-9 w-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: t.profesional?.color_agenda ?? "hsl(var(--primary))" }}
+                      />
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">
+                          {t.paciente ? `${t.paciente.apellido}, ${t.paciente.nombre}` : "—"}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {t.hora_inicio.slice(0, 5)} · Dr. {t.profesional?.apellido ?? "—"}
+                          {t.motivo_consulta ? ` · ${t.motivo_consulta}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                      <Badge className={TURNO_ESTADO_CLASSES[t.estado]}>
+                        {TURNO_ESTADO_LABELS[t.estado]}
+                      </Badge>
+                      {horario && (
+                        <Badge variant="outline" className={`gap-1 ${horario.className}`}>
+                          {horario.icon && <AlertCircle className="h-3 w-3" />}
+                          {horario.label}
+                        </Badge>
+                      )}
+                    </div>
+                  </li>
+                  );
+                })}
+              </ul>
                         className="h-9 w-1.5 rounded-full shrink-0"
                         style={{ backgroundColor: t.profesional?.color_agenda ?? "hsl(var(--primary))" }}
                       />
