@@ -210,7 +210,6 @@ export default function AtencionForm() {
       paciente_id: form.paciente_id,
       profesional_id: form.profesional_id,
       fecha: form.fecha,
-      motivo: form.motivo || null,
       diagnostico: form.diagnostico || null,
       indicaciones: form.indicaciones || null,
       observaciones: form.observaciones || null,
