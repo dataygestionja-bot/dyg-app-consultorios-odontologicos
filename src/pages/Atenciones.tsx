@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye } from "lucide-react";
+import { Plus, Eye, ArrowUp, ArrowDown } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -38,6 +38,7 @@ export default function Atenciones() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [orden, setOrden] = useState<"desc" | "asc">("desc");
 
   useEffect(() => {
     document.title = "Atenciones | Consultorio";
@@ -60,15 +61,20 @@ export default function Atenciones() {
     }
   }
 
-  const filtered = rows.filter((r) => {
-    if (!search) return true;
-    const s = search.toLowerCase();
-    return (
-      (r.paciente && (`${r.paciente.apellido} ${r.paciente.nombre}`.toLowerCase().includes(s))) ||
-      (r.turno?.motivo_consulta ?? "").toLowerCase().includes(s) ||
-      (r.diagnostico ?? "").toLowerCase().includes(s)
-    );
-  });
+  const filtered = rows
+    .filter((r) => {
+      if (!search) return true;
+      const s = search.toLowerCase();
+      return (
+        (r.paciente && (`${r.paciente.apellido} ${r.paciente.nombre}`.toLowerCase().includes(s))) ||
+        (r.turno?.motivo_consulta ?? "").toLowerCase().includes(s) ||
+        (r.diagnostico ?? "").toLowerCase().includes(s)
+      );
+    })
+    .sort((a, b) => {
+      const cmp = a.fecha.localeCompare(b.fecha);
+      return orden === "asc" ? cmp : -cmp;
+    });
 
   return (
     <div className="space-y-6">
@@ -99,7 +105,17 @@ export default function Atenciones() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="whitespace-nowrap">Fecha</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => setOrden((o) => (o === "asc" ? "desc" : "asc"))}
+                      className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                      aria-label={`Ordenar por fecha ${orden === "asc" ? "descendente" : "ascendente"}`}
+                    >
+                      Fecha
+                      {orden === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                    </button>
+                  </TableHead>
                   <TableHead>Paciente</TableHead>
                   <TableHead className="hidden lg:table-cell">Profesional</TableHead>
                   <TableHead className="whitespace-nowrap">Tipo</TableHead>
