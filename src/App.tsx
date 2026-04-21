@@ -17,6 +17,7 @@ import ObrasSociales from "./pages/ObrasSociales";
 import Turnos from "./pages/Turnos";
 import Atenciones from "./pages/Atenciones";
 import AtencionForm from "./pages/AtencionForm";
+import AtencionDetalle from "./pages/AtencionDetalle";
 import Prestaciones from "./pages/Prestaciones";
 import Presupuestos from "./pages/Presupuestos";
 import PresupuestoDetalle from "./pages/PresupuestoDetalle";
@@ -79,6 +80,7 @@ const App = () => (
             } />
             <Route path="/turnos" element={<Private><Turnos /></Private>} />
             <Route path="/atenciones" element={<Private><Atenciones /></Private>} />
+            <Route path="/atenciones/:id/ver" element={<Private><AtencionDetalle /></Private>} />
             <Route path="/atenciones/:id" element={<Private><AtencionForm /></Private>} />
 
             {/* Gestión */}

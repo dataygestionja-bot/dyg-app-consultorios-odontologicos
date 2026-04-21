@@ -158,7 +158,7 @@ export default function Atenciones() {
                       <TableCell className="hidden md:table-cell max-w-[200px] truncate">{a.diagnostico ?? "—"}</TableCell>
                       <TableCell className="text-right">
                         <Button asChild variant="ghost" size="sm">
-                          <Link to={`/atenciones/${a.id}`}><Eye className="h-4 w-4" /></Link>
+                          <Link to={`/atenciones/${a.id}/ver`}><Eye className="h-4 w-4" /></Link>
                         </Button>
                       </TableCell>
                     </TableRow>
