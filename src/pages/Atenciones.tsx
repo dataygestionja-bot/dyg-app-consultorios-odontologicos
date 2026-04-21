@@ -61,15 +61,20 @@ export default function Atenciones() {
     }
   }
 
-  const filtered = rows.filter((r) => {
-    if (!search) return true;
-    const s = search.toLowerCase();
-    return (
-      (r.paciente && (`${r.paciente.apellido} ${r.paciente.nombre}`.toLowerCase().includes(s))) ||
-      (r.turno?.motivo_consulta ?? "").toLowerCase().includes(s) ||
-      (r.diagnostico ?? "").toLowerCase().includes(s)
-    );
-  });
+  const filtered = rows
+    .filter((r) => {
+      if (!search) return true;
+      const s = search.toLowerCase();
+      return (
+        (r.paciente && (`${r.paciente.apellido} ${r.paciente.nombre}`.toLowerCase().includes(s))) ||
+        (r.turno?.motivo_consulta ?? "").toLowerCase().includes(s) ||
+        (r.diagnostico ?? "").toLowerCase().includes(s)
+      );
+    })
+    .sort((a, b) => {
+      const cmp = a.fecha.localeCompare(b.fecha);
+      return orden === "asc" ? cmp : -cmp;
+    });
 
   return (
     <div className="space-y-6">
