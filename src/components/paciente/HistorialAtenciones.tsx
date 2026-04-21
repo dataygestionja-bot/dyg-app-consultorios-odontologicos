@@ -116,7 +116,7 @@ export default function HistorialAtenciones({ pacienteId }: { pacienteId: string
                     </TableCell>
                     <TableCell className="text-right">
                       <Button asChild variant="ghost" size="sm">
-                        <Link to={`/atenciones/${a.id}`} aria-label="Ver atención">
+                        <Link to={`/atenciones/${a.id}/ver`} aria-label="Ver atención">
                           <Eye className="h-4 w-4" />
                         </Link>
                       </Button>
