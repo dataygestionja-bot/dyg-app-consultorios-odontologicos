@@ -355,12 +355,12 @@ export default function AtencionForm() {
                     ))}
                   </SelectContent>
                 </Select>
+                {form.turno_id && turnosDisponibles.find((t) => t.id === form.turno_id) && (
+                  <p className="text-xs text-muted-foreground">
+                    Motivo del turno: {turnosDisponibles.find((t) => t.id === form.turno_id)?.motivo_consulta}
+                  </p>
+                )}
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Motivo</Label>
-              <Textarea value={form.motivo} onChange={(e) => set("motivo", e.target.value)} rows={2} />
             </div>
           </CardContent>
         </Card>
