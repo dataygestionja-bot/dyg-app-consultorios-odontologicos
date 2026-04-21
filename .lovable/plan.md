@@ -1,39 +1,38 @@
 
 
-## Mejoras al cargar atención "con turno"
+## Historial de atenciones en ficha del paciente
 
-Dos ajustes en `src/pages/AtencionForm.tsx` para agilizar la carga de atenciones cuando se selecciona un turno.
+Agregar una nueva pestaña **"Atenciones"** dentro de la edición de paciente (`/pacientes/:id`) que muestre el historial cronológico de atenciones clínicas que tuvo ese paciente.
 
-### 1. Ordenar turnos de más antiguo a más reciente
+### Cambios
 
-En el `useEffect` que carga `turnosDisponibles` (línea ~146), cambiar:
-```typescript
-.order("fecha", { ascending: false })
-```
-por:
-```typescript
-.order("fecha", { ascending: true }).order("hora_inicio", { ascending: true })
-```
+**1. Nuevo componente `src/components/paciente/HistorialAtenciones.tsx`**
 
-Así el desplegable **Turno asociado** muestra primero los turnos más antiguos del paciente y al final los más recientes (incluido el de hoy).
+- Recibe `pacienteId` como prop.
+- Consulta a `atenciones` filtrando por `paciente_id`, ordenadas por `fecha` descendente (más reciente primero), trayendo además `profesional:profesionales(nombre, apellido)` y `turno:turnos(motivo_consulta)`.
+- Renderiza una `Card` con tabla de columnas:
+  - **Fecha** (formateada `dd/MM/yyyy`)
+  - **Tipo** (badge: Con turno / Urgencia / Espontánea, mismos colores que `Atenciones.tsx`)
+  - **Profesional** (apellido, nombre)
+  - **Motivo** (del turno, o el tipo si no aplica)
+  - **Diagnóstico** (truncado con tooltip)
+  - **Acciones**: botón "Ver" → `Link` a `/atenciones/:id`
+- Estado vacío: "Sin atenciones registradas".
+- Estado de carga: "Cargando atenciones...".
 
-### 2. Autocompletar profesional al elegir un turno
+**2. `src/pages/PacienteForm.tsx`**
 
-Modificar el `onValueChange` del Select de **Turno asociado** (línea ~336): cuando el usuario selecciona un turno, además de setear `turno_id`, leer el `profesional_id` del turno elegido desde `turnosDisponibles` y completar `form.profesional_id` automáticamente.
-
-Comportamiento:
-- Si el campo Profesional está vacío → se completa con el del turno.
-- Si ya hay un profesional cargado → **también se reemplaza** por el del turno (la fuente de verdad para una atención "con turno" es el turno mismo). Si más adelante el usuario quiere otro, puede cambiarlo manualmente.
-- Si se deselecciona el turno → no se toca el profesional (evita borrar algo válido).
+- Importar `HistorialAtenciones`.
+- Agregar nuevo `<TabsTrigger value="atenciones">Atenciones</TabsTrigger>` (solo si `isEdit`), entre **Observaciones** y **Cuenta corriente**.
+- Agregar el `<TabsContent value="atenciones">` correspondiente que renderiza `<HistorialAtenciones pacienteId={id!} />`.
 
 ### Lo que NO se toca
 
-- Diálogo "Editar turno".
-- Lógica de tipos `urgencia` / `espontanea` (allí el profesional se elige a mano como hoy).
-- Validaciones de guardado.
-- Base de datos.
+- Esquema de base de datos (la tabla `atenciones` ya existe con `paciente_id`).
+- RLS ni permisos.
+- Página `/atenciones` ni `AtencionForm`.
 
 ### Resultado
 
-Al elegir un paciente y seleccionar el turno asociado, el profesional se carga solo con el dato del turno, y la lista de turnos se ve ordenada cronológicamente de más antiguo a más reciente.
+Al abrir cualquier paciente, una nueva solapa **Atenciones** lista todo su historial clínico ordenado de más reciente a más antiguo, con acceso directo al detalle de cada atención.
 
