@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Users, Plus, Clock } from "lucide-react";
+import { CalendarDays, Users, Plus, Clock, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TURNO_ESTADO_CLASSES, TURNO_ESTADO_LABELS, type TurnoEstado } from "@/lib/constants";
 import { format } from "date-fns";
@@ -25,11 +25,30 @@ export default function Dashboard() {
   const [proximos, setProximos] = useState<TurnoRow[]>([]);
   const [atendidosHoy, setAtendidosHoy] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [ahora, setAhora] = useState<Date>(new Date());
 
   useEffect(() => {
     document.title = "Dashboard | Consultorio";
     cargar();
   }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setAhora(new Date()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  function getHorarioInfo(t: TurnoRow): { label: string; className: string; icon?: boolean } | null {
+    if (t.estado === "atendido" || t.estado === "cancelado" || t.estado === "ausente") return null;
+    const inicio = new Date(`${t.fecha}T${t.hora_inicio}`);
+    const fin = new Date(`${t.fecha}T${t.hora_fin}`);
+    if (ahora < inicio) {
+      return { label: "Pendiente", className: "border-muted-foreground/30 text-muted-foreground" };
+    }
+    if (ahora >= inicio && ahora <= fin) {
+      return { label: "En horario", className: "border-blue-500/50 text-blue-600 dark:text-blue-400 bg-blue-500/10" };
+    }
+    return { label: "Fuera de horario", className: "border-amber-500/50 text-amber-700 dark:text-amber-400 bg-amber-500/10", icon: true };
+  }
 
   async function cargar() {
     setLoading(true);
@@ -115,7 +134,9 @@ export default function Dashboard() {
               <p className="text-sm text-muted-foreground">No hay turnos programados para hoy.</p>
             ) : (
               <ul className="divide-y">
-                {hoy.map((t) => (
+                {hoy.map((t) => {
+                  const horario = getHorarioInfo(t);
+                  return (
                   <li key={t.id} className="py-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div
@@ -132,11 +153,20 @@ export default function Dashboard() {
                         </p>
                       </div>
                     </div>
-                    <Badge className={TURNO_ESTADO_CLASSES[t.estado]}>
-                      {TURNO_ESTADO_LABELS[t.estado]}
-                    </Badge>
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                      <Badge className={TURNO_ESTADO_CLASSES[t.estado]}>
+                        {TURNO_ESTADO_LABELS[t.estado]}
+                      </Badge>
+                      {horario && (
+                        <Badge variant="outline" className={`gap-1 ${horario.className}`}>
+                          {horario.icon && <AlertCircle className="h-3 w-3" />}
+                          {horario.label}
+                        </Badge>
+                      )}
+                    </div>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </CardContent>
