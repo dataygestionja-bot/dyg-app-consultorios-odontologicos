@@ -1,49 +1,34 @@
 
 
-## Permitir editar turno completo (paciente, profesional, fecha, hora, motivo, estado)
+## Indicador de horario en "Turnos de hoy"
 
-Hoy el diálogo "Editar turno" en `src/pages/Turnos.tsx` solo permite cambiar **estado** y **motivo**. El usuario necesita reasignar el turno a otro paciente, cambiar profesional, fecha u hora.
+Agregar al lado del badge de estado, en la lista **Turnos de hoy** del Dashboard, un indicador visual que le diga a recepción si un turno **ya pasó su horario sin atender**, está **en curso** o **aún no llegó**.
 
-### Cambios en `src/pages/Turnos.tsx`
+### Reglas de visualización
 
-**1. Ampliar el estado del diálogo de edición**
-Agregar al estado local del diálogo: `paciente_id`, `profesional_id`, `fecha`, `hora_inicio`, `hora_fin`. Precargarlos desde el turno seleccionado en `abrirTurno()`.
+Calculado en cliente comparando `hora_inicio`/`hora_fin` del turno con la hora actual:
 
-**2. Nuevos campos en el diálogo "Editar turno"**
-- **Paciente**: Select buscable (Combobox con `Command`) listando `pacientes` activos — `apellido, nombre — DNI`. Reusar el patrón ya usado en "Nuevo turno".
-- **Profesional**: Select con `profesionales` activos.
-- **Fecha**: Input `type="date"`.
-- **Hora inicio / Hora fin**: Inputs `type="time"`. Al cambiar `hora_inicio`, autocompletar `hora_fin` sumando la duración original del turno (mantiene la duración salvo edición manual).
-- **Motivo**: Textarea (ya existe). Obligatorio.
-- **Estado**: Select limitado a estados manuales: `reservado`, `confirmado`, `cancelado`, `ausente`, `reprogramado`. Si el turno está en estado gestionado por sistema (`atendido`, `en_atencion`, `pendiente_cierre`), mostrarlo deshabilitado con nota *"Estado gestionado por el sistema"* y bloquear edición de paciente/profesional/fecha/hora.
+- **Estado `atendido`** → no se muestra ningún indicador (el turno se cumplió).
+- **Estado `cancelado` o `ausente`** → no se muestra indicador (ya tiene un cierre informativo).
+- **Hora actual < `hora_inicio`** → badge gris suave **"Pendiente"** (aún no es la hora).
+- **`hora_inicio` ≤ hora actual ≤ `hora_fin`** → badge azul **"En horario"** (está dentro de la franja del turno).
+- **Hora actual > `hora_fin`** y estado distinto de `atendido` → badge ámbar/rojo **"Fuera de horario"** con ícono de reloj. Este es el caso clave: turno cuya ventana ya pasó sin atención registrada.
 
-**3. Validaciones en `guardar()`**
-- Campos obligatorios: paciente, profesional, fecha, hora_inicio, hora_fin, motivo (`.trim() !== ""`).
-- `hora_fin > hora_inicio`.
-- **Chequeo de superposición**: antes del UPDATE, consultar `turnos` con el mismo `profesional_id` y `fecha`, estado activo (`reservado`, `confirmado`, `en_atencion`), excluyendo el `id` del turno actual, y verificar que no haya solapamiento con `[hora_inicio, hora_fin)`. Si hay choque → `toast.error("El profesional ya tiene un turno en ese horario")`.
-- Manejo amigable de errores del trigger `validar_turno_atendido` (mensaje claro si llegara a dispararse).
+### Cambios en `src/pages/Dashboard.tsx`
 
-**4. UPDATE a Supabase**
-```typescript
-await supabase.from("turnos").update({
-  paciente_id, profesional_id, fecha,
-  hora_inicio, hora_fin, motivo_consulta: motivo.trim(),
-  estado,
-}).eq("id", turnoId);
-```
-Tras éxito: `toast.success("Turno actualizado")`, cerrar diálogo y refrescar la grilla.
+1. **Reloj reactivo**: agregar `useState<Date>(new Date())` con un `useInterval` (`setInterval` de 60s en `useEffect`) para que el indicador se recalcule cada minuto sin recargar.
+2. **Helper `getHorarioInfo(turno, ahora)`**: devuelve `{ label, className } | null` aplicando las reglas de arriba. Compara armando `Date` desde `fecha + hora_inicio` y `fecha + hora_fin`.
+3. **Render**: dentro del `<li>` de cada turno de hoy, junto al `Badge` de estado, renderizar un segundo `Badge` (variante `outline` con clases de color) cuando el helper devuelva un valor.
+4. **Layout**: envolver los dos badges en un `div className="flex items-center gap-2 shrink-0"` para que no rompan en mobile. En viewports angostos (<400px) los badges hacen wrap natural.
 
-**5. UX**
-- Título del diálogo: "Editar turno".
-- Botón secundario "Cancelar turno" (si estado actual no es terminal): cambia estado a `cancelado` con un solo click + confirmación.
-- Mantener los permisos existentes (`canEdit`): admin/recepción editan todo; profesional solo los suyos.
+### Ámbito
 
-### Lo que NO se toca
-- Triggers ni esquema de BD.
-- Diálogo "Nuevo turno".
-- Lógica de Atenciones.
-- Estados gestionados por sistema (siguen bloqueados para edición manual).
+- **Solo afecta** la lista "Turnos de hoy" del Dashboard.
+- **No** se modifica la tarjeta "Próximos turnos" (todos son a futuro, no aplica).
+- **No** se modifica la grilla de `/turnos` ni la base de datos.
+- **No** cambia la lógica de estados ni triggers.
 
 ### Resultado
-Recepción puede reasignar un turno a otro paciente, moverlo de horario, cambiar profesional o motivo desde el mismo diálogo, con validación de superposición y respeto de las reglas de negocio existentes.
+
+Recepción puede ver de un vistazo en el Dashboard qué turnos del día ya vencieron sin haber sido atendidos, cuáles están corriendo ahora y cuáles aún faltan, sin sumar ruido en los turnos ya completados.
 
