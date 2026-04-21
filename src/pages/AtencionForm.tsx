@@ -143,7 +143,8 @@ export default function AtencionForm() {
       .select("id, fecha, hora_inicio, motivo_consulta, paciente_id, profesional_id")
       .eq("paciente_id", form.paciente_id)
       .in("estado", ["confirmado", "en_atencion", "reservado"])
-      .order("fecha", { ascending: false })
+      .order("fecha", { ascending: true })
+      .order("hora_inicio", { ascending: true })
       .limit(50)
       .then(({ data }) => setTurnosDisponibles((data ?? []) as TurnoOpcion[]));
   }, [form.tipo_atencion, form.paciente_id]);
