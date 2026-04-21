@@ -80,6 +80,7 @@ export type Database = {
           paciente_id: string
           profesional_id: string
           proxima_visita_sugerida: string | null
+          tipo_atencion: Database["public"]["Enums"]["tipo_atencion"]
           tratamiento_realizado: string | null
           turno_id: string | null
           updated_at: string
@@ -95,6 +96,7 @@ export type Database = {
           paciente_id: string
           profesional_id: string
           proxima_visita_sugerida?: string | null
+          tipo_atencion?: Database["public"]["Enums"]["tipo_atencion"]
           tratamiento_realizado?: string | null
           turno_id?: string | null
           updated_at?: string
@@ -110,6 +112,7 @@ export type Database = {
           paciente_id?: string
           profesional_id?: string
           proxima_visita_sugerida?: string | null
+          tipo_atencion?: Database["public"]["Enums"]["tipo_atencion"]
           tratamiento_realizado?: string | null
           turno_id?: string | null
           updated_at?: string
@@ -673,7 +676,7 @@ export type Database = {
           hora_fin: string
           hora_inicio: string
           id: string
-          motivo_consulta: string | null
+          motivo_consulta: string
           paciente_id: string
           profesional_id: string
           updated_at: string
@@ -686,7 +689,7 @@ export type Database = {
           hora_fin: string
           hora_inicio: string
           id?: string
-          motivo_consulta?: string | null
+          motivo_consulta: string
           paciente_id: string
           profesional_id: string
           updated_at?: string
@@ -699,7 +702,7 @@ export type Database = {
           hora_fin?: string
           hora_inicio?: string
           id?: string
-          motivo_consulta?: string | null
+          motivo_consulta?: string
           paciente_id?: string
           profesional_id?: string
           updated_at?: string
@@ -747,6 +750,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cierre_diario_turnos: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -780,6 +784,7 @@ export type Database = {
         | "rechazado"
         | "parcialmente_ejecutado"
         | "finalizado"
+      tipo_atencion: "con_turno" | "urgencia" | "espontanea"
       turno_estado:
         | "reservado"
         | "confirmado"
@@ -787,6 +792,8 @@ export type Database = {
         | "cancelado"
         | "ausente"
         | "reprogramado"
+        | "en_atencion"
+        | "pendiente_cierre"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -931,6 +938,7 @@ export const Constants = {
         "parcialmente_ejecutado",
         "finalizado",
       ],
+      tipo_atencion: ["con_turno", "urgencia", "espontanea"],
       turno_estado: [
         "reservado",
         "confirmado",
@@ -938,6 +946,8 @@ export const Constants = {
         "cancelado",
         "ausente",
         "reprogramado",
+        "en_atencion",
+        "pendiente_cierre",
       ],
     },
   },
