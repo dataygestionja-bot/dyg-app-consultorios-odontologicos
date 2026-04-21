@@ -105,7 +105,17 @@ export default function Atenciones() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="whitespace-nowrap">Fecha</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => setOrden((o) => (o === "asc" ? "desc" : "asc"))}
+                      className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                      aria-label={`Ordenar por fecha ${orden === "asc" ? "descendente" : "ascendente"}`}
+                    >
+                      Fecha
+                      {orden === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                    </button>
+                  </TableHead>
                   <TableHead>Paciente</TableHead>
                   <TableHead className="hidden lg:table-cell">Profesional</TableHead>
                   <TableHead className="whitespace-nowrap">Tipo</TableHead>
