@@ -42,7 +42,6 @@ const empty = {
   paciente_id: "",
   profesional_id: "",
   fecha: format(new Date(), "yyyy-MM-dd"),
-  motivo: "",
   diagnostico: "",
   indicaciones: "",
   observaciones: "",
@@ -96,7 +95,6 @@ export default function AtencionForm() {
             paciente_id: data.paciente_id,
             profesional_id: data.profesional_id,
             fecha: data.fecha,
-            motivo: data.motivo ?? "",
             diagnostico: data.diagnostico ?? "",
             indicaciones: data.indicaciones ?? "",
             observaciones: data.observaciones ?? "",
@@ -127,7 +125,6 @@ export default function AtencionForm() {
             paciente_id: data.paciente_id,
             profesional_id: data.profesional_id,
             fecha: data.fecha,
-            motivo: data.motivo_consulta ?? "",
             turno_id: turnoIdParam,
             tipo_atencion: "con_turno",
           }));
@@ -213,7 +210,6 @@ export default function AtencionForm() {
       paciente_id: form.paciente_id,
       profesional_id: form.profesional_id,
       fecha: form.fecha,
-      motivo: form.motivo || null,
       diagnostico: form.diagnostico || null,
       indicaciones: form.indicaciones || null,
       observaciones: form.observaciones || null,
@@ -359,12 +355,12 @@ export default function AtencionForm() {
                     ))}
                   </SelectContent>
                 </Select>
+                {form.turno_id && turnosDisponibles.find((t) => t.id === form.turno_id) && (
+                  <p className="text-xs text-muted-foreground">
+                    Motivo del turno: {turnosDisponibles.find((t) => t.id === form.turno_id)?.motivo_consulta}
+                  </p>
+                )}
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Motivo</Label>
-              <Textarea value={form.motivo} onChange={(e) => set("motivo", e.target.value)} rows={2} />
             </div>
           </CardContent>
         </Card>

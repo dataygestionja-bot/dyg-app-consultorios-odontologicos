@@ -5,18 +5,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Plus, Eye } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
+type TipoAtencion = "con_turno" | "urgencia" | "espontanea";
+
 interface Row {
   id: string;
   fecha: string;
-  motivo: string | null;
   diagnostico: string | null;
+  tipo_atencion: TipoAtencion;
   paciente: { nombre: string; apellido: string } | null;
   profesional: { nombre: string; apellido: string } | null;
+  turno: { motivo_consulta: string } | null;
 }
+
+const TIPO_LABEL: Record<TipoAtencion, string> = {
+  con_turno: "Con turno",
+  urgencia: "Urgencia",
+  espontanea: "Espontánea",
+};
+
+const TIPO_VARIANT: Record<TipoAtencion, "default" | "destructive" | "secondary"> = {
+  con_turno: "default",
+  urgencia: "destructive",
+  espontanea: "secondary",
+};
 
 export default function Atenciones() {
   const [rows, setRows] = useState<Row[]>([]);
@@ -33,7 +49,7 @@ export default function Atenciones() {
     try {
       const { data, error } = await supabase
         .from("atenciones")
-        .select("id, fecha, motivo, diagnostico, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido)")
+        .select("id, fecha, diagnostico, tipo_atencion, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido), turno:turnos(motivo_consulta)")
         .order("fecha", { ascending: false });
       if (error) console.error("Error cargando atenciones:", error);
       setRows((data ?? []) as unknown as Row[]);
@@ -49,7 +65,7 @@ export default function Atenciones() {
     const s = search.toLowerCase();
     return (
       (r.paciente && (`${r.paciente.apellido} ${r.paciente.nombre}`.toLowerCase().includes(s))) ||
-      (r.motivo ?? "").toLowerCase().includes(s) ||
+      (r.turno?.motivo_consulta ?? "").toLowerCase().includes(s) ||
       (r.diagnostico ?? "").toLowerCase().includes(s)
     );
   });
@@ -85,16 +101,17 @@ export default function Atenciones() {
                 <TableHead>Fecha</TableHead>
                 <TableHead>Paciente</TableHead>
                 <TableHead>Profesional</TableHead>
-                <TableHead>Motivo</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Motivo del turno</TableHead>
                 <TableHead>Diagnóstico</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin atenciones</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin atenciones</TableCell></TableRow>
               ) : (
                 filtered.map((a) => (
                   <TableRow key={a.id}>
@@ -105,7 +122,12 @@ export default function Atenciones() {
                     <TableCell>
                       {a.profesional ? `${a.profesional.apellido}, ${a.profesional.nombre}` : "—"}
                     </TableCell>
-                    <TableCell className="max-w-[200px] truncate">{a.motivo ?? "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={TIPO_VARIANT[a.tipo_atencion]}>{TIPO_LABEL[a.tipo_atencion]}</Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {a.turno?.motivo_consulta ?? (a.tipo_atencion !== "con_turno" ? TIPO_LABEL[a.tipo_atencion] : "—")}
+                    </TableCell>
                     <TableCell className="max-w-[200px] truncate">{a.diagnostico ?? "—"}</TableCell>
                     <TableCell className="text-right">
                       <Button asChild variant="ghost" size="sm">
