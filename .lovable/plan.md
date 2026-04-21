@@ -1,32 +1,49 @@
 
 
-## Quitar el campo "Motivo" del módulo Atención
+## Permitir editar turno completo (paciente, profesional, fecha, hora, motivo, estado)
 
-El motivo de consulta ya se carga obligatoriamente en el turno (`turnos.motivo_consulta NOT NULL`), por lo que duplicarlo en la atención no aporta valor y genera confusión.
+Hoy el diálogo "Editar turno" en `src/pages/Turnos.tsx` solo permite cambiar **estado** y **motivo**. El usuario necesita reasignar el turno a otro paciente, cambiar profesional, fecha u hora.
 
-### Cambios
+### Cambios en `src/pages/Turnos.tsx`
 
-**1. `src/pages/AtencionForm.tsx`**
-- Eliminar el `Textarea` de "Motivo" (líneas 365–368) del card "Datos generales".
-- Eliminar `motivo` del estado `empty`, del setter en el `useEffect` de edición y del precargado por turno.
-- Eliminar `motivo` del `payload` enviado a `supabase.from("atenciones")`.
-- En el listado de turnos disponibles (Select "Turno asociado") ya se muestra `motivo_consulta`, lo cual queda como referencia visible para el profesional.
-- Cuando se inicia desde un turno, el motivo del turno queda accesible en la cabecera del Select de turno; opcionalmente mostrar una línea informativa de solo lectura debajo del Select cuando hay `turno_id` seleccionado: *"Motivo del turno: {motivo_consulta}"*.
+**1. Ampliar el estado del diálogo de edición**
+Agregar al estado local del diálogo: `paciente_id`, `profesional_id`, `fecha`, `hora_inicio`, `hora_fin`. Precargarlos desde el turno seleccionado en `abrirTurno()`.
 
-**2. `src/pages/Atenciones.tsx` (listado)**
-- Reemplazar la columna "Motivo" por "Motivo del turno" obtenida vía join: `turno:turnos(motivo_consulta)`.
-- Ajustar el filtro de búsqueda para usar `r.turno?.motivo_consulta` en lugar de `r.motivo`.
-- Para atenciones sin turno (urgencia/espontánea) mostrar `—` o el `tipo_atencion` (Urgencia / Espontánea) como contexto.
-- Sumar pequeña columna/badge "Tipo" para distinguir `con_turno`, `urgencia`, `espontanea`.
+**2. Nuevos campos en el diálogo "Editar turno"**
+- **Paciente**: Select buscable (Combobox con `Command`) listando `pacientes` activos — `apellido, nombre — DNI`. Reusar el patrón ya usado en "Nuevo turno".
+- **Profesional**: Select con `profesionales` activos.
+- **Fecha**: Input `type="date"`.
+- **Hora inicio / Hora fin**: Inputs `type="time"`. Al cambiar `hora_inicio`, autocompletar `hora_fin` sumando la duración original del turno (mantiene la duración salvo edición manual).
+- **Motivo**: Textarea (ya existe). Obligatorio.
+- **Estado**: Select limitado a estados manuales: `reservado`, `confirmado`, `cancelado`, `ausente`, `reprogramado`. Si el turno está en estado gestionado por sistema (`atendido`, `en_atencion`, `pendiente_cierre`), mostrarlo deshabilitado con nota *"Estado gestionado por el sistema"* y bloquear edición de paciente/profesional/fecha/hora.
 
-**3. Base de datos — `atenciones.motivo`**
-No se elimina la columna ahora para no romper datos históricos. Queda nullable (ya lo es) y deja de escribirse desde la UI. Si más adelante se confirma que no hay datos útiles, se puede dropear en una migración futura.
+**3. Validaciones en `guardar()`**
+- Campos obligatorios: paciente, profesional, fecha, hora_inicio, hora_fin, motivo (`.trim() !== ""`).
+- `hora_fin > hora_inicio`.
+- **Chequeo de superposición**: antes del UPDATE, consultar `turnos` con el mismo `profesional_id` y `fecha`, estado activo (`reservado`, `confirmado`, `en_atencion`), excluyendo el `id` del turno actual, y verificar que no haya solapamiento con `[hora_inicio, hora_fin)`. Si hay choque → `toast.error("El profesional ya tiene un turno en ese horario")`.
+- Manejo amigable de errores del trigger `validar_turno_atendido` (mensaje claro si llegara a dispararse).
+
+**4. UPDATE a Supabase**
+```typescript
+await supabase.from("turnos").update({
+  paciente_id, profesional_id, fecha,
+  hora_inicio, hora_fin, motivo_consulta: motivo.trim(),
+  estado,
+}).eq("id", turnoId);
+```
+Tras éxito: `toast.success("Turno actualizado")`, cerrar diálogo y refrescar la grilla.
+
+**5. UX**
+- Título del diálogo: "Editar turno".
+- Botón secundario "Cancelar turno" (si estado actual no es terminal): cambia estado a `cancelado` con un solo click + confirmación.
+- Mantener los permisos existentes (`canEdit`): admin/recepción editan todo; profesional solo los suyos.
 
 ### Lo que NO se toca
-- `turnos.motivo_consulta` sigue siendo obligatorio (ya lo es).
-- Triggers y reglas de negocio definidas previamente quedan intactas.
-- `diagnostico`, `tratamiento_realizado`, `indicaciones`, `observaciones` y `proxima_visita_sugerida` siguen en el form de atención.
+- Triggers ni esquema de BD.
+- Diálogo "Nuevo turno".
+- Lógica de Atenciones.
+- Estados gestionados por sistema (siguen bloqueados para edición manual).
 
 ### Resultado
-El profesional ve el motivo desde el turno asociado (y al elegirlo en el Select), sin tener que reescribirlo. El listado de Atenciones muestra el motivo proveniente del turno, evitando inconsistencia de datos.
+Recepción puede reasignar un turno a otro paciente, moverlo de horario, cambiar profesional o motivo desde el mismo diálogo, con validación de superposición y respeto de las reglas de negocio existentes.
 
