@@ -42,7 +42,6 @@ const empty = {
   paciente_id: "",
   profesional_id: "",
   fecha: format(new Date(), "yyyy-MM-dd"),
-  motivo: "",
   diagnostico: "",
   indicaciones: "",
   observaciones: "",
