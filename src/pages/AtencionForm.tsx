@@ -194,6 +194,18 @@ export default function AtencionForm() {
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
 
+    // Validación de coherencia tipo_atencion ↔ turno
+    if (form.tipo_atencion === "con_turno" && !form.turno_id) {
+      return toast.error("Falta el turno", {
+        description: "Una atención 'con turno' debe tener un turno seleccionado. Si fue espontánea o de urgencia, cambiá el tipo de atención.",
+      });
+    }
+    if (form.tipo_atencion !== "con_turno" && form.turno_id) {
+      return toast.error("Inconsistencia en el tipo", {
+        description: "Una atención de urgencia o espontánea no puede estar vinculada a un turno.",
+      });
+    }
+
     const validas = practicas.filter((p) => p.prestacion_id);
     setSubmitting(true);
 
@@ -206,7 +218,8 @@ export default function AtencionForm() {
       indicaciones: form.indicaciones || null,
       observaciones: form.observaciones || null,
       proxima_visita_sugerida: form.proxima_visita_sugerida || null,
-      turno_id: form.turno_id,
+      turno_id: form.tipo_atencion === "con_turno" ? form.turno_id : null,
+      tipo_atencion: form.tipo_atencion,
     };
 
     let atencionId = id as string | undefined;
