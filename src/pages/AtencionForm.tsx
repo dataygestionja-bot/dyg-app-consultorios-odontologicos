@@ -18,6 +18,15 @@ import { PrestacionQuickDialog } from "@/components/prestaciones/PrestacionQuick
 interface Paciente { id: string; nombre: string; apellido: string; dni: string; }
 interface Profesional { id: string; nombre: string; apellido: string; }
 interface Prestacion { id: string; codigo: string; descripcion: string; precio_base: number; }
+interface TurnoOpcion { id: string; fecha: string; hora_inicio: string; motivo_consulta: string; paciente_id: string; profesional_id: string; }
+
+type TipoAtencion = "con_turno" | "urgencia" | "espontanea";
+
+const TIPO_ATENCION_LABELS: Record<TipoAtencion, string> = {
+  con_turno: "Con turno",
+  urgencia: "Urgencia",
+  espontanea: "Espontánea",
+};
 
 interface PracticaRow {
   id?: string;
