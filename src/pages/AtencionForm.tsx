@@ -18,6 +18,15 @@ import { PrestacionQuickDialog } from "@/components/prestaciones/PrestacionQuick
 interface Paciente { id: string; nombre: string; apellido: string; dni: string; }
 interface Profesional { id: string; nombre: string; apellido: string; }
 interface Prestacion { id: string; codigo: string; descripcion: string; precio_base: number; }
+interface TurnoOpcion { id: string; fecha: string; hora_inicio: string; motivo_consulta: string; paciente_id: string; profesional_id: string; }
+
+type TipoAtencion = "con_turno" | "urgencia" | "espontanea";
+
+const TIPO_ATENCION_LABELS: Record<TipoAtencion, string> = {
+  con_turno: "Con turno",
+  urgencia: "Urgencia",
+  espontanea: "Espontánea",
+};
 
 interface PracticaRow {
   id?: string;
@@ -39,6 +48,7 @@ const empty = {
   observaciones: "",
   proxima_visita_sugerida: "",
   turno_id: null as string | null,
+  tipo_atencion: "con_turno" as TipoAtencion,
 };
 
 const newPractica = (orden: number): PracticaRow => ({
@@ -65,6 +75,8 @@ export default function AtencionForm() {
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickTargetIdx, setQuickTargetIdx] = useState<number | null>(null);
 
+  const [turnosDisponibles, setTurnosDisponibles] = useState<TurnoOpcion[]>([]);
+
   useEffect(() => {
     document.title = isEdit ? "Editar atención | Consultorio" : "Nueva atención | Consultorio";
     Promise.all([
@@ -90,6 +102,7 @@ export default function AtencionForm() {
             observaciones: data.observaciones ?? "",
             proxima_visita_sugerida: (data as any).proxima_visita_sugerida ?? "",
             turno_id: data.turno_id,
+            tipo_atencion: ((data as any).tipo_atencion ?? "con_turno") as TipoAtencion,
           });
         });
       supabase.from("atencion_practicas").select("*").eq("atencion_id", id).order("orden")
@@ -116,10 +129,37 @@ export default function AtencionForm() {
             fecha: data.fecha,
             motivo: data.motivo_consulta ?? "",
             turno_id: turnoIdParam,
+            tipo_atencion: "con_turno",
           }));
         });
     }
   }, [id, isEdit, turnoIdParam]);
+
+  // Cargar turnos disponibles del paciente cuando es "con_turno"
+  useEffect(() => {
+    if (form.tipo_atencion !== "con_turno" || !form.paciente_id) {
+      setTurnosDisponibles([]);
+      return;
+    }
+    supabase
+      .from("turnos")
+      .select("id, fecha, hora_inicio, motivo_consulta, paciente_id, profesional_id")
+      .eq("paciente_id", form.paciente_id)
+      .in("estado", ["confirmado", "en_atencion", "reservado"])
+      .order("fecha", { ascending: false })
+      .limit(50)
+      .then(({ data }) => setTurnosDisponibles((data ?? []) as TurnoOpcion[]));
+  }, [form.tipo_atencion, form.paciente_id]);
+
+  function setTipoAtencion(tipo: TipoAtencion) {
+    setForm((f) => ({
+      ...f,
+      tipo_atencion: tipo,
+      // Si pasa a urgencia/espontanea, limpiar turno
+      turno_id: tipo === "con_turno" ? f.turno_id : null,
+    }));
+  }
+
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -154,6 +194,18 @@ export default function AtencionForm() {
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
 
+    // Validación de coherencia tipo_atencion ↔ turno
+    if (form.tipo_atencion === "con_turno" && !form.turno_id) {
+      return toast.error("Falta el turno", {
+        description: "Una atención 'con turno' debe tener un turno seleccionado. Si fue espontánea o de urgencia, cambiá el tipo de atención.",
+      });
+    }
+    if (form.tipo_atencion !== "con_turno" && form.turno_id) {
+      return toast.error("Inconsistencia en el tipo", {
+        description: "Una atención de urgencia o espontánea no puede estar vinculada a un turno.",
+      });
+    }
+
     const validas = practicas.filter((p) => p.prestacion_id);
     setSubmitting(true);
 
@@ -166,7 +218,8 @@ export default function AtencionForm() {
       indicaciones: form.indicaciones || null,
       observaciones: form.observaciones || null,
       proxima_visita_sugerida: form.proxima_visita_sugerida || null,
-      turno_id: form.turno_id,
+      turno_id: form.tipo_atencion === "con_turno" ? form.turno_id : null,
+      tipo_atencion: form.tipo_atencion,
     };
 
     let atencionId = id as string | undefined;
@@ -253,6 +306,59 @@ export default function AtencionForm() {
                 <Label>Próxima visita sugerida</Label>
                 <Input type="date" value={form.proxima_visita_sugerida}
                   onChange={(e) => set("proxima_visita_sugerida", e.target.value)} />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Tipo de atención *</Label>
+                <Select
+                  value={form.tipo_atencion}
+                  onValueChange={(v) => setTipoAtencion(v as TipoAtencion)}
+                  disabled={!!turnoIdParam}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TIPO_ATENCION_LABELS) as TipoAtencion[]).map((t) => (
+                      <SelectItem key={t} value={t}>{TIPO_ATENCION_LABELS[t]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {turnoIdParam && (
+                  <p className="text-xs text-muted-foreground">
+                    Atención iniciada desde un turno: el tipo queda fijo en "Con turno".
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>
+                  Turno asociado {form.tipo_atencion === "con_turno" ? "*" : ""}
+                </Label>
+                <Select
+                  value={form.turno_id ?? ""}
+                  onValueChange={(v) => set("turno_id", v || null)}
+                  disabled={form.tipo_atencion !== "con_turno" || !form.paciente_id || !!turnoIdParam}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={
+                      form.tipo_atencion !== "con_turno"
+                        ? "No aplica para urgencia/espontánea"
+                        : !form.paciente_id
+                          ? "Primero seleccioná un paciente"
+                          : turnosDisponibles.length === 0
+                            ? "Sin turnos disponibles"
+                            : "Seleccionar turno..."
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {turnosDisponibles.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {format(new Date(t.fecha + "T00:00:00"), "dd/MM/yyyy")} · {t.hora_inicio?.slice(0, 5)} · {t.motivo_consulta}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
