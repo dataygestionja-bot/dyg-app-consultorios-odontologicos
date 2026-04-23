@@ -1,66 +1,54 @@
 
 
-## Corregir constraint que bloquea sobreturnos
+## Corregir el doble cartel de confirmación de sobreturno
 
-El error real es: existe una constraint de exclusión `turnos_no_overlap` en la tabla `turnos` (anterior al cambio de sobreturnos) que rechaza **cualquier** solapamiento por profesional/fecha/horario, sin importar si el nuevo turno es sobreturno o no. Por eso el trigger que valida sobreturnos nunca llega a ejecutarse: Postgres bloquea antes con `conflicting key value violates exclusion constraint "turnos_no_overlap"`.
+### Causa
 
-### Definición actual problemática
+En `src/pages/Turnos.tsx`, `confirmarComoSobreturno()` hace:
 
-```sql
-EXCLUDE USING gist (
-  profesional_id WITH =,
-  fecha WITH =,
-  tsrange(fecha + hora_inicio, fecha + hora_fin, '[)') WITH &&
-) WHERE (estado IN ('reservado','confirmado','atendido'))
+```ts
+setEsSobreturno(true);
+setConfirmSobreturno(false);
+setTimeout(() => guardar(), 0);
 ```
 
-No contempla `es_sobreturno`, por lo que dos turnos en el mismo horario nunca pueden convivir.
+El `setTimeout(0)` no garantiza que el `setState` de React ya haya re-renderizado, así que `guardar()` corre con la closure vieja donde `esSobreturno === false`. Resultado: el insert vuelve a la DB con `es_sobreturno = false`, la constraint lo rechaza, y se reabre el `AlertDialog` por segunda vez. Recién al cancelar el segundo modal y guardar manualmente (con el estado ya actualizado) funciona.
 
-### Solución (una sola migración)
+### Solución
 
-Reemplazar la constraint para que **solo aplique a turnos NO sobreturno**. Los sobreturnos quedan exentos de la regla de exclusión y conviven libremente con turnos normales.
+Pasar el flag explícitamente a `guardar()` en vez de depender del estado de React.
 
-```sql
--- 1. Eliminar la constraint vieja
-ALTER TABLE public.turnos
-  DROP CONSTRAINT IF EXISTS turnos_no_overlap;
+**Cambios en `src/pages/Turnos.tsx`:**
 
--- 2. Recrearla excluyendo sobreturnos del WHERE
-ALTER TABLE public.turnos
-  ADD CONSTRAINT turnos_no_overlap
-  EXCLUDE USING gist (
-    profesional_id WITH =,
-    fecha WITH =,
-    tsrange((fecha + hora_inicio), (fecha + hora_fin), '[)') WITH &&
-  )
-  WHERE (
-    es_sobreturno = false
-    AND estado IN ('reservado','confirmado','atendido')
-  );
-```
+1. Cambiar la firma de `guardar` para aceptar un override opcional:
+   ```ts
+   async function guardar(forceSobreturno?: boolean) {
+     const sobreturnoFlag = forceSobreturno ?? esSobreturno;
+     // ...usar sobreturnoFlag en los insert/update en vez de esSobreturno
+   }
+   ```
 
-### Por qué este enfoque
+2. En los dos lugares (insert y update) reemplazar `es_sobreturno: esSobreturno` por `es_sobreturno: sobreturnoFlag`.
 
-- Mantiene la **protección original** contra solapamientos accidentales entre turnos normales (a nivel constraint, irreversible incluso por bugs de aplicación).
-- Permite que los **sobreturnos no sean evaluados** por la constraint, porque el `WHERE` los excluye del índice de exclusión.
-- El **trigger** `validar_solapamiento_turno` que ya existe sigue cubriendo el caso de inserción de un turno normal donde ya hay un sobreturno (vuelve a chequear y devuelve un mensaje claro).
-- Estados `cancelado`, `reprogramado`, `ausente` siguen liberando el horario igual que antes.
+3. En el toast de éxito del insert, usar `sobreturnoFlag` también (para que diga "Sobreturno creado" correctamente la primera vez).
 
-### Verificación posterior
+4. Reescribir `confirmarComoSobreturno`:
+   ```ts
+   async function confirmarComoSobreturno() {
+     setEsSobreturno(true);          // sólo para reflejar el checkbox en UI
+     setConfirmSobreturno(false);
+     await guardar(true);            // pasa el flag directo, sin esperar a React
+   }
+   ```
 
-Después de aplicar la migración, validar manualmente:
-
-1. Crear turno normal 10:00–10:30 → OK.
-2. Crear otro turno normal 10:00–10:30 mismo profesional → debe rechazarse con el mensaje del trigger ("Ya existe un turno…").
-3. Confirmar el diálogo → el segundo intento marca `es_sobreturno = true` → ahora se inserta correctamente.
+5. Mantener el handler `onSubmit={(e) => { e.preventDefault(); guardar(); }}` igual (sin argumento) — usa el estado normal del checkbox.
 
 ### Lo que NO se toca
 
-- Trigger `validar_solapamiento_turno` (ya quedó bien en la migración anterior).
-- Columna `es_sobreturno`, RLS, frontend (`Turnos.tsx`, `MisTurnos.tsx`).
-- Otros módulos.
+- DB, constraint, trigger, migraciones (ya quedaron correctas).
+- Diseño del `AlertDialog`, RLS, `MisTurnos.tsx`, ni el resto del flujo.
 
 ### Resultado
 
-Los sobreturnos podrán crearse en horarios ya ocupados sin que la base de datos los rechace, manteniendo la protección contra solapamientos accidentales entre turnos normales.
+Al confirmar "Crear como sobreturno", el insert se reintenta inmediatamente con `es_sobreturno = true` y la constraint lo acepta a la primera. El cartel deja de aparecer dos veces.
 
