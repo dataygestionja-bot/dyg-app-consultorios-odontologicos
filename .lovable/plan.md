@@ -1,100 +1,66 @@
 
 
-## Pantalla "Mis turnos de hoy"
+## Corregir constraint que bloquea sobreturnos
 
-Pantalla operativa para que el profesional vea sus turnos del día e inicie la atención con un solo clic, sin volver a buscar paciente ni profesional.
+El error real es: existe una constraint de exclusión `turnos_no_overlap` en la tabla `turnos` (anterior al cambio de sobreturnos) que rechaza **cualquier** solapamiento por profesional/fecha/horario, sin importar si el nuevo turno es sobreturno o no. Por eso el trigger que valida sobreturnos nunca llega a ejecutarse: Postgres bloquea antes con `conflicting key value violates exclusion constraint "turnos_no_overlap"`.
 
-### 1. Nueva ruta y página
-
-**Archivo nuevo:** `src/pages/MisTurnos.tsx`
-**Ruta:** `/mis-turnos` (registrada en `src/App.tsx` con `<Private>`, accesible a admin, recepción y profesional).
-
-### 2. Comportamiento según rol
-
-- **Profesional:** se detecta su `profesionales.id` vía `user_id = auth.uid()`. Solo ve sus turnos del día. El selector de profesional queda oculto.
-- **Admin / Recepción:** ven un `Select` "Profesional" con opción **Todos** (default) y la lista. Pueden cambiar el día (selector de fecha + botón "Hoy").
-
-### 3. Listado de turnos
-
-Tabla / lista de tarjetas con columnas:
-
-- **Hora** (hora_inicio – hora_fin)
-- **Paciente** (apellido, nombre + DNI chico)
-- **Profesional** (oculto si el rol es profesional, ya es él)
-- **Motivo de consulta**
-- **Estado** (badge con `TURNO_ESTADO_CLASSES`)
-- **Acción**
-
-Orden: por `hora_inicio` ascendente.
-
-### 4. Filtros por estado (tabs)
-
-```text
-[ Activos ]  [ Finalizados ]  [ Todos ]
-```
-
-- **Activos** (default): `reservado`, `confirmado`, `en_atencion`, `pendiente_cierre`.
-- **Finalizados**: `atendido`, `ausente`, `cancelado`, `reprogramado`.
-- **Todos**: todos los estados del día.
-
-Contador de turnos al lado de cada tab.
-
-### 5. Acción "Iniciar atención"
-
-Botón principal por fila (visible solo si el estado es `reservado`, `confirmado`, `en_atencion` o `pendiente_cierre`):
-
-- Verifica si ya existe una atención para ese turno (`SELECT id FROM atenciones WHERE turno_id = ?`).
-  - Si **existe** → toast informativo y navega a `/atenciones/:id` (editar la existente). No crea duplicado.
-  - Si **no existe** → navega a `/atenciones/nuevo?turno={turno_id}`.
-- `AtencionForm` ya soporta el query param `?turno=` y precarga `paciente_id`, `profesional_id`, `fecha`, `turno_id` y fija `tipo_atencion = "con_turno"`. **No requiere cambios.**
-
-Adicionalmente, en `AtencionForm.tsx` (cuando viene `turnoIdParam`), agregar `disabled` a los `Select` de **Paciente** y **Profesional** para evitar que se modifiquen — quedan como solo lectura visual.
-
-Si el estado del turno es `reservado` o `confirmado`, opcionalmente al hacer clic se actualiza primero a `en_atencion` (mejor flujo visual del día). Si falla por RLS de profesional, no se rompe — la atención igual se crea.
-
-### 6. Acción secundaria
-
-Botón en el header: **"Nueva atención sin turno"** → navega a `/atenciones/nuevo` (sin query param). Allí el usuario elige `tipo_atencion = "urgencia"` o `"espontanea"`.
-
-### 7. Estado vacío
-
-Si no hay turnos en el filtro activo:
-> "No tenés turnos {hoy / para esta fecha} en este estado." + sugerencia de ver el tab "Todos".
-
-### 8. Consulta principal
+### Definición actual problemática
 
 ```sql
-SELECT t.*, p.nombre, p.apellido, p.dni,
-       pr.nombre AS prof_nombre, pr.apellido AS prof_apellido,
-       (SELECT id FROM atenciones WHERE turno_id = t.id LIMIT 1) AS atencion_id
-FROM turnos t
-JOIN pacientes p ON p.id = t.paciente_id
-JOIN profesionales pr ON pr.id = t.profesional_id
-WHERE t.fecha = :fecha
-  AND (:profesional_id IS NULL OR t.profesional_id = :profesional_id)
-ORDER BY t.hora_inicio
+EXCLUDE USING gist (
+  profesional_id WITH =,
+  fecha WITH =,
+  tsrange(fecha + hora_inicio, fecha + hora_fin, '[)') WITH &&
+) WHERE (estado IN ('reservado','confirmado','atendido'))
 ```
 
-En el cliente: con Supabase JS, dos queries: `turnos` con joins `paciente:pacientes(...)`, `profesional:profesionales(...)`, y luego `atenciones.select("id, turno_id").in("turno_id", turnoIds)` para mapear cuáles ya tienen atención (mostrar botón "Ver atención" en vez de "Iniciar").
+No contempla `es_sobreturno`, por lo que dos turnos en el mismo horario nunca pueden convivir.
 
-### 9. Menú lateral
+### Solución (una sola migración)
 
-En `src/components/layout/AppSidebar.tsx`, agregar al grupo **Operatoria**, justo después de "Turnos":
+Reemplazar la constraint para que **solo aplique a turnos NO sobreturno**. Los sobreturnos quedan exentos de la regla de exclusión y conviven libremente con turnos normales.
 
-```text
-{ title: "Mis turnos de hoy", url: "/mis-turnos", icon: ListTodo }
+```sql
+-- 1. Eliminar la constraint vieja
+ALTER TABLE public.turnos
+  DROP CONSTRAINT IF EXISTS turnos_no_overlap;
+
+-- 2. Recrearla excluyendo sobreturnos del WHERE
+ALTER TABLE public.turnos
+  ADD CONSTRAINT turnos_no_overlap
+  EXCLUDE USING gist (
+    profesional_id WITH =,
+    fecha WITH =,
+    tsrange((fecha + hora_inicio), (fecha + hora_fin), '[)') WITH &&
+  )
+  WHERE (
+    es_sobreturno = false
+    AND estado IN ('reservado','confirmado','atendido')
+  );
 ```
 
-Visible para todos los roles (sin restricción de `roles`).
+### Por qué este enfoque
+
+- Mantiene la **protección original** contra solapamientos accidentales entre turnos normales (a nivel constraint, irreversible incluso por bugs de aplicación).
+- Permite que los **sobreturnos no sean evaluados** por la constraint, porque el `WHERE` los excluye del índice de exclusión.
+- El **trigger** `validar_solapamiento_turno` que ya existe sigue cubriendo el caso de inserción de un turno normal donde ya hay un sobreturno (vuelve a chequear y devuelve un mensaje claro).
+- Estados `cancelado`, `reprogramado`, `ausente` siguen liberando el horario igual que antes.
+
+### Verificación posterior
+
+Después de aplicar la migración, validar manualmente:
+
+1. Crear turno normal 10:00–10:30 → OK.
+2. Crear otro turno normal 10:00–10:30 mismo profesional → debe rechazarse con el mensaje del trigger ("Ya existe un turno…").
+3. Confirmar el diálogo → el segundo intento marca `es_sobreturno = true` → ahora se inserta correctamente.
 
 ### Lo que NO se toca
 
-- Tabla `turnos`, `atenciones`, RLS, triggers, esquema de DB.
-- `Turnos.tsx` (calendario semanal) sigue igual.
-- Lógica de guardado de `AtencionForm` (solo se agrega `disabled` visual a 2 selects cuando viene `?turno=`).
+- Trigger `validar_solapamiento_turno` (ya quedó bien en la migración anterior).
+- Columna `es_sobreturno`, RLS, frontend (`Turnos.tsx`, `MisTurnos.tsx`).
 - Otros módulos.
 
 ### Resultado
 
-El profesional entra a "Mis turnos de hoy", ve su agenda del día, hace clic en **Iniciar atención** y cae directo en el formulario con todo precargado y bloqueado para no equivocarse. Si el turno ya tiene atención, lo lleva a editarla en vez de duplicar. Admin/recepción usan la misma pantalla filtrando por profesional.
+Los sobreturnos podrán crearse en horarios ya ocupados sin que la base de datos los rechace, manteniendo la protección contra solapamientos accidentales entre turnos normales.
 
