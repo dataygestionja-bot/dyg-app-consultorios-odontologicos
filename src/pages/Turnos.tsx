@@ -206,9 +206,10 @@ export default function Turnos() {
     setEditHoraInicio(nuevaHora);
   }
 
-  async function guardar() {
+  async function guardar(forceSobreturno?: boolean) {
     if (saving) return;
     setSaving(true);
+    const sobreturnoFlag = forceSobreturno ?? esSobreturno;
     try {
       if (editing) {
         if (isSystemManaged) {
@@ -243,7 +244,7 @@ export default function Turnos() {
             hora_fin: editHoraFin,
             motivo_consulta: motivo.trim(),
             estado,
-            es_sobreturno: esSobreturno,
+            es_sobreturno: sobreturnoFlag,
           })
           .eq("id", editing.id);
         if (error) {
@@ -272,7 +273,7 @@ export default function Turnos() {
           hora_fin: slot.hora_fin,
           motivo_consulta: motivo.trim(),
           estado,
-          es_sobreturno: esSobreturno,
+          es_sobreturno: sobreturnoFlag,
         });
         if (error) {
           if (
@@ -285,7 +286,7 @@ export default function Turnos() {
           }
           return toast.error("No se pudo crear", { description: error.message });
         }
-        toast.success(esSobreturno ? "Sobreturno creado" : "Turno creado");
+        toast.success(sobreturnoFlag ? "Sobreturno creado" : "Turno creado");
       }
       setOpen(false);
       cargarTurnos();
@@ -297,8 +298,7 @@ export default function Turnos() {
   async function confirmarComoSobreturno() {
     setEsSobreturno(true);
     setConfirmSobreturno(false);
-    // pequeño delay para que setEsSobreturno tome efecto en el próximo guardar
-    setTimeout(() => guardar(), 0);
+    await guardar(true);
   }
 
   async function cancelarTurno() {
@@ -575,7 +575,7 @@ export default function Turnos() {
             </div>
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cerrar</Button>
-              {canEdit && <Button onClick={guardar} disabled={saving}>{saving ? "Guardando..." : "Guardar"}</Button>}
+              {canEdit && <Button onClick={() => guardar()} disabled={saving}>{saving ? "Guardando..." : "Guardar"}</Button>}
             </div>
           </DialogFooter>
         </DialogContent>
