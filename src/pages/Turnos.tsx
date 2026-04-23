@@ -655,29 +655,67 @@ function CalendarGrid({
               {dias.map((d) => {
                 const slot = slotsByDay.find((s) => isSameDay(s.dia, d))?.slots.find((sl) => sl.hora_inicio === hora);
                 if (!slot) return <div key={d.toISOString()} className="bg-muted/30 rounded" />;
-                const turno = turnos.find((t) =>
-                  t.profesional_id === profesional.id &&
-                  t.fecha === format(d, "yyyy-MM-dd") &&
-                  t.hora_inicio.startsWith(slot.hora_inicio)
-                );
-                if (turno) {
+                const fechaStr = format(d, "yyyy-MM-dd");
+                // Todos los turnos cuyo hora_inicio cae dentro de este slot (normales + sobreturnos)
+                const turnosSlot = turnos
+                  .filter((t) =>
+                    t.profesional_id === profesional.id &&
+                    t.fecha === fechaStr &&
+                    t.hora_inicio.startsWith(slot.hora_inicio),
+                  )
+                  .sort((a, b) => Number(a.es_sobreturno) - Number(b.es_sobreturno));
+
+                if (turnosSlot.length > 0) {
                   return (
-                    <button
-                      key={d.toISOString()}
-                      onClick={() => onTurno(turno)}
-                      className="text-left p-2 rounded border-l-4 hover:opacity-90 transition text-xs min-h-[44px]"
-                      style={{
-                        backgroundColor: `${profesional.color_agenda}22`,
-                        borderLeftColor: profesional.color_agenda,
-                      }}
-                    >
-                      <div className="font-medium truncate">
-                        {turno.paciente ? `${turno.paciente.apellido}, ${turno.paciente.nombre}` : "—"}
-                      </div>
-                      <Badge className={`${TURNO_ESTADO_CLASSES[turno.estado]} text-[10px] px-1 py-0 mt-1`}>
-                        {TURNO_ESTADO_LABELS[turno.estado]}
-                      </Badge>
-                    </button>
+                    <div key={d.toISOString()} className="flex flex-col gap-1 min-h-[44px]">
+                      {turnosSlot.map((turno) => (
+                        <button
+                          key={turno.id}
+                          onClick={() => onTurno(turno)}
+                          className="text-left p-2 rounded border-l-4 hover:opacity-90 transition text-xs"
+                          style={
+                            turno.es_sobreturno
+                              ? {
+                                  backgroundColor: "hsl(var(--estado-sobreturno) / 0.15)",
+                                  borderLeftColor: "hsl(var(--estado-sobreturno))",
+                                }
+                              : {
+                                  backgroundColor: `${profesional.color_agenda}22`,
+                                  borderLeftColor: profesional.color_agenda,
+                                }
+                          }
+                        >
+                          <div className="font-medium truncate flex items-center gap-1">
+                            {turno.es_sobreturno && (
+                              <AlertTriangle className="h-3 w-3 text-[hsl(var(--estado-sobreturno))] shrink-0" />
+                            )}
+                            <span className="truncate">
+                              {turno.paciente ? `${turno.paciente.apellido}, ${turno.paciente.nombre}` : "—"}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            <Badge className={`${TURNO_ESTADO_CLASSES[turno.estado]} text-[10px] px-1 py-0`}>
+                              {TURNO_ESTADO_LABELS[turno.estado]}
+                            </Badge>
+                            {turno.es_sobreturno && (
+                              <Badge
+                                className="text-[10px] px-1 py-0 text-white"
+                                style={{ backgroundColor: "hsl(var(--estado-sobreturno))" }}
+                              >
+                                Sobreturno
+                              </Badge>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => onSlot(d, slot)}
+                        className="rounded border border-dashed border-border/60 hover:border-[hsl(var(--estado-sobreturno))] hover:bg-[hsl(var(--estado-sobreturno)/0.08)] transition py-1 text-[10px] text-muted-foreground"
+                        title="Agregar sobreturno en este horario"
+                      >
+                        + Sobreturno
+                      </button>
+                    </div>
                   );
                 }
                 return (
