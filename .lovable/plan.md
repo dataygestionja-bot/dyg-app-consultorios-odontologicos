@@ -1,42 +1,100 @@
 
 
-## Vista de detalle (solo lectura) para atenciones
+## Pantalla "Mis turnos de hoy"
 
-Hoy el ícono ojo en el listado de **Atenciones** y en la solapa **Atenciones** del paciente abre `/atenciones/:id`, que en realidad renderiza `AtencionForm` en modo edición. El usuario espera ver los datos sin poder modificarlos.
+Pantalla operativa para que el profesional vea sus turnos del día e inicie la atención con un solo clic, sin volver a buscar paciente ni profesional.
 
-### Solución
+### 1. Nueva ruta y página
 
-Crear una nueva página **`/atenciones/:id/ver`** que muestra la atención en modo solo lectura, y redirigir todos los íconos "ojo" a esa ruta. La edición sigue accesible desde un botón **"Editar"** dentro de la vista de detalle.
+**Archivo nuevo:** `src/pages/MisTurnos.tsx`
+**Ruta:** `/mis-turnos` (registrada en `src/App.tsx` con `<Private>`, accesible a admin, recepción y profesional).
 
-### Cambios
+### 2. Comportamiento según rol
 
-**1. Nueva página `src/pages/AtencionDetalle.tsx`**
+- **Profesional:** se detecta su `profesionales.id` vía `user_id = auth.uid()`. Solo ve sus turnos del día. El selector de profesional queda oculto.
+- **Admin / Recepción:** ven un `Select` "Profesional" con opción **Todos** (default) y la lista. Pueden cambiar el día (selector de fecha + botón "Hoy").
 
-- Lee `:id` desde la URL.
-- Trae la atención con joins: paciente, profesional, turno y prácticas (`atencion_practicas` con su prestación).
-- Renderiza en `Card`s de solo lectura (texto plano, sin inputs):
-  - **Encabezado**: botón ← volver, título "Detalle de atención", botón **Editar** a la derecha (`Link` a `/atenciones/:id`).
-  - **Datos generales**: fecha, paciente, profesional, tipo de atención (badge), turno asociado (motivo + fecha/hora si existe), próxima visita sugerida.
-  - **Prácticas realizadas**: tabla con prestación (código + descripción), pieza, cara, cantidad, observación.
-  - **Diagnóstico**, **Indicaciones**, **Observaciones** como bloques de texto (mostrar "—" si vacíos).
-- Estado de carga y "no encontrado".
+### 3. Listado de turnos
 
-**2. Registrar la ruta en `src/App.tsx`**
+Tabla / lista de tarjetas con columnas:
 
-Agregar `<Route path="/atenciones/:id/ver" element={<AtencionDetalle />} />` dentro del bloque protegido, **antes** de `/atenciones/:id` para evitar conflictos.
+- **Hora** (hora_inicio – hora_fin)
+- **Paciente** (apellido, nombre + DNI chico)
+- **Profesional** (oculto si el rol es profesional, ya es él)
+- **Motivo de consulta**
+- **Estado** (badge con `TURNO_ESTADO_CLASSES`)
+- **Acción**
 
-**3. Cambiar destino del ícono ojo**
+Orden: por `hora_inicio` ascendente.
 
-- `src/pages/Atenciones.tsx` (línea 161): `to={`/atenciones/${a.id}/ver`}`.
-- `src/components/paciente/HistorialAtenciones.tsx` (línea ~117): mismo cambio.
+### 4. Filtros por estado (tabs)
+
+```text
+[ Activos ]  [ Finalizados ]  [ Todos ]
+```
+
+- **Activos** (default): `reservado`, `confirmado`, `en_atencion`, `pendiente_cierre`.
+- **Finalizados**: `atendido`, `ausente`, `cancelado`, `reprogramado`.
+- **Todos**: todos los estados del día.
+
+Contador de turnos al lado de cada tab.
+
+### 5. Acción "Iniciar atención"
+
+Botón principal por fila (visible solo si el estado es `reservado`, `confirmado`, `en_atencion` o `pendiente_cierre`):
+
+- Verifica si ya existe una atención para ese turno (`SELECT id FROM atenciones WHERE turno_id = ?`).
+  - Si **existe** → toast informativo y navega a `/atenciones/:id` (editar la existente). No crea duplicado.
+  - Si **no existe** → navega a `/atenciones/nuevo?turno={turno_id}`.
+- `AtencionForm` ya soporta el query param `?turno=` y precarga `paciente_id`, `profesional_id`, `fecha`, `turno_id` y fija `tipo_atencion = "con_turno"`. **No requiere cambios.**
+
+Adicionalmente, en `AtencionForm.tsx` (cuando viene `turnoIdParam`), agregar `disabled` a los `Select` de **Paciente** y **Profesional** para evitar que se modifiquen — quedan como solo lectura visual.
+
+Si el estado del turno es `reservado` o `confirmado`, opcionalmente al hacer clic se actualiza primero a `en_atencion` (mejor flujo visual del día). Si falla por RLS de profesional, no se rompe — la atención igual se crea.
+
+### 6. Acción secundaria
+
+Botón en el header: **"Nueva atención sin turno"** → navega a `/atenciones/nuevo` (sin query param). Allí el usuario elige `tipo_atencion = "urgencia"` o `"espontanea"`.
+
+### 7. Estado vacío
+
+Si no hay turnos en el filtro activo:
+> "No tenés turnos {hoy / para esta fecha} en este estado." + sugerencia de ver el tab "Todos".
+
+### 8. Consulta principal
+
+```sql
+SELECT t.*, p.nombre, p.apellido, p.dni,
+       pr.nombre AS prof_nombre, pr.apellido AS prof_apellido,
+       (SELECT id FROM atenciones WHERE turno_id = t.id LIMIT 1) AS atencion_id
+FROM turnos t
+JOIN pacientes p ON p.id = t.paciente_id
+JOIN profesionales pr ON pr.id = t.profesional_id
+WHERE t.fecha = :fecha
+  AND (:profesional_id IS NULL OR t.profesional_id = :profesional_id)
+ORDER BY t.hora_inicio
+```
+
+En el cliente: con Supabase JS, dos queries: `turnos` con joins `paciente:pacientes(...)`, `profesional:profesionales(...)`, y luego `atenciones.select("id, turno_id").in("turno_id", turnoIds)` para mapear cuáles ya tienen atención (mostrar botón "Ver atención" en vez de "Iniciar").
+
+### 9. Menú lateral
+
+En `src/components/layout/AppSidebar.tsx`, agregar al grupo **Operatoria**, justo después de "Turnos":
+
+```text
+{ title: "Mis turnos de hoy", url: "/mis-turnos", icon: ListTodo }
+```
+
+Visible para todos los roles (sin restricción de `roles`).
 
 ### Lo que NO se toca
 
-- `AtencionForm.tsx` sigue siendo el modo crear/editar; se accede desde el botón **Editar** del detalle o desde "Nueva atención".
-- Permisos / RLS / base de datos.
-- Otras vistas (Dashboard, Turnos).
+- Tabla `turnos`, `atenciones`, RLS, triggers, esquema de DB.
+- `Turnos.tsx` (calendario semanal) sigue igual.
+- Lógica de guardado de `AtencionForm` (solo se agrega `disabled` visual a 2 selects cuando viene `?turno=`).
+- Otros módulos.
 
 ### Resultado
 
-Al hacer clic en el ojo desde el listado de Atenciones o desde la ficha del paciente, se abre una vista de **solo lectura** con todos los datos de la atención. Para modificarla, el usuario usa el botón **Editar** que la lleva al formulario actual.
+El profesional entra a "Mis turnos de hoy", ve su agenda del día, hace clic en **Iniciar atención** y cae directo en el formulario con todo precargado y bloqueado para no equivocarse. Si el turno ya tiene atención, lo lleva a editarla en vez de duplicar. Admin/recepción usan la misma pantalla filtrando por profesional.
 
