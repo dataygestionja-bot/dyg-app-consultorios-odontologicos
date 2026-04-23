@@ -15,6 +15,7 @@ import {
   ListChecks,
   FileText,
   Wallet,
+  ListTodo,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -47,6 +48,7 @@ interface Item {
 const itemsOperatoria: Item[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Turnos", url: "/turnos", icon: CalendarDays },
+  { title: "Mis turnos de hoy", url: "/mis-turnos", icon: ListTodo },
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Atenciones", url: "/atenciones", icon: ClipboardList },
   { title: "Profesionales", url: "/profesionales", icon: Stethoscope, roles: ["admin"] },
