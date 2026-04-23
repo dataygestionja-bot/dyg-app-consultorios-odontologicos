@@ -40,6 +40,7 @@ interface Turno {
   hora_fin: string;
   motivo_consulta: string | null;
   estado: TurnoEstado;
+  es_sobreturno: boolean;
   paciente?: { nombre: string; apellido: string } | null;
 }
 
@@ -84,6 +85,7 @@ export default function Turnos() {
   const [pacienteId, setPacienteId] = useState("");
   const [motivo, setMotivo] = useState("");
   const [estado, setEstado] = useState<TurnoEstado>("reservado");
+  const [esSobreturno, setEsSobreturno] = useState(false);
   const [pacienteSearch, setPacienteSearch] = useState("");
   // Editable fields when editing
   const [editProfId, setEditProfId] = useState("");
@@ -91,6 +93,8 @@ export default function Turnos() {
   const [editHoraInicio, setEditHoraInicio] = useState("");
   const [editHoraFin, setEditHoraFin] = useState("");
   const [saving, setSaving] = useState(false);
+  // Confirmación de sobreturno cuando hay choque
+  const [confirmSobreturno, setConfirmSobreturno] = useState(false);
 
   const ESTADOS_SISTEMA: TurnoEstado[] = ["atendido"] as TurnoEstado[];
   // System-managed states present in DB enum but not always in TURNO_ESTADOS
@@ -158,6 +162,8 @@ export default function Turnos() {
     setPacienteId("");
     setMotivo("");
     setEstado("reservado");
+    setEsSobreturno(false);
+    setConfirmSobreturno(false);
     setPacienteSearch("");
     setOpen(true);
   }
@@ -168,6 +174,8 @@ export default function Turnos() {
     setPacienteId(t.paciente_id);
     setMotivo(t.motivo_consulta ?? "");
     setEstado(t.estado);
+    setEsSobreturno(!!t.es_sobreturno);
+    setConfirmSobreturno(false);
     setPacienteSearch("");
     setEditProfId(t.profesional_id);
     setEditFecha(t.fecha);
