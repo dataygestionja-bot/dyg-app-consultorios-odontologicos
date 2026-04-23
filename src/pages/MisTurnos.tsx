@@ -132,12 +132,13 @@ export default function MisTurnos() {
     let query = supabase
       .from("turnos")
       .select(
-        `id, fecha, hora_inicio, hora_fin, motivo_consulta, estado, paciente_id, profesional_id,
+        `id, fecha, hora_inicio, hora_fin, motivo_consulta, estado, es_sobreturno, paciente_id, profesional_id,
          paciente:pacientes(nombre, apellido, dni),
          profesional:profesionales(nombre, apellido)`,
       )
       .eq("fecha", fecha)
-      .order("hora_inicio", { ascending: true });
+      .order("hora_inicio", { ascending: true })
+      .order("es_sobreturno", { ascending: true });
 
     if (profesionalIdQuery) {
       query = query.eq("profesional_id", profesionalIdQuery);
