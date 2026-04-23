@@ -227,24 +227,7 @@ export default function Turnos() {
         if (editHoraFin <= editHoraInicio) return toast.error("La hora de fin debe ser mayor a la de inicio");
         if (motivo.trim() === "") return toast.error("El motivo es obligatorio");
 
-        // Chequeo de superposición
-        const { data: choques, error: errChoque } = await supabase
-          .from("turnos")
-          .select("id, hora_inicio, hora_fin")
-          .eq("profesional_id", editProfId)
-          .eq("fecha", editFecha)
-          .neq("id", editing.id)
-          .in("estado", ["reservado", "confirmado", "en_atencion"]);
-        if (errChoque) return toast.error("No se pudo validar el horario", { description: errChoque.message });
-        const hi = editHoraInicio;
-        const hf = editHoraFin;
-        const overlap = (choques ?? []).some((c) => {
-          const ci = c.hora_inicio.slice(0, 5);
-          const cf = c.hora_fin.slice(0, 5);
-          return hi < cf && hf > ci;
-        });
-        if (overlap) return toast.error("El profesional ya tiene un turno en ese horario");
-
+        // El chequeo de superposición ahora lo hace el trigger en DB.
         const { error } = await supabase
           .from("turnos")
           .update({
@@ -255,12 +238,19 @@ export default function Turnos() {
             hora_fin: editHoraFin,
             motivo_consulta: motivo.trim(),
             estado,
+            es_sobreturno: esSobreturno,
           })
           .eq("id", editing.id);
         if (error) {
-          const msg = error.message.includes("turnos_no_overlap")
-            ? "Ese horario ya tiene un turno para el profesional"
-            : error.message.includes("atendido sin una atención")
+          if (
+            error.code === "23505" ||
+            error.message.toLowerCase().includes("sobreturno") ||
+            error.message.toLowerCase().includes("ya existe un turno")
+          ) {
+            setConfirmSobreturno(true);
+            return;
+          }
+          const msg = error.message.includes("atendido sin una atención")
             ? "Para marcar como atendido, registrá la atención desde el módulo Atenciones."
             : error.message;
           return toast.error("No se pudo actualizar", { description: msg });
@@ -277,20 +267,33 @@ export default function Turnos() {
           hora_fin: slot.hora_fin,
           motivo_consulta: motivo.trim(),
           estado,
+          es_sobreturno: esSobreturno,
         });
         if (error) {
-          const msg = error.message.includes("turnos_no_overlap")
-            ? "Ese horario ya tiene un turno para el profesional"
-            : error.message;
-          return toast.error("No se pudo crear", { description: msg });
+          if (
+            error.code === "23505" ||
+            error.message.toLowerCase().includes("sobreturno") ||
+            error.message.toLowerCase().includes("ya existe un turno")
+          ) {
+            setConfirmSobreturno(true);
+            return;
+          }
+          return toast.error("No se pudo crear", { description: error.message });
         }
-        toast.success("Turno creado");
+        toast.success(esSobreturno ? "Sobreturno creado" : "Turno creado");
       }
       setOpen(false);
       cargarTurnos();
     } finally {
       setSaving(false);
     }
+  }
+
+  async function confirmarComoSobreturno() {
+    setEsSobreturno(true);
+    setConfirmSobreturno(false);
+    // pequeño delay para que setEsSobreturno tome efecto en el próximo guardar
+    setTimeout(() => guardar(), 0);
   }
 
   async function cancelarTurno() {
