@@ -321,9 +321,19 @@ export default function MisTurnos() {
                       visibles.map((t) => {
                         const puedeIniciar = ESTADOS_INICIAR.has(t.estado);
                         return (
-                          <TableRow key={t.id}>
+                          <TableRow
+                            key={t.id}
+                            className={t.es_sobreturno ? "bg-[hsl(var(--estado-sobreturno)/0.07)]" : ""}
+                          >
                             <TableCell className="font-mono">
-                              {t.hora_inicio?.slice(0, 5)} – {t.hora_fin?.slice(0, 5)}
+                              <div className="flex items-center gap-1">
+                                {t.es_sobreturno && (
+                                  <AlertTriangle className="h-3.5 w-3.5 text-[hsl(var(--estado-sobreturno))]" />
+                                )}
+                                <span>
+                                  {t.hora_inicio?.slice(0, 5)} – {t.hora_fin?.slice(0, 5)}
+                                </span>
+                              </div>
                             </TableCell>
                             <TableCell>
                               <div className="font-medium">
@@ -346,14 +356,24 @@ export default function MisTurnos() {
                               {t.motivo_consulta}
                             </TableCell>
                             <TableCell>
-                              <Badge
-                                className={
-                                  TURNO_ESTADO_CLASSES[t.estado as TurnoEstado] ??
-                                  "bg-muted text-foreground"
-                                }
-                              >
-                                {TURNO_ESTADO_LABELS[t.estado as TurnoEstado] ?? t.estado}
-                              </Badge>
+                              <div className="flex flex-wrap gap-1">
+                                <Badge
+                                  className={
+                                    TURNO_ESTADO_CLASSES[t.estado as TurnoEstado] ??
+                                    "bg-muted text-foreground"
+                                  }
+                                >
+                                  {TURNO_ESTADO_LABELS[t.estado as TurnoEstado] ?? t.estado}
+                                </Badge>
+                                {t.es_sobreturno && (
+                                  <Badge
+                                    className="text-white"
+                                    style={{ backgroundColor: "hsl(var(--estado-sobreturno))" }}
+                                  >
+                                    Sobreturno
+                                  </Badge>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="text-right">
                               {t.atencion_id ? (
