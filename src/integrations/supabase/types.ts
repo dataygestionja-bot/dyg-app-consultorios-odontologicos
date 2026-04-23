@@ -671,6 +671,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          es_sobreturno: boolean
           estado: Database["public"]["Enums"]["turno_estado"]
           fecha: string
           hora_fin: string
@@ -684,6 +685,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          es_sobreturno?: boolean
           estado?: Database["public"]["Enums"]["turno_estado"]
           fecha: string
           hora_fin: string
@@ -697,6 +699,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          es_sobreturno?: boolean
           estado?: Database["public"]["Enums"]["turno_estado"]
           fecha?: string
           hora_fin?: string
