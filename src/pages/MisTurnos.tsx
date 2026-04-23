@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { CalendarDays, PlayCircle, FileText, Plus, RefreshCw } from "lucide-react";
+import { CalendarDays, PlayCircle, FileText, Plus, RefreshCw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +47,7 @@ interface TurnoRow {
   hora_fin: string;
   motivo_consulta: string;
   estado: TurnoEstado;
+  es_sobreturno: boolean;
   paciente_id: string;
   profesional_id: string;
   paciente: { nombre: string; apellido: string; dni: string } | null;
