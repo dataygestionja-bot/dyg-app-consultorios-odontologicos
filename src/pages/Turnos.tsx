@@ -206,9 +206,10 @@ export default function Turnos() {
     setEditHoraInicio(nuevaHora);
   }
 
-  async function guardar() {
+  async function guardar(forceSobreturno?: boolean) {
     if (saving) return;
     setSaving(true);
+    const sobreturnoFlag = forceSobreturno ?? esSobreturno;
     try {
       if (editing) {
         if (isSystemManaged) {
