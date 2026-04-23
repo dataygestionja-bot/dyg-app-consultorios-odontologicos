@@ -667,6 +667,36 @@ export type Database = {
         }
         Relationships: []
       }
+      role_permissions: {
+        Row: {
+          action: Database["public"]["Enums"]["permission_action"]
+          allowed: boolean
+          created_at: string
+          id: string
+          module: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["permission_action"]
+          allowed?: boolean
+          created_at?: string
+          id?: string
+          module: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["permission_action"]
+          allowed?: boolean
+          created_at?: string
+          id?: string
+          module?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       turnos: {
         Row: {
           created_at: string
@@ -754,6 +784,14 @@ export type Database = {
     }
     Functions: {
       cierre_diario_turnos: { Args: never; Returns: number }
+      has_permission: {
+        Args: {
+          _action: Database["public"]["Enums"]["permission_action"]
+          _module: string
+          _uid: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -780,6 +818,7 @@ export type Database = {
         | "credito"
         | "mercadopago"
         | "otro"
+      permission_action: "read" | "create" | "update" | "delete"
       presupuesto_estado:
         | "borrador"
         | "entregado"
@@ -933,6 +972,7 @@ export const Constants = {
         "mercadopago",
         "otro",
       ],
+      permission_action: ["read", "create", "update", "delete"],
       presupuesto_estado: [
         "borrador",
         "entregado",

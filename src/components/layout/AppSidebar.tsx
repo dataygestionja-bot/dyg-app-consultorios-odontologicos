@@ -63,7 +63,8 @@ const itemsGestion: Item[] = [
 
 const itemsSeguridad: Item[] = [
   { title: "Usuarios", url: "/seguridad/usuarios", icon: Users, roles: ["admin"] },
-  { title: "Perfiles", url: "/seguridad/perfiles", icon: UserCog },
+  { title: "Perfiles", url: "/seguridad/perfiles", icon: UserCog, roles: ["admin"] },
+  { title: "Mi perfil", url: "/seguridad/mi-perfil", icon: UserCog },
   { title: "Reportes de seguridad", url: "/seguridad/reportes", icon: FileBarChart, roles: ["admin"] },
   { title: "Auditoría de seguridad", url: "/seguridad/auditoria", icon: ScrollText, roles: ["admin"] },
 ];

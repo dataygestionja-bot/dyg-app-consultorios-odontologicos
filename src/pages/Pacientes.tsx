@@ -10,6 +10,7 @@ import { Plus, Pencil } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface Row {
   id: string;
@@ -22,6 +23,7 @@ interface Row {
 }
 
 export default function Pacientes() {
+  const { can } = usePermissions();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -64,9 +66,11 @@ export default function Pacientes() {
           <h1 className="text-2xl font-bold tracking-tight">Pacientes</h1>
           <p className="text-sm text-muted-foreground">Gestión de pacientes del consultorio</p>
         </div>
-        <Button asChild>
-          <Link to="/pacientes/nuevo"><Plus className="h-4 w-4" /> Nuevo paciente</Link>
-        </Button>
+        {can("pacientes", "create") && (
+          <Button asChild>
+            <Link to="/pacientes/nuevo"><Plus className="h-4 w-4" /> Nuevo paciente</Link>
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -118,9 +122,11 @@ export default function Pacientes() {
                       {p.activo ? <Badge>Activo</Badge> : <Badge variant="secondary">Inactivo</Badge>}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link to={`/pacientes/${p.id}`}><Pencil className="h-4 w-4" /></Link>
-                      </Button>
+                      {can("pacientes", "update") && (
+                        <Button asChild variant="ghost" size="sm">
+                          <Link to={`/pacientes/${p.id}`}><Pencil className="h-4 w-4" /></Link>
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

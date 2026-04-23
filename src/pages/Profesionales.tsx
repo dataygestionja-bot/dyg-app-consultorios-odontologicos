@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil } from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface Row {
   id: string;
@@ -19,6 +20,7 @@ interface Row {
 }
 
 export default function Profesionales() {
+  const { can } = usePermissions();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,9 +43,11 @@ export default function Profesionales() {
           <h1 className="text-2xl font-bold tracking-tight">Profesionales</h1>
           <p className="text-sm text-muted-foreground">Equipo del consultorio y horarios de atención</p>
         </div>
-        <Button asChild>
-          <Link to="/profesionales/nuevo"><Plus className="h-4 w-4" /> Nuevo profesional</Link>
-        </Button>
+        {can("profesionales", "create") && (
+          <Button asChild>
+            <Link to="/profesionales/nuevo"><Plus className="h-4 w-4" /> Nuevo profesional</Link>
+          </Button>
+        )}
       </div>
 
       <Card>

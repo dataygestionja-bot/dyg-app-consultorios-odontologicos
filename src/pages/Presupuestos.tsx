@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const ESTADO_LABEL: Record<string, string> = {
   borrador: "Borrador",
@@ -33,6 +34,7 @@ interface Row {
 interface PacienteOpt { id: string; nombre: string; apellido: string; dni: string }
 
 export default function Presupuestos() {
+  const { can } = usePermissions();
   const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,9 +94,11 @@ export default function Presupuestos() {
           <p className="text-sm text-muted-foreground">Planes de tratamiento y presupuestos por paciente</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4" /> Nuevo</Button>
-          </DialogTrigger>
+          {can("presupuestos", "create") && (
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4" /> Nuevo</Button>
+            </DialogTrigger>
+          )}
           <DialogContent>
             <DialogHeader><DialogTitle>Nuevo presupuesto</DialogTitle></DialogHeader>
             <div className="space-y-4 py-4">

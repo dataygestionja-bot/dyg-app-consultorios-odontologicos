@@ -1,128 +1,233 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ROLE_LABELS } from "@/lib/constants";
+import { ROLE_LABELS, ROLES, type AppRole } from "@/lib/constants";
+import {
+  ACTION_LABELS,
+  DEFAULT_PERMISSIONS,
+  MODULES,
+  PERMISSION_ACTIONS,
+  type PermissionAction,
+} from "@/lib/permissions";
+import { usePermissions } from "@/hooks/usePermissions";
+
+type Matrix = Record<string, Record<PermissionAction, boolean>>;
+
+const ROLE_TABS: AppRole[] = [ROLES.ADMIN, ROLES.RECEPCION, ROLES.PROFESIONAL];
+
+function emptyMatrix(): Matrix {
+  return Object.fromEntries(
+    MODULES.map((m) => [m.key, { read: false, create: false, update: false, delete: false }]),
+  ) as Matrix;
+}
 
 export default function Perfiles() {
-  const { user, roles } = useAuth();
-  const [nombre, setNombre] = useState("");
-  const [apellido, setApellido] = useState("");
-  const [email, setEmail] = useState("");
+  const { refresh } = usePermissions();
+  const [activeRole, setActiveRole] = useState<AppRole>(ROLES.ADMIN);
+  const [matrices, setMatrices] = useState<Record<AppRole, Matrix>>({
+    admin: emptyMatrix(),
+    recepcion: emptyMatrix(),
+    profesional: emptyMatrix(),
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    document.title = "Mi perfil | Seguridad";
-    if (!user) return;
-    supabase
-      .from("profiles")
-      .select("nombre, apellido, email")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        setNombre(data?.nombre ?? "");
-        setApellido(data?.apellido ?? "");
-        setEmail(data?.email ?? user.email ?? "");
-        setLoading(false);
-      });
-  }, [user]);
+    document.title = "Perfiles de seguridad | Consultorio";
+    cargar();
+  }, []);
 
-  async function guardar(e: React.FormEvent) {
-    e.preventDefault();
-    if (!user) return;
-    setSaving(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ nombre, apellido })
-      .eq("id", user.id);
-    setSaving(false);
+  async function cargar() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("role_permissions")
+      .select("role, module, action, allowed");
     if (error) {
-      toast.error("No se pudo guardar", { description: error.message });
+      toast.error("No se pudieron cargar los permisos", { description: error.message });
+      setLoading(false);
       return;
     }
-    toast.success("Perfil actualizado");
+    const next: Record<AppRole, Matrix> = {
+      admin: emptyMatrix(),
+      recepcion: emptyMatrix(),
+      profesional: emptyMatrix(),
+    };
+    (data ?? []).forEach((r) => {
+      const role = r.role as AppRole;
+      const mod = r.module as string;
+      const act = r.action as PermissionAction;
+      if (next[role] && next[role][mod]) {
+        next[role][mod][act] = !!r.allowed;
+      }
+    });
+    setMatrices(next);
+    setLoading(false);
   }
 
-  const descripciones: Record<string, string> = {
-    admin: "Acceso total: gestión de usuarios, profesionales, configuración y seguridad.",
-    recepcion: "Gestión de pacientes, turnos, obras sociales y atención de público.",
-    profesional: "Acceso a su agenda y a las atenciones que realiza.",
-  };
+  function toggle(role: AppRole, mod: string, action: PermissionAction, value: boolean) {
+    setMatrices((prev) => {
+      const m = { ...prev[role][mod], [action]: value };
+      // auto-implicación: si activa create/update/delete, encender read
+      if (value && action !== "read") m.read = true;
+      // si apaga read, apagar el resto también (no podés modificar lo que no podés leer)
+      if (!value && action === "read") {
+        m.create = false;
+        m.update = false;
+        m.delete = false;
+      }
+      return { ...prev, [role]: { ...prev[role], [mod]: m } };
+    });
+  }
+
+  function restaurarDefaults() {
+    setMatrices((prev) => ({ ...prev, [activeRole]: structuredClone(DEFAULT_PERMISSIONS[activeRole]) }));
+    toast.message("Valores por defecto cargados", {
+      description: "Apretá Guardar cambios para aplicarlos.",
+    });
+  }
+
+  async function guardar() {
+    setSaving(true);
+    const matrix = matrices[activeRole];
+    const rows = MODULES.flatMap((m) =>
+      PERMISSION_ACTIONS.map((a) => ({
+        role: activeRole,
+        module: m.key,
+        action: a,
+        allowed: !!matrix[m.key][a],
+      })),
+    );
+    const { error } = await supabase
+      .from("role_permissions")
+      .upsert(rows, { onConflict: "role,module,action" });
+    if (error) {
+      setSaving(false);
+      toast.error("No se pudieron guardar los permisos", { description: error.message });
+      return;
+    }
+    try {
+      await supabase.rpc("log_audit_event", {
+        _accion: "UPDATE",
+        _entidad: "role_permissions",
+        _descripcion: `Permisos actualizados para rol ${ROLE_LABELS[activeRole]}`,
+      });
+    } catch {
+      /* noop */
+    }
+    await refresh();
+    setSaving(false);
+    toast.success(`Permisos del perfil ${ROLE_LABELS[activeRole]} actualizados`);
+  }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Perfiles</h1>
-        <p className="text-sm text-muted-foreground">Tus datos personales y los roles del sistema</p>
+        <h1 className="text-2xl font-bold tracking-tight">Perfiles de seguridad</h1>
+        <p className="text-sm text-muted-foreground">
+          Definí qué puede hacer cada perfil dentro del sistema. Los cambios se aplican inmediatamente.
+        </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Mi perfil</CardTitle>
-            <CardDescription>Tus datos visibles dentro del sistema</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-sm text-muted-foreground">Cargando...</div>
-            ) : (
-              <form onSubmit={guardar} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="nombre">Nombre</Label>
-                    <Input id="nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="apellido">Apellido</Label>
-                    <Input id="apellido" value={apellido} onChange={(e) => setApellido(e.target.value)} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" value={email} disabled />
-                  <p className="text-xs text-muted-foreground">El email no se puede modificar.</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Mis roles</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {roles.length === 0 ? (
-                      <Badge variant="secondary">Sin rol asignado</Badge>
-                    ) : (
-                      roles.map((r) => <Badge key={r}>{ROLE_LABELS[r]}</Badge>)
-                    )}
-                  </div>
-                </div>
-                <Button type="submit" disabled={saving}>
-                  {saving ? "Guardando..." : "Guardar cambios"}
-                </Button>
-              </form>
-            )}
-          </CardContent>
-        </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Matriz de permisos</CardTitle>
+          <CardDescription>
+            Marcá las acciones permitidas para cada funcionalidad. Activar Alta, Modificación o Baja
+            implica también Lectura.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeRole} onValueChange={(v) => setActiveRole(v as AppRole)}>
+            <TabsList className="grid grid-cols-3 w-full max-w-xl">
+              {ROLE_TABS.map((r) => (
+                <TabsTrigger key={r} value={r}>
+                  {ROLE_LABELS[r]}
+                </TabsTrigger>
+              ))}
+            </TabsList>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Roles del sistema</CardTitle>
-            <CardDescription>Permisos que otorga cada perfil</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {(Object.keys(ROLE_LABELS) as Array<keyof typeof ROLE_LABELS>).map((r) => (
-              <div key={r} className="rounded-md border p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge>{ROLE_LABELS[r]}</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">{descripciones[r]}</p>
-              </div>
+            {ROLE_TABS.map((r) => (
+              <TabsContent key={r} value={r} className="mt-4">
+                <PermissionMatrix
+                  matrix={matrices[r]}
+                  loading={loading}
+                  onToggle={(mod, action, value) => toggle(r, mod, action, value)}
+                />
+              </TabsContent>
             ))}
-          </CardContent>
-        </Card>
-      </div>
+          </Tabs>
+
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button onClick={guardar} disabled={saving || loading}>
+              {saving ? "Guardando..." : "Guardar cambios"}
+            </Button>
+            <Button variant="outline" onClick={restaurarDefaults} disabled={loading}>
+              Restaurar valores por defecto
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function PermissionMatrix({
+  matrix,
+  loading,
+  onToggle,
+}: {
+  matrix: Matrix;
+  loading: boolean;
+  onToggle: (mod: string, action: PermissionAction, value: boolean) => void;
+}) {
+  const rows = useMemo(() => MODULES, []);
+
+  if (loading) {
+    return <div className="text-sm text-muted-foreground py-6">Cargando permisos…</div>;
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-md border">
+      <Table>
+        <TableHeader className="bg-muted/50">
+          <TableRow>
+            <TableHead className="w-[280px]">Funcionalidad</TableHead>
+            {PERMISSION_ACTIONS.map((a) => (
+              <TableHead key={a} className="text-center">
+                {ACTION_LABELS[a]}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((m) => {
+            const cells = matrix[m.key];
+            const lockRead = cells.create || cells.update || cells.delete;
+            return (
+              <TableRow key={m.key}>
+                <TableCell className="font-medium">{m.label}</TableCell>
+                {PERMISSION_ACTIONS.map((a) => (
+                  <TableCell key={a} className="text-center">
+                    <div className="flex justify-center">
+                      <Checkbox
+                        checked={cells[a]}
+                        disabled={a === "read" && lockRead}
+                        onCheckedChange={(v) => onToggle(m.key, a, v === true)}
+                        aria-label={`${m.label} ${ACTION_LABELS[a]}`}
+                      />
+                    </div>
+                  </TableCell>
+                ))}
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
     </div>
   );
 }
