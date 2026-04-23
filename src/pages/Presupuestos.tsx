@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const ESTADO_LABEL: Record<string, string> = {
   borrador: "Borrador",

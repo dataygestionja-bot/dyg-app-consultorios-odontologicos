@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Eye, ArrowUp, ArrowDown } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type TipoAtencion = "con_turno" | "urgencia" | "espontanea";
 
@@ -35,6 +36,7 @@ const TIPO_VARIANT: Record<TipoAtencion, "default" | "destructive" | "secondary"
 };
 
 export default function Atenciones() {
+  const { can } = usePermissions();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -83,9 +85,11 @@ export default function Atenciones() {
           <h1 className="text-2xl font-bold tracking-tight">Atenciones</h1>
           <p className="text-sm text-muted-foreground">Historial de atenciones clínicas</p>
         </div>
-        <Button asChild>
-          <Link to="/atenciones/nuevo"><Plus className="h-4 w-4" /> Nueva atención</Link>
-        </Button>
+        {can("atenciones", "create") && (
+          <Button asChild>
+            <Link to="/atenciones/nuevo"><Plus className="h-4 w-4" /> Nueva atención</Link>
+          </Button>
+        )}
       </div>
 
       <Card>
