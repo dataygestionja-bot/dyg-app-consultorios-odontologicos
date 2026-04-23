@@ -244,7 +244,7 @@ export default function Turnos() {
             hora_fin: editHoraFin,
             motivo_consulta: motivo.trim(),
             estado,
-            es_sobreturno: esSobreturno,
+            es_sobreturno: sobreturnoFlag,
           })
           .eq("id", editing.id);
         if (error) {
