@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
+import { PermissionsProvider } from "@/hooks/usePermissions";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -26,6 +27,7 @@ import Cobros from "./pages/Cobros";
 import Seguridad from "./pages/seguridad/Seguridad";
 import Usuarios from "./pages/seguridad/Usuarios";
 import Perfiles from "./pages/seguridad/Perfiles";
+import MiPerfil from "./pages/seguridad/MiPerfil";
 import Reportes from "./pages/seguridad/Reportes";
 import Auditoria from "./pages/seguridad/Auditoria";
 import NotFound from "./pages/NotFound.tsx";
@@ -69,6 +71,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <PermissionsProvider>
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/" element={<Private><Dashboard /></Private>} />
@@ -102,7 +105,8 @@ const App = () => (
             {/* Administración de seguridad */}
             <Route path="/seguridad" element={<AdminOnly><Seguridad /></AdminOnly>} />
             <Route path="/seguridad/usuarios" element={<AdminOnly><Usuarios /></AdminOnly>} />
-            <Route path="/seguridad/perfiles" element={<Private><Perfiles /></Private>} />
+            <Route path="/seguridad/perfiles" element={<AdminOnly><Perfiles /></AdminOnly>} />
+            <Route path="/seguridad/mi-perfil" element={<Private><MiPerfil /></Private>} />
             <Route path="/seguridad/reportes" element={<AdminOnly><Reportes /></AdminOnly>} />
             <Route path="/seguridad/auditoria" element={<AdminOnly><Auditoria /></AdminOnly>} />
 
@@ -111,6 +115,7 @@ const App = () => (
 
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </PermissionsProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
