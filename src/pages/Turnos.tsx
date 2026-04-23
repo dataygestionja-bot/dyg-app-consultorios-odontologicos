@@ -9,8 +9,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, startOfWeek, parseISO, isSameDay, isValid } from "date-fns";
 import { es } from "date-fns/locale";
@@ -537,6 +542,27 @@ export default function Turnos() {
                 </Select>
               )}
             </div>
+
+            {/* Sobreturno */}
+            {!isSystemManaged && (
+              <div className="flex items-start gap-2 rounded-md border border-dashed p-3 bg-muted/30">
+                <Checkbox
+                  id="es-sobreturno"
+                  checked={esSobreturno}
+                  onCheckedChange={(v) => setEsSobreturno(v === true)}
+                  className="mt-0.5"
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="es-sobreturno" className="cursor-pointer flex items-center gap-1">
+                    <AlertTriangle className="h-3.5 w-3.5 text-[hsl(var(--estado-sobreturno))]" />
+                    Marcar como sobreturno
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Permite registrar este turno aunque ya exista otro en el mismo horario.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-between">
             <div className="flex gap-2">
@@ -554,6 +580,26 @@ export default function Turnos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmSobreturno} onOpenChange={setConfirmSobreturno}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-[hsl(var(--estado-sobreturno))]" />
+              Ya existe un turno en este horario
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              El profesional ya tiene un turno asignado en este horario. ¿Desea registrar este como <strong>sobreturno</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarComoSobreturno}>
+              Crear como sobreturno
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
