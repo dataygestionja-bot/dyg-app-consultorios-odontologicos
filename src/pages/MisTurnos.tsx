@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { CalendarDays, PlayCircle, FileText, Plus, RefreshCw } from "lucide-react";
+import { CalendarDays, PlayCircle, FileText, Plus, RefreshCw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +47,7 @@ interface TurnoRow {
   hora_fin: string;
   motivo_consulta: string;
   estado: TurnoEstado;
+  es_sobreturno: boolean;
   paciente_id: string;
   profesional_id: string;
   paciente: { nombre: string; apellido: string; dni: string } | null;
@@ -131,12 +132,13 @@ export default function MisTurnos() {
     let query = supabase
       .from("turnos")
       .select(
-        `id, fecha, hora_inicio, hora_fin, motivo_consulta, estado, paciente_id, profesional_id,
+        `id, fecha, hora_inicio, hora_fin, motivo_consulta, estado, es_sobreturno, paciente_id, profesional_id,
          paciente:pacientes(nombre, apellido, dni),
          profesional:profesionales(nombre, apellido)`,
       )
       .eq("fecha", fecha)
-      .order("hora_inicio", { ascending: true });
+      .order("hora_inicio", { ascending: true })
+      .order("es_sobreturno", { ascending: true });
 
     if (profesionalIdQuery) {
       query = query.eq("profesional_id", profesionalIdQuery);
@@ -319,9 +321,19 @@ export default function MisTurnos() {
                       visibles.map((t) => {
                         const puedeIniciar = ESTADOS_INICIAR.has(t.estado);
                         return (
-                          <TableRow key={t.id}>
+                          <TableRow
+                            key={t.id}
+                            className={t.es_sobreturno ? "bg-[hsl(var(--estado-sobreturno)/0.07)]" : ""}
+                          >
                             <TableCell className="font-mono">
-                              {t.hora_inicio?.slice(0, 5)} – {t.hora_fin?.slice(0, 5)}
+                              <div className="flex items-center gap-1">
+                                {t.es_sobreturno && (
+                                  <AlertTriangle className="h-3.5 w-3.5 text-[hsl(var(--estado-sobreturno))]" />
+                                )}
+                                <span>
+                                  {t.hora_inicio?.slice(0, 5)} – {t.hora_fin?.slice(0, 5)}
+                                </span>
+                              </div>
                             </TableCell>
                             <TableCell>
                               <div className="font-medium">
@@ -344,14 +356,24 @@ export default function MisTurnos() {
                               {t.motivo_consulta}
                             </TableCell>
                             <TableCell>
-                              <Badge
-                                className={
-                                  TURNO_ESTADO_CLASSES[t.estado as TurnoEstado] ??
-                                  "bg-muted text-foreground"
-                                }
-                              >
-                                {TURNO_ESTADO_LABELS[t.estado as TurnoEstado] ?? t.estado}
-                              </Badge>
+                              <div className="flex flex-wrap gap-1">
+                                <Badge
+                                  className={
+                                    TURNO_ESTADO_CLASSES[t.estado as TurnoEstado] ??
+                                    "bg-muted text-foreground"
+                                  }
+                                >
+                                  {TURNO_ESTADO_LABELS[t.estado as TurnoEstado] ?? t.estado}
+                                </Badge>
+                                {t.es_sobreturno && (
+                                  <Badge
+                                    className="text-white"
+                                    style={{ backgroundColor: "hsl(var(--estado-sobreturno))" }}
+                                  >
+                                    Sobreturno
+                                  </Badge>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="text-right">
                               {t.atencion_id ? (

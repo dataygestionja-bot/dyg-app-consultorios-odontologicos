@@ -9,8 +9,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, startOfWeek, parseISO, isSameDay, isValid } from "date-fns";
 import { es } from "date-fns/locale";
@@ -40,6 +45,7 @@ interface Turno {
   hora_fin: string;
   motivo_consulta: string | null;
   estado: TurnoEstado;
+  es_sobreturno: boolean;
   paciente?: { nombre: string; apellido: string } | null;
 }
 
@@ -84,6 +90,7 @@ export default function Turnos() {
   const [pacienteId, setPacienteId] = useState("");
   const [motivo, setMotivo] = useState("");
   const [estado, setEstado] = useState<TurnoEstado>("reservado");
+  const [esSobreturno, setEsSobreturno] = useState(false);
   const [pacienteSearch, setPacienteSearch] = useState("");
   // Editable fields when editing
   const [editProfId, setEditProfId] = useState("");
@@ -91,6 +98,8 @@ export default function Turnos() {
   const [editHoraInicio, setEditHoraInicio] = useState("");
   const [editHoraFin, setEditHoraFin] = useState("");
   const [saving, setSaving] = useState(false);
+  // Confirmación de sobreturno cuando hay choque
+  const [confirmSobreturno, setConfirmSobreturno] = useState(false);
 
   const ESTADOS_SISTEMA: TurnoEstado[] = ["atendido"] as TurnoEstado[];
   // System-managed states present in DB enum but not always in TURNO_ESTADOS
@@ -158,6 +167,8 @@ export default function Turnos() {
     setPacienteId("");
     setMotivo("");
     setEstado("reservado");
+    setEsSobreturno(false);
+    setConfirmSobreturno(false);
     setPacienteSearch("");
     setOpen(true);
   }
@@ -168,6 +179,8 @@ export default function Turnos() {
     setPacienteId(t.paciente_id);
     setMotivo(t.motivo_consulta ?? "");
     setEstado(t.estado);
+    setEsSobreturno(!!t.es_sobreturno);
+    setConfirmSobreturno(false);
     setPacienteSearch("");
     setEditProfId(t.profesional_id);
     setEditFecha(t.fecha);
@@ -219,24 +232,7 @@ export default function Turnos() {
         if (editHoraFin <= editHoraInicio) return toast.error("La hora de fin debe ser mayor a la de inicio");
         if (motivo.trim() === "") return toast.error("El motivo es obligatorio");
 
-        // Chequeo de superposición
-        const { data: choques, error: errChoque } = await supabase
-          .from("turnos")
-          .select("id, hora_inicio, hora_fin")
-          .eq("profesional_id", editProfId)
-          .eq("fecha", editFecha)
-          .neq("id", editing.id)
-          .in("estado", ["reservado", "confirmado", "en_atencion"]);
-        if (errChoque) return toast.error("No se pudo validar el horario", { description: errChoque.message });
-        const hi = editHoraInicio;
-        const hf = editHoraFin;
-        const overlap = (choques ?? []).some((c) => {
-          const ci = c.hora_inicio.slice(0, 5);
-          const cf = c.hora_fin.slice(0, 5);
-          return hi < cf && hf > ci;
-        });
-        if (overlap) return toast.error("El profesional ya tiene un turno en ese horario");
-
+        // El chequeo de superposición ahora lo hace el trigger en DB.
         const { error } = await supabase
           .from("turnos")
           .update({
@@ -247,12 +243,19 @@ export default function Turnos() {
             hora_fin: editHoraFin,
             motivo_consulta: motivo.trim(),
             estado,
+            es_sobreturno: esSobreturno,
           })
           .eq("id", editing.id);
         if (error) {
-          const msg = error.message.includes("turnos_no_overlap")
-            ? "Ese horario ya tiene un turno para el profesional"
-            : error.message.includes("atendido sin una atención")
+          if (
+            error.code === "23505" ||
+            error.message.toLowerCase().includes("sobreturno") ||
+            error.message.toLowerCase().includes("ya existe un turno")
+          ) {
+            setConfirmSobreturno(true);
+            return;
+          }
+          const msg = error.message.includes("atendido sin una atención")
             ? "Para marcar como atendido, registrá la atención desde el módulo Atenciones."
             : error.message;
           return toast.error("No se pudo actualizar", { description: msg });
@@ -269,20 +272,33 @@ export default function Turnos() {
           hora_fin: slot.hora_fin,
           motivo_consulta: motivo.trim(),
           estado,
+          es_sobreturno: esSobreturno,
         });
         if (error) {
-          const msg = error.message.includes("turnos_no_overlap")
-            ? "Ese horario ya tiene un turno para el profesional"
-            : error.message;
-          return toast.error("No se pudo crear", { description: msg });
+          if (
+            error.code === "23505" ||
+            error.message.toLowerCase().includes("sobreturno") ||
+            error.message.toLowerCase().includes("ya existe un turno")
+          ) {
+            setConfirmSobreturno(true);
+            return;
+          }
+          return toast.error("No se pudo crear", { description: error.message });
         }
-        toast.success("Turno creado");
+        toast.success(esSobreturno ? "Sobreturno creado" : "Turno creado");
       }
       setOpen(false);
       cargarTurnos();
     } finally {
       setSaving(false);
     }
+  }
+
+  async function confirmarComoSobreturno() {
+    setEsSobreturno(true);
+    setConfirmSobreturno(false);
+    // pequeño delay para que setEsSobreturno tome efecto en el próximo guardar
+    setTimeout(() => guardar(), 0);
   }
 
   async function cancelarTurno() {
@@ -526,6 +542,27 @@ export default function Turnos() {
                 </Select>
               )}
             </div>
+
+            {/* Sobreturno */}
+            {!isSystemManaged && (
+              <div className="flex items-start gap-2 rounded-md border border-dashed p-3 bg-muted/30">
+                <Checkbox
+                  id="es-sobreturno"
+                  checked={esSobreturno}
+                  onCheckedChange={(v) => setEsSobreturno(v === true)}
+                  className="mt-0.5"
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="es-sobreturno" className="cursor-pointer flex items-center gap-1">
+                    <AlertTriangle className="h-3.5 w-3.5 text-[hsl(var(--estado-sobreturno))]" />
+                    Marcar como sobreturno
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Permite registrar este turno aunque ya exista otro en el mismo horario.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-between">
             <div className="flex gap-2">
@@ -543,6 +580,26 @@ export default function Turnos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmSobreturno} onOpenChange={setConfirmSobreturno}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-[hsl(var(--estado-sobreturno))]" />
+              Ya existe un turno en este horario
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              El profesional ya tiene un turno asignado en este horario. ¿Desea registrar este como <strong>sobreturno</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarComoSobreturno}>
+              Crear como sobreturno
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -598,29 +655,67 @@ function CalendarGrid({
               {dias.map((d) => {
                 const slot = slotsByDay.find((s) => isSameDay(s.dia, d))?.slots.find((sl) => sl.hora_inicio === hora);
                 if (!slot) return <div key={d.toISOString()} className="bg-muted/30 rounded" />;
-                const turno = turnos.find((t) =>
-                  t.profesional_id === profesional.id &&
-                  t.fecha === format(d, "yyyy-MM-dd") &&
-                  t.hora_inicio.startsWith(slot.hora_inicio)
-                );
-                if (turno) {
+                const fechaStr = format(d, "yyyy-MM-dd");
+                // Todos los turnos cuyo hora_inicio cae dentro de este slot (normales + sobreturnos)
+                const turnosSlot = turnos
+                  .filter((t) =>
+                    t.profesional_id === profesional.id &&
+                    t.fecha === fechaStr &&
+                    t.hora_inicio.startsWith(slot.hora_inicio),
+                  )
+                  .sort((a, b) => Number(a.es_sobreturno) - Number(b.es_sobreturno));
+
+                if (turnosSlot.length > 0) {
                   return (
-                    <button
-                      key={d.toISOString()}
-                      onClick={() => onTurno(turno)}
-                      className="text-left p-2 rounded border-l-4 hover:opacity-90 transition text-xs min-h-[44px]"
-                      style={{
-                        backgroundColor: `${profesional.color_agenda}22`,
-                        borderLeftColor: profesional.color_agenda,
-                      }}
-                    >
-                      <div className="font-medium truncate">
-                        {turno.paciente ? `${turno.paciente.apellido}, ${turno.paciente.nombre}` : "—"}
-                      </div>
-                      <Badge className={`${TURNO_ESTADO_CLASSES[turno.estado]} text-[10px] px-1 py-0 mt-1`}>
-                        {TURNO_ESTADO_LABELS[turno.estado]}
-                      </Badge>
-                    </button>
+                    <div key={d.toISOString()} className="flex flex-col gap-1 min-h-[44px]">
+                      {turnosSlot.map((turno) => (
+                        <button
+                          key={turno.id}
+                          onClick={() => onTurno(turno)}
+                          className="text-left p-2 rounded border-l-4 hover:opacity-90 transition text-xs"
+                          style={
+                            turno.es_sobreturno
+                              ? {
+                                  backgroundColor: "hsl(var(--estado-sobreturno) / 0.15)",
+                                  borderLeftColor: "hsl(var(--estado-sobreturno))",
+                                }
+                              : {
+                                  backgroundColor: `${profesional.color_agenda}22`,
+                                  borderLeftColor: profesional.color_agenda,
+                                }
+                          }
+                        >
+                          <div className="font-medium truncate flex items-center gap-1">
+                            {turno.es_sobreturno && (
+                              <AlertTriangle className="h-3 w-3 text-[hsl(var(--estado-sobreturno))] shrink-0" />
+                            )}
+                            <span className="truncate">
+                              {turno.paciente ? `${turno.paciente.apellido}, ${turno.paciente.nombre}` : "—"}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            <Badge className={`${TURNO_ESTADO_CLASSES[turno.estado]} text-[10px] px-1 py-0`}>
+                              {TURNO_ESTADO_LABELS[turno.estado]}
+                            </Badge>
+                            {turno.es_sobreturno && (
+                              <Badge
+                                className="text-[10px] px-1 py-0 text-white"
+                                style={{ backgroundColor: "hsl(var(--estado-sobreturno))" }}
+                              >
+                                Sobreturno
+                              </Badge>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => onSlot(d, slot)}
+                        className="rounded border border-dashed border-border/60 hover:border-[hsl(var(--estado-sobreturno))] hover:bg-[hsl(var(--estado-sobreturno)/0.08)] transition py-1 text-[10px] text-muted-foreground"
+                        title="Agregar sobreturno en este horario"
+                      >
+                        + Sobreturno
+                      </button>
+                    </div>
                   );
                 }
                 return (
