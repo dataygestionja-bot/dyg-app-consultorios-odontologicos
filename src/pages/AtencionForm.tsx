@@ -279,7 +279,12 @@ export default function AtencionForm() {
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label>Paciente *</Label>
-                <Select value={form.paciente_id} onValueChange={(v) => set("paciente_id", v)} required>
+                <Select
+                  value={form.paciente_id}
+                  onValueChange={(v) => set("paciente_id", v)}
+                  required
+                  disabled={!!turnoIdParam}
+                >
                   <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent>
                     {pacientes.map((p) => (
@@ -287,10 +292,20 @@ export default function AtencionForm() {
                     ))}
                   </SelectContent>
                 </Select>
+                {turnoIdParam && (
+                  <p className="text-xs text-muted-foreground">
+                    Datos tomados del turno (no editables).
+                  </p>
+                )}
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label>Profesional *</Label>
-                <Select value={form.profesional_id} onValueChange={(v) => set("profesional_id", v)} required>
+                <Select
+                  value={form.profesional_id}
+                  onValueChange={(v) => set("profesional_id", v)}
+                  required
+                  disabled={!!turnoIdParam}
+                >
                   <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent>
                     {profesionales.map((p) => (
