@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Plus, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface ObraSocial {
   id: string;
@@ -18,6 +19,7 @@ interface ObraSocial {
 }
 
 export default function ObrasSociales() {
+  const { can } = usePermissions();
   const [items, setItems] = useState<ObraSocial[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -81,9 +83,11 @@ export default function ObrasSociales() {
           <p className="text-sm text-muted-foreground">Catálogo de obras sociales / prepagas</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={abrirNuevo}><Plus className="h-4 w-4" /> Nueva</Button>
-          </DialogTrigger>
+          {can("obras_sociales", "create") && (
+            <DialogTrigger asChild>
+              <Button onClick={abrirNuevo}><Plus className="h-4 w-4" /> Nueva</Button>
+            </DialogTrigger>
+          )}
           <DialogContent>
             <form onSubmit={guardar}>
               <DialogHeader>
@@ -137,9 +141,11 @@ export default function ObrasSociales() {
                       {o.activo ? <Badge>Activa</Badge> : <Badge variant="secondary">Inactiva</Badge>}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => abrirEditar(o)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      {can("obras_sociales", "update") && (
+                        <Button variant="ghost" size="sm" onClick={() => abrirEditar(o)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

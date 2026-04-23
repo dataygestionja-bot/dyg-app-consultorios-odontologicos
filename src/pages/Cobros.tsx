@@ -10,6 +10,7 @@ import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import CobroDialog from "@/components/cobros/CobroDialog";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const MEDIO_LABEL: Record<string, string> = {
   efectivo: "Efectivo", transferencia: "Transferencia", debito: "Débito",
@@ -28,6 +29,7 @@ interface Row {
 }
 
 export default function Cobros() {
+  const { can } = usePermissions();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -74,7 +76,9 @@ export default function Cobros() {
           <h1 className="text-2xl font-bold tracking-tight">Cobros</h1>
           <p className="text-sm text-muted-foreground">Registro de pagos y aplicación a presupuestos</p>
         </div>
-        <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Nuevo cobro</Button>
+        {can("cobros", "create") && (
+          <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Nuevo cobro</Button>
+        )}
         <CobroDialog open={open} onOpenChange={setOpen} onSaved={cargar} />
       </div>
 
