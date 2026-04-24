@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { PrestacionQuickDialog } from "@/components/prestaciones/PrestacionQuickDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Paciente { id: string; nombre: string; apellido: string; dni: string; }
 interface Profesional { id: string; nombre: string; apellido: string; }
