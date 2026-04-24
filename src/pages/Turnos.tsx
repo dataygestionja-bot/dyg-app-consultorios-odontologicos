@@ -110,6 +110,7 @@ export default function Turnos() {
   const [horarios, setHorarios] = useState<Horario[]>([]);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [turnos, setTurnos] = useState<Turno[]>([]);
+  const [bloqueos, setBloqueos] = useState<Bloqueo[]>([]);
   const [profSel, setProfSel] = useState<string>("");
   const [fecha, setFecha] = useState<Date>(new Date());
   const [vista, setVista] = useState<"dia" | "semana">("dia");
@@ -163,6 +164,7 @@ export default function Turnos() {
 
   useEffect(() => {
     cargarTurnos();
+    cargarBloqueos();
   }, [fecha, vista, profSel]);
 
   async function cargarTurnos() {
@@ -184,6 +186,25 @@ export default function Turnos() {
     } catch (e) {
       console.error("Error inesperado cargando turnos:", e);
     }
+  }
+
+  async function cargarBloqueos() {
+    if (!profSel) { setBloqueos([]); return; }
+    const desde = vista === "dia" ? fecha : startOfWeek(fecha, { weekStartsOn: 1 });
+    const hasta = vista === "dia" ? fecha : addDays(desde, 6);
+    const { data, error } = await supabase
+      .from("bloqueos_agenda")
+      .select("id, profesional_id, fecha_desde, fecha_hasta, todo_el_dia, hora_desde, hora_hasta, motivo")
+      .eq("profesional_id", profSel)
+      .eq("estado", "activo")
+      .lte("fecha_desde", format(hasta, "yyyy-MM-dd"))
+      .gte("fecha_hasta", format(desde, "yyyy-MM-dd"));
+    if (error) {
+      console.error("Error cargando bloqueos:", error);
+      setBloqueos([]);
+      return;
+    }
+    setBloqueos((data ?? []) as Bloqueo[]);
   }
 
   function abrirSlot(profesional_id: string, dia: Date, s: Slot) {
