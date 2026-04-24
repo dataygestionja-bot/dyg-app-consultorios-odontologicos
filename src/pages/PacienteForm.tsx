@@ -52,7 +52,9 @@ export default function PacienteForm() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    document.title = isEdit ? "Editar paciente | Consultorio" : "Nuevo paciente | Consultorio";
+    document.title = readOnly
+      ? "Ver paciente | Consultorio"
+      : isEdit ? "Editar paciente | Consultorio" : "Nuevo paciente | Consultorio";
     supabase.from("obras_sociales").select("id, nombre").eq("activo", true).order("nombre")
       .then(({ data }) => setObras(data ?? []));
     if (isEdit) {
