@@ -16,7 +16,8 @@ export interface ModuleDef {
 export const MODULES: ModuleDef[] = [
   { key: "pacientes", label: "Pacientes" },
   { key: "profesionales", label: "Profesionales" },
-  { key: "turnos", label: "Turnos" },
+  { key: "agenda", label: "Agenda de turnos" },
+  { key: "bloqueos_agenda", label: "Bloqueos de agenda" },
   { key: "atenciones", label: "Atenciones" },
   { key: "prestaciones", label: "Prestaciones" },
   { key: "obras_sociales", label: "Obras sociales" },
@@ -41,7 +42,8 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, Record<string, Record<Permissi
   recepcion: {
     pacientes: { read: true, create: true, update: true, delete: true },
     profesionales: { read: true, create: false, update: false, delete: false },
-    turnos: { read: true, create: true, update: true, delete: true },
+    agenda: { read: true, create: true, update: true, delete: true },
+    bloqueos_agenda: { read: true, create: true, update: true, delete: true },
     atenciones: { read: true, create: false, update: false, delete: false },
     prestaciones: { read: true, create: true, update: true, delete: true },
     obras_sociales: { read: true, create: true, update: true, delete: true },
@@ -55,7 +57,8 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, Record<string, Record<Permissi
   profesional: {
     pacientes: { read: true, create: false, update: false, delete: false },
     profesionales: { read: true, create: false, update: false, delete: false },
-    turnos: { read: true, create: false, update: true, delete: false },
+    agenda: { read: true, create: false, update: true, delete: false },
+    bloqueos_agenda: { read: true, create: true, update: true, delete: true },
     atenciones: { read: true, create: true, update: true, delete: true },
     prestaciones: { read: true, create: false, update: false, delete: false },
     obras_sociales: { read: true, create: false, update: false, delete: false },
