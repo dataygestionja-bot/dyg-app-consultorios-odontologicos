@@ -120,6 +120,21 @@ export default function Bloqueos() {
       .then(({ data }) => setProfesionales((data ?? []) as Profesional[]));
   }, []);
 
+  // Lookup del profesional logueado para restringir al perfil profesional
+  useEffect(() => {
+    if (!user || !esProfRestringido) return;
+    supabase.from("profesionales")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.id) {
+          setMiProfesionalId(data.id);
+          setFiltroProf(data.id);
+        }
+      });
+  }, [user, esProfRestringido]);
+
   useEffect(() => { cargar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ },
     [filtroProf, filtroEstado, filtroDesde, filtroHasta]);
 
