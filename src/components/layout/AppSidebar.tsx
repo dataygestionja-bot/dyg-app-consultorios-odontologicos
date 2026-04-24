@@ -82,6 +82,7 @@ export function AppSidebar() {
 
   const canSee = (i: Item) => !i.roles || i.roles.some((r) => roles.includes(r));
   const visibleOp = itemsOperatoria.filter(canSee);
+  const visibleTur = itemsTurnos.filter(canSee);
   const visibleGes = itemsGestion.filter(canSee);
   const visibleSeg = itemsSeguridad.filter(canSee);
 
@@ -89,6 +90,8 @@ export function AppSidebar() {
   const [segOpen, setSegOpen] = useState(segActive);
   const gesActive = ["/prestaciones", "/presupuestos", "/cobros"].some((p) => location.pathname.startsWith(p));
   const [gesOpen, setGesOpen] = useState(gesActive);
+  const turActive = ["/turnos", "/bloqueos"].some((p) => location.pathname.startsWith(p));
+  const [turOpen, setTurOpen] = useState(turActive);
 
   return (
     <Sidebar collapsible="icon">
