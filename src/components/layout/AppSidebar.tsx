@@ -48,13 +48,16 @@ interface Item {
 
 const itemsOperatoria: Item[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Turnos", url: "/turnos", icon: CalendarDays },
   { title: "Mis turnos de hoy", url: "/mis-turnos", icon: ListTodo },
-  { title: "Bloqueos de agenda", url: "/bloqueos", icon: CalendarOff, roles: ["admin", "recepcion"] },
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Atenciones", url: "/atenciones", icon: ClipboardList },
   { title: "Profesionales", url: "/profesionales", icon: Stethoscope, roles: ["admin"] },
   { title: "Obras sociales", url: "/obras-sociales", icon: BadgeCheck, roles: ["admin", "recepcion"] },
+];
+
+const itemsTurnos: Item[] = [
+  { title: "Agenda", url: "/turnos", icon: CalendarDays },
+  { title: "Bloqueos de agenda", url: "/bloqueos", icon: CalendarOff, roles: ["admin", "recepcion"] },
 ];
 
 const itemsGestion: Item[] = [
