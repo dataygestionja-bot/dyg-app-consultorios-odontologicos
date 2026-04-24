@@ -306,10 +306,16 @@ export default function Turnos() {
           })
           .eq("id", editing.id);
         if (error) {
+          const lower = error.message.toLowerCase();
+          if (lower.includes("no está disponible") || lower.includes("no esta disponible")) {
+            return toast.error("El profesional no está disponible en ese día u horario", {
+              description: "Hay un bloqueo de agenda activo para esa fecha/horario.",
+            });
+          }
           if (
             error.code === "23505" ||
-            error.message.toLowerCase().includes("sobreturno") ||
-            error.message.toLowerCase().includes("ya existe un turno")
+            lower.includes("sobreturno") ||
+            lower.includes("ya existe un turno")
           ) {
             setConfirmSobreturno(true);
             return;
