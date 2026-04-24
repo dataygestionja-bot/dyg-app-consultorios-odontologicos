@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { PrestacionQuickDialog } from "@/components/prestaciones/PrestacionQuickDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Paciente { id: string; nombre: string; apellido: string; dni: string; }
 interface Profesional { id: string; nombre: string; apellido: string; }
@@ -64,7 +65,10 @@ export default function AtencionForm() {
   const [params] = useSearchParams();
   const turnoIdParam = params.get("turno");
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
   const isEdit = id && id !== "nuevo";
+  const esProfRestringido = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
+  const camposGeneralesBloqueados = !!isEdit && esProfRestringido;
   const [form, setForm] = useState(empty);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [profesionales, setProfesionales] = useState<Profesional[]>([]);
@@ -270,12 +274,17 @@ export default function AtencionForm() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Datos generales</CardTitle>
+            {camposGeneralesBloqueados && (
+              <p className="text-xs text-muted-foreground">
+                Solo se pueden modificar las prácticas y las notas clínicas.
+              </p>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label>Fecha *</Label>
-                <Input type="date" value={form.fecha} onChange={(e) => set("fecha", e.target.value)} required />
+                <Input type="date" value={form.fecha} onChange={(e) => set("fecha", e.target.value)} required disabled={camposGeneralesBloqueados} />
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label>Paciente *</Label>
@@ -283,7 +292,7 @@ export default function AtencionForm() {
                   value={form.paciente_id}
                   onValueChange={(v) => set("paciente_id", v)}
                   required
-                  disabled={!!turnoIdParam}
+                  disabled={!!turnoIdParam || camposGeneralesBloqueados}
                 >
                   <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent>
@@ -304,7 +313,7 @@ export default function AtencionForm() {
                   value={form.profesional_id}
                   onValueChange={(v) => set("profesional_id", v)}
                   required
-                  disabled={!!turnoIdParam}
+                  disabled={!!turnoIdParam || camposGeneralesBloqueados}
                 >
                   <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent>
@@ -317,7 +326,7 @@ export default function AtencionForm() {
               <div className="space-y-2">
                 <Label>Próxima visita sugerida</Label>
                 <Input type="date" value={form.proxima_visita_sugerida}
-                  onChange={(e) => set("proxima_visita_sugerida", e.target.value)} />
+                  onChange={(e) => set("proxima_visita_sugerida", e.target.value)} disabled={camposGeneralesBloqueados} />
               </div>
             </div>
 
@@ -327,7 +336,7 @@ export default function AtencionForm() {
                 <Select
                   value={form.tipo_atencion}
                   onValueChange={(v) => setTipoAtencion(v as TipoAtencion)}
-                  disabled={!!turnoIdParam}
+                  disabled={!!turnoIdParam || camposGeneralesBloqueados}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -358,7 +367,7 @@ export default function AtencionForm() {
                       profesional_id: turno?.profesional_id ?? f.profesional_id,
                     }));
                   }}
-                  disabled={form.tipo_atencion !== "con_turno" || !form.paciente_id || !!turnoIdParam}
+                  disabled={form.tipo_atencion !== "con_turno" || !form.paciente_id || !!turnoIdParam || camposGeneralesBloqueados}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={

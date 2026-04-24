@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,15 +41,20 @@ const empty = {
 
 export default function PacienteForm() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const { can } = usePermissions();
   const navigate = useNavigate();
   const isEdit = id && id !== "nuevo";
+  const readOnly = !!isEdit && (searchParams.get("ver") === "1" || !can("pacientes", "update"));
   const [form, setForm] = useState(empty);
   const [obras, setObras] = useState<ObraSocial[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    document.title = isEdit ? "Editar paciente | Consultorio" : "Nuevo paciente | Consultorio";
+    document.title = readOnly
+      ? "Ver paciente | Consultorio"
+      : isEdit ? "Editar paciente | Consultorio" : "Nuevo paciente | Consultorio";
     supabase.from("obras_sociales").select("id, nombre").eq("activo", true).order("nombre")
       .then(({ data }) => setObras(data ?? []));
     if (isEdit) {
@@ -77,7 +83,7 @@ export default function PacienteForm() {
         })
         .then(() => setLoading(false));
     }
-  }, [id, isEdit]);
+  }, [id, isEdit, readOnly]);
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -123,10 +129,12 @@ export default function PacienteForm() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            {isEdit ? "Editar paciente" : "Nuevo paciente"}
+            {readOnly ? "Ver paciente" : isEdit ? "Editar paciente" : "Nuevo paciente"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Completá los datos del paciente y su ficha clínica
+            {readOnly
+              ? "Consulta de la ficha del paciente"
+              : "Completá los datos del paciente y su ficha clínica"}
           </p>
         </div>
       </div>
@@ -149,19 +157,19 @@ export default function PacienteForm() {
                 <CardDescription>Información básica de contacto</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
-                <Field label="Nombre *" required value={form.nombre} onChange={(v) => set("nombre", v)} />
-                <Field label="Apellido *" required value={form.apellido} onChange={(v) => set("apellido", v)} />
-                <Field label="DNI *" required value={form.dni} onChange={(v) => set("dni", v)} />
-                <Field label="Fecha de nacimiento" type="date" value={form.fecha_nacimiento} onChange={(v) => set("fecha_nacimiento", v)} />
-                <Field label="Teléfono" value={form.telefono} onChange={(v) => set("telefono", v)} />
-                <Field label="Email" type="email" value={form.email} onChange={(v) => set("email", v)} />
-                <Field label="Domicilio" value={form.domicilio} onChange={(v) => set("domicilio", v)} />
-                <Field label="Localidad" value={form.localidad} onChange={(v) => set("localidad", v)} />
-                <Field label="Contacto emergencia" value={form.contacto_emergencia_nombre} onChange={(v) => set("contacto_emergencia_nombre", v)} />
-                <Field label="Tel. emergencia" value={form.contacto_emergencia_telefono} onChange={(v) => set("contacto_emergencia_telefono", v)} />
+                <Field label="Nombre *" required value={form.nombre} onChange={(v) => set("nombre", v)} disabled={readOnly} />
+                <Field label="Apellido *" required value={form.apellido} onChange={(v) => set("apellido", v)} disabled={readOnly} />
+                <Field label="DNI *" required value={form.dni} onChange={(v) => set("dni", v)} disabled={readOnly} />
+                <Field label="Fecha de nacimiento" type="date" value={form.fecha_nacimiento} onChange={(v) => set("fecha_nacimiento", v)} disabled={readOnly} />
+                <Field label="Teléfono" value={form.telefono} onChange={(v) => set("telefono", v)} disabled={readOnly} />
+                <Field label="Email" type="email" value={form.email} onChange={(v) => set("email", v)} disabled={readOnly} />
+                <Field label="Domicilio" value={form.domicilio} onChange={(v) => set("domicilio", v)} disabled={readOnly} />
+                <Field label="Localidad" value={form.localidad} onChange={(v) => set("localidad", v)} disabled={readOnly} />
+                <Field label="Contacto emergencia" value={form.contacto_emergencia_nombre} onChange={(v) => set("contacto_emergencia_nombre", v)} disabled={readOnly} />
+                <Field label="Tel. emergencia" value={form.contacto_emergencia_telefono} onChange={(v) => set("contacto_emergencia_telefono", v)} disabled={readOnly} />
                 <div className="flex items-center justify-between md:col-span-2 pt-2">
                   <Label htmlFor="activo">Paciente activo</Label>
-                  <Switch id="activo" checked={form.activo} onCheckedChange={(v) => set("activo", v)} />
+                  <Switch id="activo" checked={form.activo} onCheckedChange={(v) => set("activo", v)} disabled={readOnly} />
                 </div>
               </CardContent>
             </Card>
@@ -175,7 +183,7 @@ export default function PacienteForm() {
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Obra social</Label>
-                  <Select value={form.obra_social_id || "none"} onValueChange={(v) => set("obra_social_id", v === "none" ? "" : v)}>
+                  <Select value={form.obra_social_id || "none"} onValueChange={(v) => set("obra_social_id", v === "none" ? "" : v)} disabled={readOnly}>
                     <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Particular / Sin obra social</SelectItem>
@@ -185,7 +193,7 @@ export default function PacienteForm() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Field label="Número de afiliado" value={form.numero_afiliado} onChange={(v) => set("numero_afiliado", v)} />
+                <Field label="Número de afiliado" value={form.numero_afiliado} onChange={(v) => set("numero_afiliado", v)} disabled={readOnly} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -197,9 +205,9 @@ export default function PacienteForm() {
                 <CardDescription>Datos médicos relevantes</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <TextField label="Alergias" value={form.alergias} onChange={(v) => set("alergias", v)} />
-                <TextField label="Medicación actual" value={form.medicacion_actual} onChange={(v) => set("medicacion_actual", v)} />
-                <TextField label="Antecedentes médicos" value={form.antecedentes_medicos} onChange={(v) => set("antecedentes_medicos", v)} />
+                <TextField label="Alergias" value={form.alergias} onChange={(v) => set("alergias", v)} disabled={readOnly} />
+                <TextField label="Medicación actual" value={form.medicacion_actual} onChange={(v) => set("medicacion_actual", v)} disabled={readOnly} />
+                <TextField label="Antecedentes médicos" value={form.antecedentes_medicos} onChange={(v) => set("antecedentes_medicos", v)} disabled={readOnly} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -210,7 +218,7 @@ export default function PacienteForm() {
                 <CardTitle className="text-base">Observaciones</CardTitle>
               </CardHeader>
               <CardContent>
-                <TextField label="Observaciones generales" value={form.observaciones} onChange={(v) => set("observaciones", v)} rows={6} />
+                <TextField label="Observaciones generales" value={form.observaciones} onChange={(v) => set("observaciones", v)} rows={6} disabled={readOnly} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -229,32 +237,36 @@ export default function PacienteForm() {
         </Tabs>
 
         <div className="flex justify-end gap-2 mt-6">
-          <Button type="button" variant="outline" onClick={() => navigate("/pacientes")}>Cancelar</Button>
-          <Button type="submit" disabled={submitting}>{submitting ? "Guardando..." : "Guardar"}</Button>
+          <Button type="button" variant="outline" onClick={() => navigate("/pacientes")}>
+            {readOnly ? "Volver" : "Cancelar"}
+          </Button>
+          {!readOnly && (
+            <Button type="submit" disabled={submitting}>{submitting ? "Guardando..." : "Guardar"}</Button>
+          )}
         </div>
       </form>
     </div>
   );
 }
 
-function Field({ label, value, onChange, type = "text", required }: {
-  label: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean;
+function Field({ label, value, onChange, type = "text", required, disabled }: {
+  label: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean; disabled?: boolean;
 }) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} />
+      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} disabled={disabled} />
     </div>
   );
 }
 
-function TextField({ label, value, onChange, rows = 3 }: {
-  label: string; value: string; onChange: (v: string) => void; rows?: number;
+function TextField({ label, value, onChange, rows = 3, disabled }: {
+  label: string; value: string; onChange: (v: string) => void; rows?: number; disabled?: boolean;
 }) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <Textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} />
+      <Textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} disabled={disabled} />
     </div>
   );
 }

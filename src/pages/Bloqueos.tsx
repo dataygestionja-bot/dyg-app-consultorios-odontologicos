@@ -78,9 +78,11 @@ const safeFormatDate = (s: string | null | undefined) => {
 };
 
 export default function Bloqueos() {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const { can } = usePermissions();
   const canEdit = can("bloqueos_agenda", "create") || can("bloqueos_agenda", "update") || can("bloqueos_agenda", "delete");
+  const esProfRestringido = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
+  const [miProfesionalId, setMiProfesionalId] = useState<string>("");
 
   const [profesionales, setProfesionales] = useState<Profesional[]>([]);
   const [bloqueos, setBloqueos] = useState<Bloqueo[]>([]);
@@ -118,6 +120,21 @@ export default function Bloqueos() {
       .then(({ data }) => setProfesionales((data ?? []) as Profesional[]));
   }, []);
 
+  // Lookup del profesional logueado para restringir al perfil profesional
+  useEffect(() => {
+    if (!user || !esProfRestringido) return;
+    supabase.from("profesionales")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.id) {
+          setMiProfesionalId(data.id);
+          setFiltroProf(data.id);
+        }
+      });
+  }, [user, esProfRestringido]);
+
   useEffect(() => { cargar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ },
     [filtroProf, filtroEstado, filtroDesde, filtroHasta]);
 
@@ -142,7 +159,7 @@ export default function Bloqueos() {
 
   function abrirNuevo() {
     setEditing(null);
-    setFProf("");
+    setFProf(esProfRestringido ? miProfesionalId : "");
     setFDesde(format(new Date(), "yyyy-MM-dd"));
     setFHasta(format(new Date(), "yyyy-MM-dd"));
     setFTodoDia(true);
@@ -283,22 +300,24 @@ export default function Bloqueos() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-1">
-              <Label>Profesional</Label>
-              <Select value={filtroProf} onValueChange={setFiltroProf}>
-                <SelectTrigger className="w-[240px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">Todos</SelectItem>
-                  {profesionales.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.apellido}, {p.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {!esProfRestringido && (
+              <div className="space-y-1">
+                <Label>Profesional</Label>
+                <Select value={filtroProf} onValueChange={setFiltroProf}>
+                  <SelectTrigger className="w-[240px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">Todos</SelectItem>
+                    {profesionales.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.apellido}, {p.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-1">
               <Label>Estado</Label>
               <Select value={filtroEstado} onValueChange={setFiltroEstado}>
@@ -320,7 +339,7 @@ export default function Bloqueos() {
               <Label>Hasta</Label>
               <Input type="date" value={filtroHasta} onChange={(e) => setFiltroHasta(e.target.value)} className="w-[160px]" />
             </div>
-            <Button variant="ghost" size="sm" onClick={() => { setFiltroProf("ALL"); setFiltroEstado("activo"); setFiltroDesde(""); setFiltroHasta(""); }}>
+            <Button variant="ghost" size="sm" onClick={() => { if (!esProfRestringido) setFiltroProf("ALL"); setFiltroEstado("activo"); setFiltroDesde(""); setFiltroHasta(""); }}>
               Limpiar
             </Button>
           </div>
@@ -415,14 +434,21 @@ export default function Bloqueos() {
           <div className="space-y-4 py-2 max-h-[70vh] overflow-y-auto pr-1">
             <div className="space-y-2">
               <Label>Profesional *</Label>
-              <Select value={fProf} onValueChange={setFProf}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar profesional" /></SelectTrigger>
-                <SelectContent>
-                  {profesionales.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {esProfRestringido ? (
+                <Input
+                  value={profActual ? `${profActual.apellido}, ${profActual.nombre}` : "—"}
+                  disabled
+                />
+              ) : (
+                <Select value={fProf} onValueChange={setFProf}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar profesional" /></SelectTrigger>
+                  <SelectContent>
+                    {profesionales.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2">
