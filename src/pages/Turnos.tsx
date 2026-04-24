@@ -49,7 +49,38 @@ interface Turno {
   paciente?: { nombre: string; apellido: string } | null;
 }
 
+interface Bloqueo {
+  id: string;
+  profesional_id: string;
+  fecha_desde: string;
+  fecha_hasta: string;
+  todo_el_dia: boolean;
+  hora_desde: string | null;
+  hora_hasta: string | null;
+  motivo: string;
+}
+
 interface Slot { hora_inicio: string; hora_fin: string; }
+
+function bloqueoCubreSlot(b: Bloqueo, fecha: string, slot: Slot): boolean {
+  if (fecha < b.fecha_desde || fecha > b.fecha_hasta) return false;
+  if (b.todo_el_dia) return true;
+  if (!b.hora_desde || !b.hora_hasta) return false;
+  // Solapamiento de [hora_inicio, hora_fin) con [hora_desde, hora_hasta)
+  const hd = b.hora_desde.slice(0, 5);
+  const hh = b.hora_hasta.slice(0, 5);
+  return slot.hora_inicio < hh && slot.hora_fin > hd;
+}
+
+const MOTIVO_BLOQUEO_LABEL: Record<string, string> = {
+  vacaciones: "Vacaciones",
+  enfermedad: "Enfermedad",
+  capacitacion: "Capacitación",
+  licencia: "Licencia",
+  feriado: "Feriado",
+  personal: "Personal",
+  otro: "No disponible",
+};
 
 function generarSlots(horarios: Horario[], dia: number): Slot[] {
   const slots: Slot[] = [];
@@ -79,6 +110,7 @@ export default function Turnos() {
   const [horarios, setHorarios] = useState<Horario[]>([]);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [turnos, setTurnos] = useState<Turno[]>([]);
+  const [bloqueos, setBloqueos] = useState<Bloqueo[]>([]);
   const [profSel, setProfSel] = useState<string>("");
   const [fecha, setFecha] = useState<Date>(new Date());
   const [vista, setVista] = useState<"dia" | "semana">("dia");
@@ -132,6 +164,7 @@ export default function Turnos() {
 
   useEffect(() => {
     cargarTurnos();
+    cargarBloqueos();
   }, [fecha, vista, profSel]);
 
   async function cargarTurnos() {
@@ -155,12 +188,37 @@ export default function Turnos() {
     }
   }
 
+  async function cargarBloqueos() {
+    if (!profSel) { setBloqueos([]); return; }
+    const desde = vista === "dia" ? fecha : startOfWeek(fecha, { weekStartsOn: 1 });
+    const hasta = vista === "dia" ? fecha : addDays(desde, 6);
+    const { data, error } = await supabase
+      .from("bloqueos_agenda")
+      .select("id, profesional_id, fecha_desde, fecha_hasta, todo_el_dia, hora_desde, hora_hasta, motivo")
+      .eq("profesional_id", profSel)
+      .eq("estado", "activo")
+      .lte("fecha_desde", format(hasta, "yyyy-MM-dd"))
+      .gte("fecha_hasta", format(desde, "yyyy-MM-dd"));
+    if (error) {
+      console.error("Error cargando bloqueos:", error);
+      setBloqueos([]);
+      return;
+    }
+    setBloqueos((data ?? []) as Bloqueo[]);
+  }
+
   function abrirSlot(profesional_id: string, dia: Date, s: Slot) {
     if (!canEdit) return;
+    const fechaStr = format(dia, "yyyy-MM-dd");
+    const bloqueado = bloqueos.some((b) => b.profesional_id === profesional_id && bloqueoCubreSlot(b, fechaStr, s));
+    if (bloqueado) {
+      toast.error("El profesional no está disponible en ese día u horario");
+      return;
+    }
     setEditing(null);
     setSlot({
       profesional_id,
-      fecha: format(dia, "yyyy-MM-dd"),
+      fecha: fechaStr,
       hora_inicio: s.hora_inicio,
       hora_fin: s.hora_fin,
     });
@@ -248,10 +306,16 @@ export default function Turnos() {
           })
           .eq("id", editing.id);
         if (error) {
+          const lower = error.message.toLowerCase();
+          if (lower.includes("no está disponible") || lower.includes("no esta disponible")) {
+            return toast.error("El profesional no está disponible en ese día u horario", {
+              description: "Hay un bloqueo de agenda activo para esa fecha/horario.",
+            });
+          }
           if (
             error.code === "23505" ||
-            error.message.toLowerCase().includes("sobreturno") ||
-            error.message.toLowerCase().includes("ya existe un turno")
+            lower.includes("sobreturno") ||
+            lower.includes("ya existe un turno")
           ) {
             setConfirmSobreturno(true);
             return;
@@ -276,10 +340,16 @@ export default function Turnos() {
           es_sobreturno: sobreturnoFlag,
         });
         if (error) {
+          const lower = error.message.toLowerCase();
+          if (lower.includes("no está disponible") || lower.includes("no esta disponible")) {
+            return toast.error("El profesional no está disponible en ese día u horario", {
+              description: "Hay un bloqueo de agenda activo para esa fecha/horario.",
+            });
+          }
           if (
             error.code === "23505" ||
-            error.message.toLowerCase().includes("sobreturno") ||
-            error.message.toLowerCase().includes("ya existe un turno")
+            lower.includes("sobreturno") ||
+            lower.includes("ya existe un turno")
           ) {
             setConfirmSobreturno(true);
             return;
@@ -393,6 +463,7 @@ export default function Turnos() {
                 profesional={profActual}
                 horarios={horarios.filter((h) => h.profesional_id === profSel)}
                 turnos={turnos}
+                bloqueos={bloqueos}
                 onSlot={(d, s) => profSel && abrirSlot(profSel, d, s)}
                 onTurno={abrirTurno}
               />
@@ -414,6 +485,7 @@ export default function Turnos() {
                 profesional={profActual}
                 horarios={horarios.filter((h) => h.profesional_id === profSel)}
                 turnos={turnos}
+                bloqueos={bloqueos}
                 onSlot={(d, s) => profSel && abrirSlot(profSel, d, s)}
                 onTurno={abrirTurno}
               />
@@ -605,12 +677,13 @@ export default function Turnos() {
 }
 
 function CalendarGrid({
-  dias, profesional, horarios, turnos, onSlot, onTurno,
+  dias, profesional, horarios, turnos, bloqueos = [], onSlot, onTurno,
 }: {
   dias: Date[];
   profesional?: Profesional;
   horarios: Horario[];
   turnos: Turno[];
+  bloqueos?: Bloqueo[];
   onSlot: (dia: Date, slot: Slot) => void;
   onTurno: (t: Turno) => void;
 }) {
@@ -656,6 +729,28 @@ function CalendarGrid({
                 const slot = slotsByDay.find((s) => isSameDay(s.dia, d))?.slots.find((sl) => sl.hora_inicio === hora);
                 if (!slot) return <div key={d.toISOString()} className="bg-muted/30 rounded" />;
                 const fechaStr = format(d, "yyyy-MM-dd");
+
+                // Bloqueo activo que cubre este slot
+                const bloqueo = bloqueos.find((b) => b.profesional_id === profesional.id && bloqueoCubreSlot(b, fechaStr, slot));
+                if (bloqueo) {
+                  return (
+                    <div
+                      key={d.toISOString()}
+                      onClick={() => onSlot(d, slot)}
+                      title="El profesional no está disponible en ese día u horario"
+                      className="rounded min-h-[44px] flex items-center justify-center text-[11px] cursor-not-allowed border border-dashed text-white px-1"
+                      style={{
+                        backgroundColor: "hsl(var(--estado-bloqueado) / 0.85)",
+                        borderColor: "hsl(var(--estado-bloqueado))",
+                        backgroundImage:
+                          "repeating-linear-gradient(45deg, hsl(var(--estado-bloqueado) / 0.6) 0 6px, hsl(var(--estado-bloqueado) / 0.85) 6px 12px)",
+                      }}
+                    >
+                      <span className="truncate font-medium">{MOTIVO_BLOQUEO_LABEL[bloqueo.motivo] ?? "No disponible"}</span>
+                    </div>
+                  );
+                }
+
                 // Todos los turnos cuyo hora_inicio cae dentro de este slot (normales + sobreturnos)
                 const turnosSlot = turnos
                   .filter((t) =>

@@ -186,6 +186,62 @@ export type Database = {
         }
         Relationships: []
       }
+      bloqueos_agenda: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          estado: Database["public"]["Enums"]["bloqueo_estado"]
+          fecha_desde: string
+          fecha_hasta: string
+          hora_desde: string | null
+          hora_hasta: string | null
+          id: string
+          motivo: Database["public"]["Enums"]["motivo_bloqueo"]
+          observaciones: string | null
+          profesional_id: string
+          todo_el_dia: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["bloqueo_estado"]
+          fecha_desde: string
+          fecha_hasta: string
+          hora_desde?: string | null
+          hora_hasta?: string | null
+          id?: string
+          motivo: Database["public"]["Enums"]["motivo_bloqueo"]
+          observaciones?: string | null
+          profesional_id: string
+          todo_el_dia?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["bloqueo_estado"]
+          fecha_desde?: string
+          fecha_hasta?: string
+          hora_desde?: string | null
+          hora_hasta?: string | null
+          id?: string
+          motivo?: Database["public"]["Enums"]["motivo_bloqueo"]
+          observaciones?: string | null
+          profesional_id?: string
+          todo_el_dia?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bloqueos_agenda_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cobro_aplicaciones: {
         Row: {
           atencion_id: string | null
@@ -811,12 +867,21 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "recepcion" | "profesional"
+      bloqueo_estado: "activo" | "cancelado"
       medio_pago:
         | "efectivo"
         | "transferencia"
         | "debito"
         | "credito"
         | "mercadopago"
+        | "otro"
+      motivo_bloqueo:
+        | "vacaciones"
+        | "enfermedad"
+        | "capacitacion"
+        | "licencia"
+        | "feriado"
+        | "personal"
         | "otro"
       permission_action: "read" | "create" | "update" | "delete"
       presupuesto_estado:
@@ -964,12 +1029,22 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "recepcion", "profesional"],
+      bloqueo_estado: ["activo", "cancelado"],
       medio_pago: [
         "efectivo",
         "transferencia",
         "debito",
         "credito",
         "mercadopago",
+        "otro",
+      ],
+      motivo_bloqueo: [
+        "vacaciones",
+        "enfermedad",
+        "capacitacion",
+        "licencia",
+        "feriado",
+        "personal",
         "otro",
       ],
       permission_action: ["read", "create", "update", "delete"],

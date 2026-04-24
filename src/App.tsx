@@ -17,6 +17,7 @@ import ProfesionalForm from "./pages/ProfesionalForm";
 import ObrasSociales from "./pages/ObrasSociales";
 import Turnos from "./pages/Turnos";
 import MisTurnos from "./pages/MisTurnos";
+import Bloqueos from "./pages/Bloqueos";
 import Atenciones from "./pages/Atenciones";
 import AtencionForm from "./pages/AtencionForm";
 import AtencionDetalle from "./pages/AtencionDetalle";
@@ -84,6 +85,9 @@ const App = () => (
             } />
             <Route path="/turnos" element={<Private><Turnos /></Private>} />
             <Route path="/mis-turnos" element={<Private><MisTurnos /></Private>} />
+            <Route path="/bloqueos" element={
+              <RoleProtected roles={["admin", "recepcion"]}><Bloqueos /></RoleProtected>
+            } />
             <Route path="/atenciones" element={<Private><Atenciones /></Private>} />
             <Route path="/atenciones/:id/ver" element={<Private><AtencionDetalle /></Private>} />
             <Route path="/atenciones/:id" element={<Private><AtencionForm /></Private>} />

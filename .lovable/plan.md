@@ -1,129 +1,202 @@
 
+## Bloqueos de agenda del profesional
 
-## Matriz de permisos por perfil (editable y aplicada)
-
-Rediseñar `Seguridad → Perfiles` con la matriz de permisos del mockup: filas = funcionalidades del sistema, columnas = **Lectura / Alta / Modificación / Baja**. Los cambios se guardan en una tabla nueva y **se aplican de verdad** en toda la app (botones Nuevo / Editar / Eliminar se ocultan según el permiso del rol del usuario logueado).
-
-> Nota importante: este es un cambio grande. Reemplaza la lógica actual basada solo en `has_role()` por una matriz de permisos granular. Las RLS de Supabase también se actualizan para validar contra esa matriz (defensa en profundidad: el frontend oculta el botón, la DB rechaza el INSERT/UPDATE/DELETE si el rol no tiene el permiso).
+Nuevo módulo para registrar períodos en que un profesional no está disponible (vacaciones, enfermedad, capacitación, etc.). La DB rechaza turnos en horarios bloqueados, la agenda los muestra como bloques no disponibles, y al crear un bloqueo que pisa turnos existentes se muestra una advertencia con la lista (sin cancelarlos automáticamente).
 
 ### 1. Modelo de datos (1 migración)
 
-Tabla nueva `role_permissions`:
+Tipo nuevo y tabla:
 
 ```sql
-CREATE TYPE permission_action AS ENUM ('read','create','update','delete');
+CREATE TYPE motivo_bloqueo AS ENUM
+  ('vacaciones','enfermedad','capacitacion','licencia','feriado','personal','otro');
 
-CREATE TABLE role_permissions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  role app_role NOT NULL,
-  module text NOT NULL,        -- 'pacientes','turnos','atenciones',...
-  action permission_action NOT NULL,
-  allowed boolean NOT NULL DEFAULT false,
-  UNIQUE (role, module, action)
+CREATE TYPE bloqueo_estado AS ENUM ('activo','cancelado');
+
+CREATE TABLE bloqueos_agenda (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  profesional_id  uuid NOT NULL REFERENCES profesionales(id) ON DELETE CASCADE,
+  fecha_desde     date NOT NULL,
+  fecha_hasta     date NOT NULL,
+  todo_el_dia     boolean NOT NULL DEFAULT true,
+  hora_desde      time,                       -- null si todo_el_dia
+  hora_hasta      time,                       -- null si todo_el_dia
+  motivo          motivo_bloqueo NOT NULL,
+  observaciones   text,
+  estado          bloqueo_estado NOT NULL DEFAULT 'activo',
+  created_by      uuid REFERENCES auth.users(id),
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE INDEX idx_bloqueos_prof_fecha
+  ON bloqueos_agenda (profesional_id, fecha_desde, fecha_hasta)
+  WHERE estado = 'activo';
 ```
 
-Función security definer:
+**Trigger de validación** (CHECK no aplica porque depende de `todo_el_dia`):
 
 ```sql
-CREATE FUNCTION has_permission(_uid uuid, _module text, _action permission_action)
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM role_permissions rp
-    JOIN user_roles ur ON ur.role = rp.role
-    WHERE ur.user_id = _uid AND rp.module = _module
-      AND rp.action = _action AND rp.allowed = true
-  );
-$$;
+CREATE OR REPLACE FUNCTION validar_bloqueo_agenda()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.fecha_hasta < NEW.fecha_desde THEN
+    RAISE EXCEPTION 'La fecha hasta no puede ser anterior a la fecha desde';
+  END IF;
+  IF NEW.todo_el_dia = false THEN
+    IF NEW.hora_desde IS NULL OR NEW.hora_hasta IS NULL THEN
+      RAISE EXCEPTION 'Si no es todo el día, hora_desde y hora_hasta son obligatorias';
+    END IF;
+    IF NEW.hora_hasta <= NEW.hora_desde THEN
+      RAISE EXCEPTION 'hora_hasta debe ser mayor a hora_desde';
+    END IF;
+  END IF;
+  RETURN NEW;
+END $$;
 ```
 
-**Seed** con los permisos actuales (preserva el comportamiento de hoy):
-- `admin` → todos los módulos, todas las acciones = true.
-- `recepcion` → pacientes, turnos, prestaciones, obras_sociales, presupuestos, cobros: read/create/update/delete = true. Atenciones: solo read. Seguridad: nada.
-- `profesional` → pacientes, turnos: solo read. Atenciones, atencion_practicas: read/create/update/delete. Resto: nada o solo read.
+### 2. Validación en turnos (trigger)
 
-RLS de `role_permissions`: solo `admin` gestiona; resto solo lectura del propio rol.
+Extender `validar_solapamiento_turno()` (o agregar trigger nuevo `validar_turno_no_bloqueado`) para rechazar `INSERT/UPDATE` de turnos cuyo profesional/fecha/hora caigan dentro de un bloqueo activo:
 
-### 2. Reescritura de RLS de las tablas
-
-Reemplazar las políticas tipo `has_role(uid,'admin') OR has_role(uid,'recepcion')` por `has_permission(uid,'pacientes','create')` etc., en: `pacientes, turnos, atenciones, atencion_practicas, prestaciones, obras_sociales, cobros, cobro_aplicaciones, presupuestos, presupuesto_detalle`. Se conservan las RLS especiales del profesional sobre **sus propias** atenciones/turnos (combinadas con el chequeo de permission).
-
-### 3. Frontend — hook nuevo
-
-`src/hooks/usePermissions.tsx`:
-- Carga al login todos los permisos de los roles del usuario en un `Set<string>` (`"pacientes:create"`, etc.).
-- Expone `can(module, action) => boolean`.
-- Cachea en el contexto de `AuthProvider`.
-
-Uso en cada pantalla:
-```tsx
-const { can } = usePermissions();
-{can("pacientes","create") && <Button>Nuevo paciente</Button>}
-{can("pacientes","update") && <Button>Editar</Button>}
-{can("pacientes","delete") && <Button>Eliminar</Button>}
+```sql
+-- chequeo: existe bloqueo activo del profesional que cubra el turno
+SELECT 1 FROM bloqueos_agenda b
+ WHERE b.profesional_id = NEW.profesional_id
+   AND b.estado = 'activo'
+   AND NEW.fecha BETWEEN b.fecha_desde AND b.fecha_hasta
+   AND (
+     b.todo_el_dia = true
+     OR (NEW.hora_inicio < b.hora_hasta AND NEW.hora_fin > b.hora_desde)
+   );
 ```
 
-Aplicado en: `Pacientes.tsx`, `PacienteForm.tsx`, `Turnos.tsx`, `Atenciones.tsx`, `AtencionForm.tsx`, `Prestaciones.tsx`, `ObrasSociales.tsx`, `Cobros.tsx`, `Presupuestos.tsx`, `Profesionales.tsx`, `Usuarios.tsx`, `Perfiles.tsx`.
+Si encuentra coincidencia, lanza:
+> `El profesional no está disponible en ese día u horario.`
 
-### 4. Pantalla Perfiles rediseñada
+Esto cubre tanto turnos normales como sobreturnos (los sobreturnos también respetan el bloqueo).
 
-`src/pages/seguridad/Perfiles.tsx` (admin only — los no-admin siguen viendo "Mi perfil" como hoy):
+### 3. RLS
+
+```sql
+-- lectura: cualquier autenticado (la agenda los necesita ver todos)
+-- escritura: admin y recepción (sin permisos granulares por simplicidad,
+-- pero se respeta el patrón has_role)
+CREATE POLICY "Bloqueos: lectura autenticados" ON bloqueos_agenda
+  FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Bloqueos: alta admin/recepcion" ON bloqueos_agenda
+  FOR INSERT TO authenticated
+  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'recepcion'));
+
+CREATE POLICY "Bloqueos: modificacion admin/recepcion" ON bloqueos_agenda
+  FOR UPDATE TO authenticated
+  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'recepcion'))
+  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'recepcion'));
+
+CREATE POLICY "Bloqueos: baja admin/recepcion" ON bloqueos_agenda
+  FOR DELETE TO authenticated
+  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'recepcion'));
+```
+
+Trigger `audit_trigger_func` enganchado para log automático.
+
+### 4. Pantalla nueva: `/bloqueos`
+
+Archivo: `src/pages/Bloqueos.tsx`. Ruta protegida solo para admin/recepción en `App.tsx`.
 
 ```text
-Perfiles de seguridad
-─────────────────────
-[ Administrador ] [ Recepción ] [ Profesional ]   ← tabs
+Bloqueos de agenda
+──────────────────
+[Profesional ▼]  [Estado ▼]  [Desde]  [Hasta]   [+ Nuevo bloqueo]
 
-Funcionalidad           Lectura  Alta  Modif.  Baja
-─────────────────────   ───────  ────  ──────  ────
-Pacientes                  ☑      ☑     ☑       ☑
-Profesionales              ☑      ☐     ☐       ☐
-Turnos                     ☑      ☑     ☑       ☑
-Atenciones                 ☑      ☐     ☐       ☐
-Prestaciones               ☑      ☑     ☑       ☐
-Obras sociales             ☑      ☑     ☑       ☐
-Cobros                     ☑      ☑     ☑       ☐
-Presupuestos               ☑      ☑     ☑       ☑
-Seguridad – Usuarios       ☐      ☐     ☐       ☐
-Seguridad – Perfiles       ☐      ☐     ☐       ☐
-Auditoría                  ☐      ☐     ☐       ☐
-Reportes                   ☑      ☐     ☐       ☐
-
-[ Guardar cambios ]   [ Restaurar valores por defecto ]
+Profesional      Período             Horario      Motivo        Estado    Acciones
+─────────────    ────────────────    ─────────    ──────────    ───────   ────────
+Pérez, Juan      10/05 → 20/05       Todo el día  Vacaciones    Activo    [Editar][Cancelar]
+García, Ana      15/05               09–13        Capacitación  Activo    [Editar][Cancelar]
+López, Carla     01/04 → 03/04       Todo el día  Enfermedad    Cancelado [Editar]
 ```
 
-- **Tabs por rol** (admin / recepcion / profesional).
-- Tabla de permisos con `Checkbox` (shadcn) por celda — estado local hasta apretar Guardar.
-- Auto-implicación: tildar Alta/Modif./Baja prende Lectura automáticamente y la deja disabled (no podés modificar lo que no podés leer).
-- Botón **Guardar cambios**: upsert masivo a `role_permissions` para el rol activo del tab.
-- Botón **Restaurar defaults**: vuelve al seed inicial del rol.
-- Toast de éxito + log en `audit_log` ("Permisos actualizados para rol X").
-- Sección "Mi perfil" (datos personales) se mueve a una nueva ruta `/seguridad/mi-perfil`, accesible para todos los roles. El sidebar muestra "Perfiles" solo a admin y "Mi perfil" a todos.
+**Form (Dialog)** "Nuevo / Editar bloqueo":
+- Profesional (Select, obligatorio)
+- Fecha desde / Fecha hasta (Inputs `type=date`)
+- Switch "Todo el día" (default true)
+- Hora desde / Hora hasta (visibles solo si Todo el día = false)
+- Motivo (Select con los 7 enums)
+- Observaciones (Textarea)
+- Botones: Cancelar | Guardar
 
-### 5. Módulos a listar
-
+**Flujo "turnos afectados"**: al guardar, antes del INSERT consulta:
+```ts
+supabase.from("turnos")
+ .select("id, fecha, hora_inicio, hora_fin, paciente:pacientes(nombre,apellido)")
+ .eq("profesional_id", profId)
+ .gte("fecha", desde).lte("fecha", hasta)
+ .not("estado", "in", "(cancelado,reprogramado,ausente)")
+ .order("fecha").order("hora_inicio");
 ```
-Pacientes, Profesionales, Turnos, Atenciones, Prestaciones,
-Obras sociales, Cobros, Presupuestos,
-Seguridad – Usuarios, Seguridad – Perfiles, Auditoría, Reportes
+Filtra por horario si no es todo el día. Si hay resultados, muestra `AlertDialog`:
+
+```text
+⚠ Hay 3 turnos confirmados dentro del rango bloqueado:
+  • 12/05 09:30 — Gómez, Luis
+  • 14/05 11:00 — Ríos, María
+  • 16/05 16:00 — Pérez, Ana
+
+Estos turnos NO se cancelan automáticamente.
+Podés ir a Turnos para reprogramarlos o cancelarlos.
+
+[Cancelar]  [Crear bloqueo igual]   [Ir a Turnos]
 ```
 
-Constante `MODULES` en `src/lib/permissions.ts` con `{ key, label }`.
+**Cancelar bloqueo**: botón que hace `UPDATE estado='cancelado'` (no DELETE), preserva auditoría.
 
-### 6. Diseño visual
+### 5. Integración en módulo Turnos
 
-- Tabs estilo shadcn arriba.
-- Tabla con `Table` de shadcn, header sticky, checkboxes centrados.
-- Iconos: ✓ violeta (`text-primary`) cuando está marcado, cuadrado vacío cuando no, igual que el mockup. Los `Checkbox` ya usan el color `primary` del tema.
-- Mobile: tabla con scroll horizontal.
+`src/pages/Turnos.tsx`:
+
+- Cargar `bloqueos_agenda` activos del profesional + rango visible junto con horarios y turnos.
+- En `CalendarGrid`, para cada slot calcular si cae dentro de un bloqueo:
+  - Renderizar el slot con fondo rayado/gris oscuro y texto del motivo (ej. "Vacaciones — no disponible").
+  - Click sobre slot bloqueado: `toast.error("El profesional no está disponible en ese día u horario")` y no abre el diálogo.
+- Si algún día completo está bloqueado, mostrar barra superior `<Badge>` en la columna del día: "Día bloqueado · Vacaciones".
+- Color: token nuevo `--estado-bloqueado` en `index.css` (gris medio con leve tono rojo) más patrón rayado vía `bg-[repeating-linear-gradient(...)]`.
+
+### 6. Integración en "Mis turnos de hoy"
+
+`src/pages/MisTurnos.tsx`:
+- Cargar bloqueos activos del profesional para la fecha seleccionada.
+- Si hay bloqueo del día completo: banner `<Alert variant="destructive">` arriba "Día bloqueado: Vacaciones" y la lista igual sigue visible (puede haber turnos previos no cancelados).
+- Si hay franjas, mostrar chips informativas "09:00–13:00 bloqueado (Capacitación)".
+
+### 7. Ficha del profesional
+
+`src/pages/ProfesionalForm.tsx`:
+- Sección nueva al final "Próximos bloqueos" listando los bloqueos activos con `fecha_hasta >= today`, ordenados por `fecha_desde`. Solo lectura, link "Gestionar" → `/bloqueos?prof={id}`.
+
+### 8. Sidebar
+
+Agregar en `itemsOperatoria` (o nuevo grupo "Agenda"):
+```ts
+{ title: "Bloqueos de agenda", url: "/bloqueos", icon: CalendarOff, roles: ["admin","recepcion"] }
+```
+
+### 9. Mensajes de error en alta de turno
+
+En `Turnos.tsx > guardar()`, agregar manejo del error del trigger:
+```ts
+if (error.message.includes("no está disponible")) {
+  return toast.error("El profesional no está disponible en ese día u horario");
+}
+```
 
 ### Lo que NO se toca
 
-- Esquema de `user_roles`, `profiles`, `pacientes`, etc. (solo sus RLS).
-- `useAuth`, `ProtectedRoute` (siguen funcionando por rol — los permisos granulares son adicionales).
-- Triggers, otras pantallas no listadas.
+- Sistema de permisos granulares (`role_permissions`) — bloqueos usa `has_role` por simplicidad y porque es un módulo administrativo acotado. Se puede granularizar después si hace falta.
+- RLS, validaciones ni triggers existentes de turnos/atenciones más allá del nuevo chequeo de bloqueo.
+- Cancelación automática de turnos: queda explícitamente fuera (regla del usuario).
+- Sobreturnos: respetan el bloqueo igual que turnos normales (consistente con el objetivo del módulo).
 
 ### Resultado
 
-Admin entra a Perfiles, ve tabs por rol y una grilla de 12 funcionalidades × 4 acciones. Tilda lo que quiera, guarda, y al instante los usuarios de ese rol ven aparecer/desaparecer botones en toda la app. Si alguien intenta saltearse el frontend con la API, las RLS lo rechazan en la DB.
-
+Recepción/admin entran a **Bloqueos de agenda**, eligen profesional, rango y motivo, y graban. Si hay turnos en el rango, la app los lista y deja decidir. La agenda de Turnos muestra los slots bloqueados como bloques no disponibles con el motivo, y cualquier intento de crear un turno (normal o sobreturno) en ese rango es rechazado tanto en frontend como en la base con un mensaje claro.
