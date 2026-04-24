@@ -313,7 +313,7 @@ export default function AtencionForm() {
                   value={form.profesional_id}
                   onValueChange={(v) => set("profesional_id", v)}
                   required
-                  disabled={!!turnoIdParam}
+                  disabled={!!turnoIdParam || camposGeneralesBloqueados}
                 >
                   <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent>
