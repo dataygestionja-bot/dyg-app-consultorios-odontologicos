@@ -64,6 +64,7 @@
     --estado-ausente: 25 95% 53%;
     --estado-reprogramado: 271 76% 53%;
     --estado-sobreturno: 350 85% 50%;
+    --estado-bloqueado: 215 16% 55%;
   }
 
   .dark {
