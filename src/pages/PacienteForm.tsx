@@ -129,10 +129,12 @@ export default function PacienteForm() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            {isEdit ? "Editar paciente" : "Nuevo paciente"}
+            {readOnly ? "Ver paciente" : isEdit ? "Editar paciente" : "Nuevo paciente"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Completá los datos del paciente y su ficha clínica
+            {readOnly
+              ? "Consulta de la ficha del paciente"
+              : "Completá los datos del paciente y su ficha clínica"}
           </p>
         </div>
       </div>
