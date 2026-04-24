@@ -463,6 +463,7 @@ export default function Turnos() {
                 profesional={profActual}
                 horarios={horarios.filter((h) => h.profesional_id === profSel)}
                 turnos={turnos}
+                bloqueos={bloqueos}
                 onSlot={(d, s) => profSel && abrirSlot(profSel, d, s)}
                 onTurno={abrirTurno}
               />
