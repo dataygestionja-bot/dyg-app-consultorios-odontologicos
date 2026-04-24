@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -48,13 +48,16 @@ interface Item {
 
 const itemsOperatoria: Item[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Turnos", url: "/turnos", icon: CalendarDays },
   { title: "Mis turnos de hoy", url: "/mis-turnos", icon: ListTodo },
-  { title: "Bloqueos de agenda", url: "/bloqueos", icon: CalendarOff, roles: ["admin", "recepcion"] },
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Atenciones", url: "/atenciones", icon: ClipboardList },
   { title: "Profesionales", url: "/profesionales", icon: Stethoscope, roles: ["admin"] },
   { title: "Obras sociales", url: "/obras-sociales", icon: BadgeCheck, roles: ["admin", "recepcion"] },
+];
+
+const itemsTurnos: Item[] = [
+  { title: "Agenda", url: "/turnos", icon: CalendarDays },
+  { title: "Bloqueos de agenda", url: "/bloqueos", icon: CalendarOff, roles: ["admin", "recepcion"] },
 ];
 
 const itemsGestion: Item[] = [
@@ -79,6 +82,7 @@ export function AppSidebar() {
 
   const canSee = (i: Item) => !i.roles || i.roles.some((r) => roles.includes(r));
   const visibleOp = itemsOperatoria.filter(canSee);
+  const visibleTur = itemsTurnos.filter(canSee);
   const visibleGes = itemsGestion.filter(canSee);
   const visibleSeg = itemsSeguridad.filter(canSee);
 
@@ -86,6 +90,8 @@ export function AppSidebar() {
   const [segOpen, setSegOpen] = useState(segActive);
   const gesActive = ["/prestaciones", "/presupuestos", "/cobros"].some((p) => location.pathname.startsWith(p));
   const [gesOpen, setGesOpen] = useState(gesActive);
+  const turActive = ["/turnos", "/bloqueos"].some((p) => location.pathname.startsWith(p));
+  const [turOpen, setTurOpen] = useState(turActive);
 
   return (
     <Sidebar collapsible="icon">
@@ -114,19 +120,57 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {visibleOp.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/"}
-                      className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <Fragment key={item.title}>
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end={item.url === "/"}
+                        className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {item.url === "/" && visibleTur.length > 0 && (
+                    <Collapsible key="turnos-group" open={collapsed ? true : turOpen} onOpenChange={setTurOpen}>
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent/50">
+                            <CalendarDays className="h-4 w-4" />
+                            {!collapsed && (
+                              <>
+                                <span className="flex-1 text-left">Turnos</span>
+                                <ChevronDown className={`h-4 w-4 transition-transform ${turOpen ? "rotate-180" : ""}`} />
+                              </>
+                            )}
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {visibleTur.map((sub) => (
+                              <SidebarMenuSubItem key={sub.title}>
+                                <SidebarMenuSubButton asChild>
+                                  <NavLink
+                                    to={sub.url}
+                                    end
+                                    className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                                    activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                                  >
+                                    <sub.icon className="h-4 w-4" />
+                                    {!collapsed && <span>{sub.title}</span>}
+                                  </NavLink>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  )}
+                </Fragment>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
