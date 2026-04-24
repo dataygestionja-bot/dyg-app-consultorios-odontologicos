@@ -367,7 +367,7 @@ export default function AtencionForm() {
                       profesional_id: turno?.profesional_id ?? f.profesional_id,
                     }));
                   }}
-                  disabled={form.tipo_atencion !== "con_turno" || !form.paciente_id || !!turnoIdParam}
+                  disabled={form.tipo_atencion !== "con_turno" || !form.paciente_id || !!turnoIdParam || camposGeneralesBloqueados}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={
