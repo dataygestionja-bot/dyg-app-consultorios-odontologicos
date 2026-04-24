@@ -183,7 +183,7 @@ export default function PacienteForm() {
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Obra social</Label>
-                  <Select value={form.obra_social_id || "none"} onValueChange={(v) => set("obra_social_id", v === "none" ? "" : v)}>
+                  <Select value={form.obra_social_id || "none"} onValueChange={(v) => set("obra_social_id", v === "none" ? "" : v)} disabled={readOnly}>
                     <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Particular / Sin obra social</SelectItem>
@@ -193,7 +193,7 @@ export default function PacienteForm() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Field label="Número de afiliado" value={form.numero_afiliado} onChange={(v) => set("numero_afiliado", v)} />
+                <Field label="Número de afiliado" value={form.numero_afiliado} onChange={(v) => set("numero_afiliado", v)} disabled={readOnly} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -205,9 +205,9 @@ export default function PacienteForm() {
                 <CardDescription>Datos médicos relevantes</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <TextField label="Alergias" value={form.alergias} onChange={(v) => set("alergias", v)} />
-                <TextField label="Medicación actual" value={form.medicacion_actual} onChange={(v) => set("medicacion_actual", v)} />
-                <TextField label="Antecedentes médicos" value={form.antecedentes_medicos} onChange={(v) => set("antecedentes_medicos", v)} />
+                <TextField label="Alergias" value={form.alergias} onChange={(v) => set("alergias", v)} disabled={readOnly} />
+                <TextField label="Medicación actual" value={form.medicacion_actual} onChange={(v) => set("medicacion_actual", v)} disabled={readOnly} />
+                <TextField label="Antecedentes médicos" value={form.antecedentes_medicos} onChange={(v) => set("antecedentes_medicos", v)} disabled={readOnly} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -218,7 +218,7 @@ export default function PacienteForm() {
                 <CardTitle className="text-base">Observaciones</CardTitle>
               </CardHeader>
               <CardContent>
-                <TextField label="Observaciones generales" value={form.observaciones} onChange={(v) => set("observaciones", v)} rows={6} />
+                <TextField label="Observaciones generales" value={form.observaciones} onChange={(v) => set("observaciones", v)} rows={6} disabled={readOnly} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -237,32 +237,36 @@ export default function PacienteForm() {
         </Tabs>
 
         <div className="flex justify-end gap-2 mt-6">
-          <Button type="button" variant="outline" onClick={() => navigate("/pacientes")}>Cancelar</Button>
-          <Button type="submit" disabled={submitting}>{submitting ? "Guardando..." : "Guardar"}</Button>
+          <Button type="button" variant="outline" onClick={() => navigate("/pacientes")}>
+            {readOnly ? "Volver" : "Cancelar"}
+          </Button>
+          {!readOnly && (
+            <Button type="submit" disabled={submitting}>{submitting ? "Guardando..." : "Guardar"}</Button>
+          )}
         </div>
       </form>
     </div>
   );
 }
 
-function Field({ label, value, onChange, type = "text", required }: {
-  label: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean;
+function Field({ label, value, onChange, type = "text", required, disabled }: {
+  label: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean; disabled?: boolean;
 }) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} />
+      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} disabled={disabled} />
     </div>
   );
 }
 
-function TextField({ label, value, onChange, rows = 3 }: {
-  label: string; value: string; onChange: (v: string) => void; rows?: number;
+function TextField({ label, value, onChange, rows = 3, disabled }: {
+  label: string; value: string; onChange: (v: string) => void; rows?: number; disabled?: boolean;
 }) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <Textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} />
+      <Textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} disabled={disabled} />
     </div>
   );
 }
