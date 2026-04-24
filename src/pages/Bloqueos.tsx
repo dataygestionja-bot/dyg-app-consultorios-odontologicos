@@ -300,22 +300,24 @@ export default function Bloqueos() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-1">
-              <Label>Profesional</Label>
-              <Select value={filtroProf} onValueChange={setFiltroProf}>
-                <SelectTrigger className="w-[240px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">Todos</SelectItem>
-                  {profesionales.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.apellido}, {p.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {!esProfRestringido && (
+              <div className="space-y-1">
+                <Label>Profesional</Label>
+                <Select value={filtroProf} onValueChange={setFiltroProf}>
+                  <SelectTrigger className="w-[240px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">Todos</SelectItem>
+                    {profesionales.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.apellido}, {p.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-1">
               <Label>Estado</Label>
               <Select value={filtroEstado} onValueChange={setFiltroEstado}>
