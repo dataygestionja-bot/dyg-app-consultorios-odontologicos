@@ -80,6 +80,44 @@ export default function AtencionForm() {
 
   const [turnosDisponibles, setTurnosDisponibles] = useState<TurnoOpcion[]>([]);
 
+  // Asegura que un paciente esté en la lista (aunque esté inactivo o no haya cargado)
+  async function asegurarPaciente(pacienteId: string) {
+    setPacientes((list) => list);
+    if (!pacienteId) return;
+    const { data } = await supabase
+      .from("pacientes")
+      .select("id, nombre, apellido, dni")
+      .eq("id", pacienteId)
+      .maybeSingle();
+    if (data) {
+      setPacientes((list) => (list.some((p) => p.id === data.id) ? list : [...list, data as Paciente]));
+    }
+  }
+
+  async function asegurarProfesional(profId: string) {
+    if (!profId) return;
+    const { data } = await supabase
+      .from("profesionales")
+      .select("id, nombre, apellido")
+      .eq("id", profId)
+      .maybeSingle();
+    if (data) {
+      setProfesionales((list) => (list.some((p) => p.id === data.id) ? list : [...list, data as Profesional]));
+    }
+  }
+
+  async function asegurarTurno(turnoId: string) {
+    if (!turnoId) return;
+    const { data } = await supabase
+      .from("turnos")
+      .select("id, fecha, hora_inicio, motivo_consulta, paciente_id, profesional_id")
+      .eq("id", turnoId)
+      .maybeSingle();
+    if (data) {
+      setTurnosDisponibles((list) => (list.some((t) => t.id === data.id) ? list : [...list, data as TurnoOpcion]));
+    }
+  }
+
   useEffect(() => {
     document.title = isEdit ? "Editar atención | Consultorio" : "Nueva atención | Consultorio";
     Promise.all([
@@ -95,17 +133,24 @@ export default function AtencionForm() {
     if (isEdit) {
       supabase.from("atenciones").select("*").eq("id", id).maybeSingle()
         .then(({ data }) => {
-          if (data) setForm({
-            paciente_id: data.paciente_id,
-            profesional_id: data.profesional_id,
-            fecha: data.fecha,
-            diagnostico: data.diagnostico ?? "",
-            indicaciones: data.indicaciones ?? "",
-            observaciones: data.observaciones ?? "",
-            proxima_visita_sugerida: (data as any).proxima_visita_sugerida ?? "",
-            turno_id: data.turno_id,
-            tipo_atencion: ((data as any).tipo_atencion ?? "con_turno") as TipoAtencion,
-          });
+          if (data) {
+            setForm({
+              paciente_id: data.paciente_id,
+              profesional_id: data.profesional_id,
+              fecha: data.fecha,
+              diagnostico: data.diagnostico ?? "",
+              indicaciones: data.indicaciones ?? "",
+              observaciones: data.observaciones ?? "",
+              proxima_visita_sugerida: (data as any).proxima_visita_sugerida ?? "",
+              turno_id: data.turno_id,
+              tipo_atencion: ((data as any).tipo_atencion ?? "con_turno") as TipoAtencion,
+            });
+            // Garantizar que los registros vinculados estén en las listas,
+            // incluso si el paciente/profesional están inactivos o el turno ya está "atendido"
+            asegurarPaciente(data.paciente_id);
+            asegurarProfesional(data.profesional_id);
+            if (data.turno_id) asegurarTurno(data.turno_id);
+          }
         });
       supabase.from("atencion_practicas").select("*").eq("atencion_id", id).order("orden")
         .then(({ data }) => {
