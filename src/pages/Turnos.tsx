@@ -49,7 +49,38 @@ interface Turno {
   paciente?: { nombre: string; apellido: string } | null;
 }
 
+interface Bloqueo {
+  id: string;
+  profesional_id: string;
+  fecha_desde: string;
+  fecha_hasta: string;
+  todo_el_dia: boolean;
+  hora_desde: string | null;
+  hora_hasta: string | null;
+  motivo: string;
+}
+
 interface Slot { hora_inicio: string; hora_fin: string; }
+
+function bloqueoCubreSlot(b: Bloqueo, fecha: string, slot: Slot): boolean {
+  if (fecha < b.fecha_desde || fecha > b.fecha_hasta) return false;
+  if (b.todo_el_dia) return true;
+  if (!b.hora_desde || !b.hora_hasta) return false;
+  // Solapamiento de [hora_inicio, hora_fin) con [hora_desde, hora_hasta)
+  const hd = b.hora_desde.slice(0, 5);
+  const hh = b.hora_hasta.slice(0, 5);
+  return slot.hora_inicio < hh && slot.hora_fin > hd;
+}
+
+const MOTIVO_BLOQUEO_LABEL: Record<string, string> = {
+  vacaciones: "Vacaciones",
+  enfermedad: "Enfermedad",
+  capacitacion: "Capacitación",
+  licencia: "Licencia",
+  feriado: "Feriado",
+  personal: "Personal",
+  otro: "No disponible",
+};
 
 function generarSlots(horarios: Horario[], dia: number): Slot[] {
   const slots: Slot[] = [];
