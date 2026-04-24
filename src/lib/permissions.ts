@@ -59,7 +59,7 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, Record<string, Record<Permissi
     profesionales: { read: true, create: false, update: false, delete: false },
     agenda: { read: true, create: false, update: true, delete: false },
     bloqueos_agenda: { read: true, create: true, update: true, delete: true },
-    atenciones: { read: true, create: true, update: true, delete: true },
+    atenciones: { read: true, create: true, update: true, delete: false },
     prestaciones: { read: true, create: false, update: false, delete: false },
     obras_sociales: { read: true, create: false, update: false, delete: false },
     cobros: { read: false, create: false, update: false, delete: false },
