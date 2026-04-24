@@ -339,7 +339,7 @@ export default function Bloqueos() {
               <Label>Hasta</Label>
               <Input type="date" value={filtroHasta} onChange={(e) => setFiltroHasta(e.target.value)} className="w-[160px]" />
             </div>
-            <Button variant="ghost" size="sm" onClick={() => { setFiltroProf("ALL"); setFiltroEstado("activo"); setFiltroDesde(""); setFiltroHasta(""); }}>
+            <Button variant="ghost" size="sm" onClick={() => { if (!esProfRestringido) setFiltroProf("ALL"); setFiltroEstado("activo"); setFiltroDesde(""); setFiltroHasta(""); }}>
               Limpiar
             </Button>
           </div>
