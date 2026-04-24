@@ -59,27 +59,51 @@ export default function AtencionDetalle() {
     if (!id) return;
     let cancelled = false;
     setLoading(true);
-    supabase
-      .from("atenciones")
-      .select(`
-        id, fecha, tipo_atencion, motivo, diagnostico, indicaciones, observaciones, tratamiento_realizado, proxima_visita_sugerida,
-        paciente:pacientes(id, nombre, apellido, dni),
-        profesional:profesionales(nombre, apellido, especialidad),
-        turno:turnos(fecha, hora_inicio, motivo_consulta),
-        atencion_practicas(id, cantidad, pieza_dental, cara_dental, observacion, orden, prestacion:prestaciones(codigo, descripcion))
-      `)
-      .eq("id", id)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) console.error("Error cargando atención:", error);
-        const a = data as unknown as Atencion | null;
-        if (a?.atencion_practicas) {
-          a.atencion_practicas.sort((x, y) => x.orden - y.orden);
-        }
-        setAtencion(a);
+
+    (async () => {
+      // 1) Atención base (sin joins, así RLS o filas huérfanas no rompen el resultado)
+      const { data: atRow, error: atErr } = await supabase
+        .from("atenciones")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (cancelled) return;
+      if (atErr) console.error("Error cargando atención:", atErr);
+      if (!atRow) {
+        setAtencion(null);
         setLoading(false);
-      });
+        return;
+      }
+
+      // 2) Relacionados en paralelo + prácticas con su prestación
+      const [pacRes, profRes, turRes, practRes] = await Promise.all([
+        supabase.from("pacientes").select("id, nombre, apellido, dni").eq("id", atRow.paciente_id).maybeSingle(),
+        supabase.from("profesionales").select("nombre, apellido, especialidad").eq("id", atRow.profesional_id).maybeSingle(),
+        atRow.turno_id
+          ? supabase.from("turnos").select("fecha, hora_inicio, motivo_consulta").eq("id", atRow.turno_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+        supabase
+          .from("atencion_practicas")
+          .select("id, cantidad, pieza_dental, cara_dental, observacion, orden, prestacion:prestaciones(codigo, descripcion)")
+          .eq("atencion_id", id)
+          .order("orden"),
+      ]);
+
+      if (cancelled) return;
+
+      const a: Atencion = {
+        ...(atRow as any),
+        paciente: (pacRes.data as any) ?? null,
+        profesional: (profRes.data as any) ?? null,
+        turno: (turRes.data as any) ?? null,
+        atencion_practicas: (practRes.data as any) ?? [],
+      };
+
+      setAtencion(a);
+      setLoading(false);
+    })();
+
     return () => {
       cancelled = true;
     };
