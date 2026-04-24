@@ -248,7 +248,40 @@ export default function AtencionForm() {
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
 
-    // Validación de coherencia tipo_atencion ↔ turno
+    // 1) Paciente obligatorio + debe existir
+    if (!form.paciente_id) {
+      return toast.error("Falta el paciente", {
+        description: "Seleccioná un paciente antes de guardar la atención.",
+      });
+    }
+    const { data: pacOk } = await supabase
+      .from("pacientes").select("id").eq("id", form.paciente_id).maybeSingle();
+    if (!pacOk) {
+      return toast.error("Paciente inválido", {
+        description: "El paciente seleccionado no existe o ya no está disponible.",
+      });
+    }
+
+    // 2) Profesional obligatorio + debe existir
+    if (!form.profesional_id) {
+      return toast.error("Falta el profesional", {
+        description: "Seleccioná el profesional que realiza la atención.",
+      });
+    }
+    const { data: profOk } = await supabase
+      .from("profesionales").select("id").eq("id", form.profesional_id).maybeSingle();
+    if (!profOk) {
+      return toast.error("Profesional inválido", {
+        description: "El profesional seleccionado no existe o ya no está disponible.",
+      });
+    }
+
+    // 3) Fecha obligatoria
+    if (!form.fecha) {
+      return toast.error("Falta la fecha", { description: "Indicá la fecha de la atención." });
+    }
+
+    // 4) Coherencia tipo_atencion ↔ turno
     if (form.tipo_atencion === "con_turno" && !form.turno_id) {
       return toast.error("Falta el turno", {
         description: "Una atención 'con turno' debe tener un turno seleccionado. Si fue espontánea o de urgencia, cambiá el tipo de atención.",
@@ -258,6 +291,30 @@ export default function AtencionForm() {
       return toast.error("Inconsistencia en el tipo", {
         description: "Una atención de urgencia o espontánea no puede estar vinculada a un turno.",
       });
+    }
+
+    // 5) Si hay turno, validar que exista y que corresponda al paciente y profesional
+    if (form.turno_id) {
+      const { data: turno } = await supabase
+        .from("turnos")
+        .select("id, paciente_id, profesional_id")
+        .eq("id", form.turno_id)
+        .maybeSingle();
+      if (!turno) {
+        return toast.error("Turno inexistente", {
+          description: "El turno seleccionado no existe o fue eliminado. Elegí otro o cambiá el tipo de atención.",
+        });
+      }
+      if (turno.paciente_id !== form.paciente_id) {
+        return toast.error("El turno no corresponde al paciente", {
+          description: "El turno seleccionado pertenece a otro paciente. Verificá la selección.",
+        });
+      }
+      if (turno.profesional_id !== form.profesional_id) {
+        return toast.error("El turno no corresponde al profesional", {
+          description: "El turno seleccionado fue asignado a otro profesional. Verificá la selección.",
+        });
+      }
     }
 
     const validas = practicas.filter((p) => p.prestacion_id);
