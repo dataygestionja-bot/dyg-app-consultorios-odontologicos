@@ -159,7 +159,7 @@ export default function Bloqueos() {
 
   function abrirNuevo() {
     setEditing(null);
-    setFProf("");
+    setFProf(esProfRestringido ? miProfesionalId : "");
     setFDesde(format(new Date(), "yyyy-MM-dd"));
     setFHasta(format(new Date(), "yyyy-MM-dd"));
     setFTodoDia(true);
