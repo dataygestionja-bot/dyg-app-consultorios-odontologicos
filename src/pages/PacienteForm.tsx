@@ -41,8 +41,11 @@ const empty = {
 
 export default function PacienteForm() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const { can } = usePermissions();
   const navigate = useNavigate();
   const isEdit = id && id !== "nuevo";
+  const readOnly = !!isEdit && (searchParams.get("ver") === "1" || !can("pacientes", "update"));
   const [form, setForm] = useState(empty);
   const [obras, setObras] = useState<ObraSocial[]>([]);
   const [loading, setLoading] = useState(false);
