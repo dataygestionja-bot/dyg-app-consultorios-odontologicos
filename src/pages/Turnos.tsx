@@ -209,10 +209,16 @@ export default function Turnos() {
 
   function abrirSlot(profesional_id: string, dia: Date, s: Slot) {
     if (!canEdit) return;
+    const fechaStr = format(dia, "yyyy-MM-dd");
+    const bloqueado = bloqueos.some((b) => b.profesional_id === profesional_id && bloqueoCubreSlot(b, fechaStr, s));
+    if (bloqueado) {
+      toast.error("El profesional no está disponible en ese día u horario");
+      return;
+    }
     setEditing(null);
     setSlot({
       profesional_id,
-      fecha: format(dia, "yyyy-MM-dd"),
+      fecha: fechaStr,
       hora_inicio: s.hora_inicio,
       hora_fin: s.hora_fin,
     });
