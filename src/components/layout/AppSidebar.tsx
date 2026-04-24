@@ -170,7 +170,7 @@ export function AppSidebar() {
                       </SidebarMenuItem>
                     </Collapsible>
                   )}
-                </>
+                </Fragment>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
