@@ -284,7 +284,7 @@ export default function AtencionForm() {
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label>Fecha *</Label>
-                <Input type="date" value={form.fecha} onChange={(e) => set("fecha", e.target.value)} required />
+                <Input type="date" value={form.fecha} onChange={(e) => set("fecha", e.target.value)} required disabled={camposGeneralesBloqueados} />
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label>Paciente *</Label>
