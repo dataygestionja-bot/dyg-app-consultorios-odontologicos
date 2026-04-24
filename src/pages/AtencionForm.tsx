@@ -274,6 +274,11 @@ export default function AtencionForm() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Datos generales</CardTitle>
+            {camposGeneralesBloqueados && (
+              <p className="text-xs text-muted-foreground">
+                Solo se pueden modificar las prácticas y las notas clínicas.
+              </p>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-3">
