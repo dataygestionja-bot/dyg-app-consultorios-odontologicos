@@ -122,11 +122,15 @@ export default function Pacientes() {
                       {p.activo ? <Badge>Activo</Badge> : <Badge variant="secondary">Inactivo</Badge>}
                     </TableCell>
                     <TableCell className="text-right">
-                      {can("pacientes", "update") && (
-                        <Button asChild variant="ghost" size="sm">
+                      {can("pacientes", "update") ? (
+                        <Button asChild variant="ghost" size="sm" title="Editar">
                           <Link to={`/pacientes/${p.id}`}><Pencil className="h-4 w-4" /></Link>
                         </Button>
-                      )}
+                      ) : can("pacientes", "read") ? (
+                        <Button asChild variant="ghost" size="sm" title="Ver">
+                          <Link to={`/pacientes/${p.id}?ver=1`}><Eye className="h-4 w-4" /></Link>
+                        </Button>
+                      ) : null}
                     </TableCell>
                   </TableRow>
                 ))
