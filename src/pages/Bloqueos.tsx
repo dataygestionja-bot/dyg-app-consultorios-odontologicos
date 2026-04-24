@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -77,8 +78,9 @@ const safeFormatDate = (s: string | null | undefined) => {
 };
 
 export default function Bloqueos() {
-  const { user, hasAnyRole } = useAuth();
-  const canEdit = hasAnyRole(["admin", "recepcion"]);
+  const { user } = useAuth();
+  const { can } = usePermissions();
+  const canEdit = can("bloqueos_agenda", "create") || can("bloqueos_agenda", "update") || can("bloqueos_agenda", "delete");
 
   const [profesionales, setProfesionales] = useState<Profesional[]>([]);
   const [bloqueos, setBloqueos] = useState<Bloqueo[]>([]);
