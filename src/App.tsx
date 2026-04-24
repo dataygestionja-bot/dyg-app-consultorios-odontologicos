@@ -65,6 +65,22 @@ const RoleProtected = ({
   </ProtectedRoute>
 );
 
+const PermProtected = ({
+  module,
+  action,
+  children,
+}: {
+  module: string;
+  action: "read" | "create" | "update" | "delete";
+  children: React.ReactNode;
+}) => (
+  <ProtectedRoute permission={{ module, action }}>
+    <AppLayout>
+      <ErrorBoundary>{children}</ErrorBoundary>
+    </AppLayout>
+  </ProtectedRoute>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -83,10 +99,12 @@ const App = () => (
             <Route path="/obras-sociales" element={
               <RoleProtected roles={["admin", "recepcion"]}><ObrasSociales /></RoleProtected>
             } />
-            <Route path="/turnos" element={<Private><Turnos /></Private>} />
+            <Route path="/turnos" element={
+              <PermProtected module="agenda" action="read"><Turnos /></PermProtected>
+            } />
             <Route path="/mis-turnos" element={<Private><MisTurnos /></Private>} />
             <Route path="/bloqueos" element={
-              <RoleProtected roles={["admin", "recepcion"]}><Bloqueos /></RoleProtected>
+              <PermProtected module="bloqueos_agenda" action="read"><Bloqueos /></PermProtected>
             } />
             <Route path="/atenciones" element={<Private><Atenciones /></Private>} />
             <Route path="/atenciones/:id/ver" element={<Private><AtencionDetalle /></Private>} />
