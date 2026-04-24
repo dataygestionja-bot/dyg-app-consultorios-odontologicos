@@ -326,7 +326,7 @@ export default function AtencionForm() {
               <div className="space-y-2">
                 <Label>Próxima visita sugerida</Label>
                 <Input type="date" value={form.proxima_visita_sugerida}
-                  onChange={(e) => set("proxima_visita_sugerida", e.target.value)} />
+                  onChange={(e) => set("proxima_visita_sugerida", e.target.value)} disabled={camposGeneralesBloqueados} />
               </div>
             </div>
 
