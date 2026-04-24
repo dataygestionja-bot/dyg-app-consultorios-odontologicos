@@ -65,7 +65,10 @@ export default function AtencionForm() {
   const [params] = useSearchParams();
   const turnoIdParam = params.get("turno");
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
   const isEdit = id && id !== "nuevo";
+  const esProfRestringido = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
+  const camposGeneralesBloqueados = !!isEdit && esProfRestringido;
   const [form, setForm] = useState(empty);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [profesionales, setProfesionales] = useState<Profesional[]>([]);
