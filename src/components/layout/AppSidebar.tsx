@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { AppRole } from "@/lib/constants";
 
 interface Item {
@@ -44,6 +45,7 @@ interface Item {
   url: string;
   icon: typeof Users;
   roles?: AppRole[];
+  perm?: { module: string; action: "read" | "create" | "update" | "delete" };
 }
 
 const itemsOperatoria: Item[] = [
@@ -56,8 +58,8 @@ const itemsOperatoria: Item[] = [
 ];
 
 const itemsTurnos: Item[] = [
-  { title: "Agenda", url: "/turnos", icon: CalendarDays },
-  { title: "Bloqueos de agenda", url: "/bloqueos", icon: CalendarOff, roles: ["admin", "recepcion"] },
+  { title: "Agenda", url: "/turnos", icon: CalendarDays, perm: { module: "agenda", action: "read" } },
+  { title: "Bloqueos de agenda", url: "/bloqueos", icon: CalendarOff, perm: { module: "bloqueos_agenda", action: "read" } },
 ];
 
 const itemsGestion: Item[] = [
@@ -78,9 +80,14 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { roles } = useAuth();
+  const { can } = usePermissions();
   const location = useLocation();
 
-  const canSee = (i: Item) => !i.roles || i.roles.some((r) => roles.includes(r));
+  const canSee = (i: Item) => {
+    if (i.roles && !i.roles.some((r) => roles.includes(r))) return false;
+    if (i.perm && !can(i.perm.module, i.perm.action)) return false;
+    return true;
+  };
   const visibleOp = itemsOperatoria.filter(canSee);
   const visibleTur = itemsTurnos.filter(canSee);
   const visibleGes = itemsGestion.filter(canSee);
