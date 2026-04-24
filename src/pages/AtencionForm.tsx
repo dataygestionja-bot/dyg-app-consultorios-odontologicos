@@ -336,7 +336,7 @@ export default function AtencionForm() {
                 <Select
                   value={form.tipo_atencion}
                   onValueChange={(v) => setTipoAtencion(v as TipoAtencion)}
-                  disabled={!!turnoIdParam}
+                  disabled={!!turnoIdParam || camposGeneralesBloqueados}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
