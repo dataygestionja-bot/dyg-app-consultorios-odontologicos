@@ -195,8 +195,15 @@ export default function AtencionForm() {
       .order("fecha", { ascending: true })
       .order("hora_inicio", { ascending: true })
       .limit(50)
-      .then(({ data }) => setTurnosDisponibles((data ?? []) as TurnoOpcion[]));
-  }, [form.tipo_atencion, form.paciente_id]);
+      .then(({ data }) => {
+        setTurnosDisponibles((data ?? []) as TurnoOpcion[]);
+        // Si la atención ya tiene un turno vinculado que no quedó en la lista
+        // (típicamente porque ya está en estado "atendido"), lo agregamos
+        if (form.turno_id && !(data ?? []).some((t: any) => t.id === form.turno_id)) {
+          asegurarTurno(form.turno_id);
+        }
+      });
+  }, [form.tipo_atencion, form.paciente_id, form.turno_id]);
 
   function setTipoAtencion(tipo: TipoAtencion) {
     setForm((f) => ({
