@@ -119,8 +119,8 @@ export function AppSidebar() {
           <SidebarGroupLabel>Operatoria</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {visibleOp.map((item, idx) => (
-                <>
+              {visibleOp.map((item) => (
+                <Fragment key={item.title}>
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
                       <NavLink
