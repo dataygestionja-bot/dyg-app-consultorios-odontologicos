@@ -677,12 +677,13 @@ export default function Turnos() {
 }
 
 function CalendarGrid({
-  dias, profesional, horarios, turnos, onSlot, onTurno,
+  dias, profesional, horarios, turnos, bloqueos = [], onSlot, onTurno,
 }: {
   dias: Date[];
   profesional?: Profesional;
   horarios: Horario[];
   turnos: Turno[];
+  bloqueos?: Bloqueo[];
   onSlot: (dia: Date, slot: Slot) => void;
   onTurno: (t: Turno) => void;
 }) {
@@ -728,6 +729,28 @@ function CalendarGrid({
                 const slot = slotsByDay.find((s) => isSameDay(s.dia, d))?.slots.find((sl) => sl.hora_inicio === hora);
                 if (!slot) return <div key={d.toISOString()} className="bg-muted/30 rounded" />;
                 const fechaStr = format(d, "yyyy-MM-dd");
+
+                // Bloqueo activo que cubre este slot
+                const bloqueo = bloqueos.find((b) => b.profesional_id === profesional.id && bloqueoCubreSlot(b, fechaStr, slot));
+                if (bloqueo) {
+                  return (
+                    <div
+                      key={d.toISOString()}
+                      onClick={() => onSlot(d, slot)}
+                      title="El profesional no está disponible en ese día u horario"
+                      className="rounded min-h-[44px] flex items-center justify-center text-[11px] cursor-not-allowed border border-dashed text-white px-1"
+                      style={{
+                        backgroundColor: "hsl(var(--estado-bloqueado) / 0.85)",
+                        borderColor: "hsl(var(--estado-bloqueado))",
+                        backgroundImage:
+                          "repeating-linear-gradient(45deg, hsl(var(--estado-bloqueado) / 0.6) 0 6px, hsl(var(--estado-bloqueado) / 0.85) 6px 12px)",
+                      }}
+                    >
+                      <span className="truncate font-medium">{MOTIVO_BLOQUEO_LABEL[bloqueo.motivo] ?? "No disponible"}</span>
+                    </div>
+                  );
+                }
+
                 // Todos los turnos cuyo hora_inicio cae dentro de este slot (normales + sobreturnos)
                 const turnosSlot = turnos
                   .filter((t) =>
