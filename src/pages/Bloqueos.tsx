@@ -434,14 +434,21 @@ export default function Bloqueos() {
           <div className="space-y-4 py-2 max-h-[70vh] overflow-y-auto pr-1">
             <div className="space-y-2">
               <Label>Profesional *</Label>
-              <Select value={fProf} onValueChange={setFProf}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar profesional" /></SelectTrigger>
-                <SelectContent>
-                  {profesionales.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {esProfRestringido ? (
+                <Input
+                  value={profActual ? `${profActual.apellido}, ${profActual.nombre}` : "—"}
+                  disabled
+                />
+              ) : (
+                <Select value={fProf} onValueChange={setFProf}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar profesional" /></SelectTrigger>
+                  <SelectContent>
+                    {profesionales.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2">
