@@ -157,19 +157,19 @@ export default function PacienteForm() {
                 <CardDescription>Información básica de contacto</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
-                <Field label="Nombre *" required value={form.nombre} onChange={(v) => set("nombre", v)} />
-                <Field label="Apellido *" required value={form.apellido} onChange={(v) => set("apellido", v)} />
-                <Field label="DNI *" required value={form.dni} onChange={(v) => set("dni", v)} />
-                <Field label="Fecha de nacimiento" type="date" value={form.fecha_nacimiento} onChange={(v) => set("fecha_nacimiento", v)} />
-                <Field label="Teléfono" value={form.telefono} onChange={(v) => set("telefono", v)} />
-                <Field label="Email" type="email" value={form.email} onChange={(v) => set("email", v)} />
-                <Field label="Domicilio" value={form.domicilio} onChange={(v) => set("domicilio", v)} />
-                <Field label="Localidad" value={form.localidad} onChange={(v) => set("localidad", v)} />
-                <Field label="Contacto emergencia" value={form.contacto_emergencia_nombre} onChange={(v) => set("contacto_emergencia_nombre", v)} />
-                <Field label="Tel. emergencia" value={form.contacto_emergencia_telefono} onChange={(v) => set("contacto_emergencia_telefono", v)} />
+                <Field label="Nombre *" required value={form.nombre} onChange={(v) => set("nombre", v)} disabled={readOnly} />
+                <Field label="Apellido *" required value={form.apellido} onChange={(v) => set("apellido", v)} disabled={readOnly} />
+                <Field label="DNI *" required value={form.dni} onChange={(v) => set("dni", v)} disabled={readOnly} />
+                <Field label="Fecha de nacimiento" type="date" value={form.fecha_nacimiento} onChange={(v) => set("fecha_nacimiento", v)} disabled={readOnly} />
+                <Field label="Teléfono" value={form.telefono} onChange={(v) => set("telefono", v)} disabled={readOnly} />
+                <Field label="Email" type="email" value={form.email} onChange={(v) => set("email", v)} disabled={readOnly} />
+                <Field label="Domicilio" value={form.domicilio} onChange={(v) => set("domicilio", v)} disabled={readOnly} />
+                <Field label="Localidad" value={form.localidad} onChange={(v) => set("localidad", v)} disabled={readOnly} />
+                <Field label="Contacto emergencia" value={form.contacto_emergencia_nombre} onChange={(v) => set("contacto_emergencia_nombre", v)} disabled={readOnly} />
+                <Field label="Tel. emergencia" value={form.contacto_emergencia_telefono} onChange={(v) => set("contacto_emergencia_telefono", v)} disabled={readOnly} />
                 <div className="flex items-center justify-between md:col-span-2 pt-2">
                   <Label htmlFor="activo">Paciente activo</Label>
-                  <Switch id="activo" checked={form.activo} onCheckedChange={(v) => set("activo", v)} />
+                  <Switch id="activo" checked={form.activo} onCheckedChange={(v) => set("activo", v)} disabled={readOnly} />
                 </div>
               </CardContent>
             </Card>
