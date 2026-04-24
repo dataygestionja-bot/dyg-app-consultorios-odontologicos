@@ -83,7 +83,7 @@ export default function PacienteForm() {
         })
         .then(() => setLoading(false));
     }
-  }, [id, isEdit]);
+  }, [id, isEdit, readOnly]);
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
