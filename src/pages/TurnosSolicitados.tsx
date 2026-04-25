@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2, XCircle, CalendarClock, Loader2, RefreshCw,
-  AlertTriangle, UserPlus, UserCog,
+  AlertTriangle, UserPlus, UserCog, ShieldCheck,
 } from "lucide-react";
 import { format, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
@@ -47,6 +47,7 @@ interface Solicitud {
   paciente: {
     nombre: string; apellido: string; dni: string;
     telefono: string | null; email: string | null;
+    pendiente_validacion: boolean;
   } | null;
   profesional: { nombre: string; apellido: string } | null;
 }
@@ -122,6 +123,20 @@ function diffsDePaciente(s: Solicitud): string[] {
   return out;
 }
 
+// Helper: ¿la solicitud requiere validación manual?
+function necesitaValidar(s: Solicitud): boolean {
+  if (s.estado !== "solicitado") return false;
+  return s.requiere_validacion === true || s.paciente?.pendiente_validacion === true;
+}
+
+// Helper: ¿es un paciente nuevo provisorio (sin paciente previo con el cual comparar)?
+function esPacienteNuevoProvisorio(s: Solicitud): boolean {
+  return (
+    s.paciente?.pendiente_validacion === true &&
+    diffsDePaciente(s).length === 0
+  );
+}
+
 export default function TurnosSolicitados() {
   const [items, setItems] = useState<Solicitud[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,13 +151,15 @@ export default function TurnosSolicitados() {
     let q = supabase
       .from("turnos")
       .select(
-        "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, origen, paciente_id, profesional_id, requiere_validacion, nombre_solicitante, apellido_solicitante, dni_solicitante, telefono_solicitante, email_solicitante, paciente:pacientes!inner(nombre, apellido, dni, telefono, email), profesional:profesionales!inner(nombre, apellido)",
+        "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, origen, paciente_id, profesional_id, requiere_validacion, nombre_solicitante, apellido_solicitante, dni_solicitante, telefono_solicitante, email_solicitante, paciente:pacientes!inner(nombre, apellido, dni, telefono, email, pendiente_validacion), profesional:profesionales!inner(nombre, apellido)",
       )
       .eq("origen", "publico")
       .order("created_at", { ascending: false });
 
     if (filtroEstado === "validacion") {
-      q = q.eq("requiere_validacion", true).eq("estado", "solicitado" as TurnoEstado);
+      // Traemos todos los solicitados y filtramos en cliente con el helper
+      // (necesario porque no se puede OR sobre columna de tabla embebida).
+      q = q.eq("estado", "solicitado" as TurnoEstado);
     } else if (filtroEstado !== "todos") {
       q = q.eq("estado", filtroEstado as TurnoEstado);
     }
@@ -152,7 +169,11 @@ export default function TurnosSolicitados() {
       toast.error("Error cargando solicitudes", { description: error.message });
       setItems([]);
     } else {
-      setItems((data ?? []) as unknown as Solicitud[]);
+      let rows = (data ?? []) as unknown as Solicitud[];
+      if (filtroEstado === "validacion") {
+        rows = rows.filter(necesitaValidar);
+      }
+      setItems(rows);
     }
     setLoading(false);
   }
@@ -164,7 +185,7 @@ export default function TurnosSolicitados() {
     [items],
   );
   const requierenValidacionCount = useMemo(
-    () => items.filter((i) => i.estado === "solicitado" && i.requiere_validacion).length,
+    () => items.filter(necesitaValidar).length,
     [items],
   );
 
@@ -293,6 +314,27 @@ export default function TurnosSolicitados() {
     }
   }
 
+  // ----- Confirmar y marcar paciente como validado (paciente nuevo provisorio) -----
+  async function handleConfirmarYValidarPaciente(s: Solicitud) {
+    if (!s.paciente_id) return;
+    setActionLoadingId(s.id);
+    try {
+      const { error: errPac } = await supabase
+        .from("pacientes")
+        .update({ pendiente_validacion: false })
+        .eq("id", s.paciente_id);
+      if (errPac) throw errPac;
+    } catch (e) {
+      toast.error("No se pudo marcar el paciente como validado", {
+        description: e instanceof Error ? e.message : "Error desconocido",
+      });
+      setActionLoadingId(null);
+      return;
+    }
+    setActionLoadingId(null);
+    await handleConfirmar(s);
+  }
+
   // ----- Rechazar -----
   async function handleRechazar(s: Solicitud) {
     setActionLoadingId(s.id);
@@ -392,11 +434,11 @@ export default function TurnosSolicitados() {
                   {items.map((s) => {
                     const acting = actionLoadingId === s.id;
                     const esPendiente = s.estado === "solicitado";
-                    const necesitaValidar = s.requiere_validacion && esPendiente;
+                    const validar = necesitaValidar(s);
                     return (
                       <TableRow
                         key={s.id}
-                        className={necesitaValidar ? "bg-warning/5" : undefined}
+                        className={validar ? "bg-warning/5" : undefined}
                       >
                         <TableCell className="whitespace-nowrap">{fmtFecha(s.fecha)}</TableCell>
                         <TableCell className="whitespace-nowrap">{s.hora_inicio.slice(0,5)}</TableCell>
@@ -405,7 +447,7 @@ export default function TurnosSolicitados() {
                             <span>
                               {s.paciente ? `${s.paciente.nombre} ${s.paciente.apellido}` : "—"}
                             </span>
-                            {necesitaValidar && (
+                            {validar && (
                               <Badge
                                 variant="outline"
                                 className="border-warning text-warning gap-1"
@@ -435,7 +477,7 @@ export default function TurnosSolicitados() {
                         <TableCell className="text-right">
                           {esPendiente ? (
                             <div className="inline-flex items-center gap-1 flex-wrap justify-end">
-                              {necesitaValidar && (
+                              {validar && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -447,7 +489,7 @@ export default function TurnosSolicitados() {
                                   <span className="ml-1">Validar</span>
                                 </Button>
                               )}
-                              {!necesitaValidar && (
+                              {!validar && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -533,79 +575,118 @@ export default function TurnosSolicitados() {
             </DialogDescription>
           </DialogHeader>
 
-          {validarItem && (
-            <div className="space-y-4">
-              <Alert variant="default" className="border-warning/40 bg-warning/5">
-                <AlertTriangle className="h-4 w-4 text-warning" />
-                <AlertTitle>Diferencias detectadas</AlertTitle>
-                <AlertDescription>
-                  Los datos ingresados no coinciden con el paciente existente
-                  {(() => {
-                    const d = diffsDePaciente(validarItem);
-                    return d.length ? ` (${d.join(", ")}). ` : ". ";
-                  })()}
-                  Validar antes de confirmar.
-                </AlertDescription>
-              </Alert>
+          {validarItem && (() => {
+            const esNuevo = esPacienteNuevoProvisorio(validarItem);
+            return (
+              <div className="space-y-4">
+                {esNuevo ? (
+                  <Alert variant="default" className="border-warning/40 bg-warning/5">
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                    <AlertTitle>Paciente nuevo desde el formulario público</AlertTitle>
+                    <AlertDescription>
+                      Este paciente fue creado automáticamente con los datos del
+                      formulario y está pendiente de validar. Revisá los datos
+                      antes de confirmar el turno.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <Alert variant="default" className="border-warning/40 bg-warning/5">
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                    <AlertTitle>Diferencias detectadas</AlertTitle>
+                    <AlertDescription>
+                      Los datos ingresados no coinciden con el paciente existente
+                      {(() => {
+                        const d = diffsDePaciente(validarItem);
+                        return d.length ? ` (${d.join(", ")}). ` : ". ";
+                      })()}
+                      Validar antes de confirmar.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="rounded-md border border-border p-3">
-                  <h4 className="text-sm font-semibold mb-2">Paciente existente</h4>
-                  <dl className="text-sm space-y-1">
-                    <div className="flex gap-2">
-                      <dt className="text-muted-foreground w-20">Nombre:</dt>
-                      <dd>{validarItem.paciente?.nombre || "—"}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="text-muted-foreground w-20">Apellido:</dt>
-                      <dd>{validarItem.paciente?.apellido || "—"}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="text-muted-foreground w-20">DNI:</dt>
-                      <dd>{validarItem.paciente?.dni || "—"}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="text-muted-foreground w-20">Teléfono:</dt>
-                      <dd>{validarItem.paciente?.telefono || "—"}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="text-muted-foreground w-20">Email:</dt>
-                      <dd className="break-all">{validarItem.paciente?.email || "—"}</dd>
-                    </div>
-                  </dl>
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="rounded-md border border-border p-3">
+                    <h4 className="text-sm font-semibold mb-2">
+                      {esNuevo ? "Paciente provisorio creado" : "Paciente existente"}
+                    </h4>
+                    <dl className="text-sm space-y-1">
+                      <div className="flex gap-2">
+                        <dt className="text-muted-foreground w-20">Nombre:</dt>
+                        <dd>{validarItem.paciente?.nombre || "—"}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="text-muted-foreground w-20">Apellido:</dt>
+                        <dd>{validarItem.paciente?.apellido || "—"}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="text-muted-foreground w-20">DNI:</dt>
+                        <dd>{validarItem.paciente?.dni || "—"}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="text-muted-foreground w-20">Teléfono:</dt>
+                        <dd>{validarItem.paciente?.telefono || "—"}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="text-muted-foreground w-20">Email:</dt>
+                        <dd className="break-all">{validarItem.paciente?.email || "—"}</dd>
+                      </div>
+                    </dl>
+                  </div>
 
-                <div className="rounded-md border border-warning/40 bg-warning/5 p-3">
-                  <h4 className="text-sm font-semibold mb-2">Datos del formulario</h4>
-                  <dl className="text-sm space-y-1">
-                    <div className="flex gap-2">
-                      <dt className="text-muted-foreground w-20">Nombre:</dt>
-                      <dd>{validarItem.nombre_solicitante || "—"}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="text-muted-foreground w-20">Apellido:</dt>
-                      <dd>{validarItem.apellido_solicitante || "—"}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="text-muted-foreground w-20">DNI:</dt>
-                      <dd>{validarItem.dni_solicitante || "—"}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="text-muted-foreground w-20">Teléfono:</dt>
-                      <dd>{validarItem.telefono_solicitante || "—"}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="text-muted-foreground w-20">Email:</dt>
-                      <dd className="break-all">{validarItem.email_solicitante || "—"}</dd>
-                    </div>
-                  </dl>
+                  <div className="rounded-md border border-warning/40 bg-warning/5 p-3">
+                    <h4 className="text-sm font-semibold mb-2">Datos del formulario</h4>
+                    <dl className="text-sm space-y-1">
+                      <div className="flex gap-2">
+                        <dt className="text-muted-foreground w-20">Nombre:</dt>
+                        <dd>{validarItem.nombre_solicitante || "—"}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="text-muted-foreground w-20">Apellido:</dt>
+                        <dd>{validarItem.apellido_solicitante || "—"}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="text-muted-foreground w-20">DNI:</dt>
+                        <dd>{validarItem.dni_solicitante || "—"}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="text-muted-foreground w-20">Teléfono:</dt>
+                        <dd>{validarItem.telefono_solicitante || "—"}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="text-muted-foreground w-20">Email:</dt>
+                        <dd className="break-all">{validarItem.email_solicitante || "—"}</dd>
+                      </div>
+                    </dl>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-2">
-            {validarItem && (
+            {validarItem && (esPacienteNuevoProvisorio(validarItem) ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setValidarItem(null)}
+                  disabled={actionLoadingId === validarItem.id}
+                  className="sm:mr-auto"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => handleConfirmarYValidarPaciente(validarItem)}
+                  disabled={actionLoadingId === validarItem.id || !validarItem.paciente_id}
+                >
+                  {actionLoadingId === validarItem.id ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="h-4 w-4 mr-1" />
+                  )}
+                  Confirmar y marcar paciente como validado
+                </Button>
+              </>
+            ) : (
               <>
                 <Button
                   variant="outline"
@@ -636,7 +717,7 @@ export default function TurnosSolicitados() {
                   Confirmar usando paciente existente
                 </Button>
               </>
-            )}
+            ))}
           </DialogFooter>
         </DialogContent>
       </Dialog>
