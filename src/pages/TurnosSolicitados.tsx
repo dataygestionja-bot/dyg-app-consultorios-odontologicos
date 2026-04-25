@@ -434,11 +434,11 @@ export default function TurnosSolicitados() {
                   {items.map((s) => {
                     const acting = actionLoadingId === s.id;
                     const esPendiente = s.estado === "solicitado";
-                    const necesitaValidar = s.requiere_validacion && esPendiente;
+                    const validar = necesitaValidar(s);
                     return (
                       <TableRow
                         key={s.id}
-                        className={necesitaValidar ? "bg-warning/5" : undefined}
+                        className={validar ? "bg-warning/5" : undefined}
                       >
                         <TableCell className="whitespace-nowrap">{fmtFecha(s.fecha)}</TableCell>
                         <TableCell className="whitespace-nowrap">{s.hora_inicio.slice(0,5)}</TableCell>
