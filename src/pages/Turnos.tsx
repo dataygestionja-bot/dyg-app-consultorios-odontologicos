@@ -179,7 +179,7 @@ export default function Turnos() {
       const hasta = vista === "dia" ? fecha : addDays(desde, 6);
       let q = supabase
         .from("turnos")
-        .select("*, paciente:pacientes(nombre, apellido)")
+        .select("*, paciente:pacientes(nombre, apellido, telefono)")
         .gte("fecha", format(desde, "yyyy-MM-dd"))
         .lte("fecha", format(hasta, "yyyy-MM-dd"));
       if (profSel) q = q.eq("profesional_id", profSel);
