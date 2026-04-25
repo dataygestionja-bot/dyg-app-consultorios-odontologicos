@@ -974,6 +974,7 @@ function CalendarGrid({
                             <WhatsAppTurnoButton
                               telefono={turno.paciente?.telefono ?? null}
                               nombrePaciente={turno.paciente ? `${turno.paciente.nombre} ${turno.paciente.apellido}` : ""}
+                              nombreProfesional={`${profesional.nombre} ${profesional.apellido}`}
                               fecha={turno.fecha}
                               hora={turno.hora_inicio}
                             />

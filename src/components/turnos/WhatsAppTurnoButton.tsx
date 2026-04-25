@@ -13,6 +13,7 @@ import { format, parseISO, isValid } from "date-fns";
 interface WhatsAppTurnoButtonProps {
   telefono?: string | null;
   nombrePaciente: string;
+  nombreProfesional?: string;
   fecha: string; // yyyy-MM-dd
   hora: string; // HH:mm[:ss]
   size?: "sm" | "md";
@@ -37,6 +38,7 @@ function WhatsAppIcon({ className }: { className?: string }) {
 export function WhatsAppTurnoButton({
   telefono,
   nombrePaciente,
+  nombreProfesional,
   fecha,
   hora,
   size = "sm",
@@ -62,7 +64,10 @@ export function WhatsAppTurnoButton({
     setLoading(true);
     try {
       const { fechaLeg, horaLeg } = formatearFechaHora();
-      const mensaje = `Hola ${nombrePaciente}, te recordamos tu turno el día ${fechaLeg} a las ${horaLeg}. Por favor confirma o responde a este mensaje.`;
+      const conProfesional = nombreProfesional && nombreProfesional.trim().length > 0
+        ? ` con el/la Dr/a. ${nombreProfesional}`
+        : "";
+      const mensaje = `Hola ${nombrePaciente}, te recordamos tu turno${conProfesional} el día ${fechaLeg} a las ${horaLeg}. Por favor confirma o responde a este mensaje.`;
 
       const { data, error } = await supabase.functions.invoke("send_whatsapp", {
         body: { telefono, mensaje },
