@@ -70,12 +70,14 @@ export default function Dashboard() {
     const select = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido, color_agenda)";
     const selectSolic = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, origen, created_at, paciente:pacientes(nombre, apellido, telefono), profesional:profesionales(nombre, apellido, color_agenda)";
 
-    const [hoyRes, proxRes, atRes, solicRes, solicCountRes] = await Promise.all([
+    const [hoyRes, proxRes, atRes, solicRes, solicCountRes, pcRes, pcCountRes] = await Promise.all([
       supabase.from("turnos").select(select).eq("fecha", today).order("hora_inicio"),
       supabase.from("turnos").select(select).gt("fecha", today).lte("fecha", in7).order("fecha").order("hora_inicio").limit(10),
       supabase.from("turnos").select("id", { count: "exact", head: true }).eq("fecha", today).eq("estado", "atendido"),
       supabase.from("turnos").select(selectSolic).eq("estado", "solicitado").order("created_at", { ascending: false }).limit(5),
       supabase.from("turnos").select("id", { count: "exact", head: true }).eq("estado", "solicitado"),
+      supabase.from("turnos").select(select).eq("estado", "pendiente_cierre").order("fecha", { ascending: false }).order("hora_inicio").limit(20),
+      supabase.from("turnos").select("id", { count: "exact", head: true }).eq("estado", "pendiente_cierre"),
     ]);
 
     setHoy((hoyRes.data ?? []) as unknown as TurnoRow[]);
@@ -83,7 +85,31 @@ export default function Dashboard() {
     setAtendidosHoy(atRes.count ?? 0);
     setSolicitudes((solicRes.data ?? []) as unknown as TurnoRow[]);
     setSolicitudesCount(solicCountRes.count ?? 0);
+    setPendientesCierre((pcRes.data ?? []) as unknown as TurnoRow[]);
+    setPendientesCierreCount(pcCountRes.count ?? 0);
     setLoading(false);
+  }
+
+  async function marcarAusente(id: string) {
+    if (!confirm("¿Marcar este turno como ausente?")) return;
+    const { error } = await supabase.from("turnos").update({ estado: "ausente" }).eq("id", id);
+    if (error) {
+      toast.error("No se pudo actualizar: " + error.message);
+      return;
+    }
+    toast.success("Turno marcado como ausente");
+    cargar();
+  }
+
+  async function cancelarTurno(id: string) {
+    if (!confirm("¿Cancelar este turno?")) return;
+    const { error } = await supabase.from("turnos").update({ estado: "cancelado" }).eq("id", id);
+    if (error) {
+      toast.error("No se pudo cancelar: " + error.message);
+      return;
+    }
+    toast.success("Turno cancelado");
+    cargar();
   }
 
   return (
