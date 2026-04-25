@@ -728,7 +728,41 @@ export default function Turnos() {
                     <Input type="time" value={editHoraFin} onChange={(e) => setEditHoraFin(e.target.value)} />
                   </div>
                 </div>
+
+                {/* Indicador visual de superposición en vivo */}
+                {choqueCheck.estado === "checking" && (
+                  <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Verificando disponibilidad del horario...
+                  </div>
+                )}
+                {choqueCheck.estado === "ok" && (
+                  <div className="flex items-center gap-2 rounded-md border border-border bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Horario disponible para el profesional.
+                  </div>
+                )}
+                {choqueCheck.estado === "conflicto" && (
+                  <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <div className="space-y-1">
+                      <p className="font-medium">Choque de horario</p>
+                      <p>{choqueCheck.detalle} Marcá "Sobreturno" si querés guardarlo igual.</p>
+                    </div>
+                  </div>
+                )}
               </>
+            )}
+
+            {/* Indicador para alta desde slot (sin edición de fecha/hora) */}
+            {!editing && slot && choqueCheck.estado === "conflicto" && (
+              <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="font-medium">Choque de horario</p>
+                  <p>{choqueCheck.detalle} Marcá "Sobreturno" si querés guardarlo igual.</p>
+                </div>
+              </div>
             )}
 
             {editing && isSystemManaged && (
