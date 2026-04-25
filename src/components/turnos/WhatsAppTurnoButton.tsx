@@ -44,8 +44,8 @@ export function WhatsAppTurnoButton({
   const [loading, setLoading] = useState(false);
   const tieneTelefono = !!telefono && telefono.trim().length > 0;
 
-  const dim = size === "sm" ? "h-6 w-6" : "h-7 w-7";
-  const iconDim = size === "sm" ? "h-4 w-4" : "h-5 w-5";
+  const dim = size === "sm" ? "h-8 w-8" : "h-10 w-10";
+  const iconDim = size === "sm" ? "h-6 w-6" : "h-7 w-7";
 
   function formatearFechaHora() {
     const d = parseISO(fecha);
