@@ -351,6 +351,86 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {canManagePendientes && pendientesCierreCount > 0 && (
+        <Card
+          id="pendientes-cierre"
+          className="border-l-4 border-amber-500 bg-amber-500/5 scroll-mt-20"
+        >
+          <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <AlertCircle className="h-5 w-5 shrink-0 text-amber-500" />
+              <div className="min-w-0">
+                <CardTitle className="flex items-center gap-2 flex-wrap">
+                  Turnos pendientes de cierre
+                  <Badge className={TURNO_ESTADO_CLASSES.pendiente_cierre}>{pendientesCierreCount}</Badge>
+                </CardTitle>
+                <CardDescription>
+                  Turnos pasados sin atención registrada. Resolvelos para mantener la agenda al día.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y">
+              {pendientesCierre.map((t) => (
+                <li key={t.id} className="py-3 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="h-9 w-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: t.profesional?.color_agenda ?? "hsl(var(--primary))" }}
+                    />
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">
+                        {t.paciente ? `${t.paciente.apellido}, ${t.paciente.nombre}` : "—"}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {format(new Date(t.fecha + "T00:00:00"), "dd MMM", { locale: es })} · {t.hora_inicio.slice(0, 5)} · Dr. {t.profesional?.apellido ?? "—"}
+                        {t.motivo_consulta ? ` · ${t.motivo_consulta}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="h-7 px-2 text-xs gap-1.5"
+                      onClick={() => navigate(`/atenciones/nuevo?turnoId=${t.id}`)}
+                    >
+                      <Stethoscope className="h-3.5 w-3.5" /> Iniciar atención
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs gap-1.5"
+                      onClick={() => marcarAusente(t.id)}
+                    >
+                      <UserX className="h-3.5 w-3.5" /> Marcar como ausente
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => cancelarTurno(t.id)}
+                    >
+                      <Ban className="h-3.5 w-3.5" /> Cancelar turno
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {pendientesCierreCount > pendientesCierre.length && (
+              <div className="pt-3 text-right">
+                <Button asChild variant="link" size="sm">
+                  <Link to="/turnos">
+                    Ver todos ({pendientesCierreCount}) <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
