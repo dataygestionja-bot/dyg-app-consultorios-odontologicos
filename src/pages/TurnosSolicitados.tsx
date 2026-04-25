@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2, XCircle, CalendarClock, Loader2, RefreshCw,
-  AlertTriangle, UserPlus, UserCog,
+  AlertTriangle, UserPlus, UserCog, ShieldCheck,
 } from "lucide-react";
 import { format, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
@@ -47,6 +47,7 @@ interface Solicitud {
   paciente: {
     nombre: string; apellido: string; dni: string;
     telefono: string | null; email: string | null;
+    pendiente_validacion: boolean;
   } | null;
   profesional: { nombre: string; apellido: string } | null;
 }
@@ -120,6 +121,20 @@ function diffsDePaciente(s: Solicitud): string[] {
   if (norm(s.paciente.apellido) !== norm(s.apellido_solicitante)) out.push("apellido");
   if ((s.paciente.dni ?? "") !== (s.dni_solicitante ?? "")) out.push("DNI");
   return out;
+}
+
+// Helper: ¿la solicitud requiere validación manual?
+function necesitaValidar(s: Solicitud): boolean {
+  if (s.estado !== "solicitado") return false;
+  return s.requiere_validacion === true || s.paciente?.pendiente_validacion === true;
+}
+
+// Helper: ¿es un paciente nuevo provisorio (sin paciente previo con el cual comparar)?
+function esPacienteNuevoProvisorio(s: Solicitud): boolean {
+  return (
+    s.paciente?.pendiente_validacion === true &&
+    diffsDePaciente(s).length === 0
+  );
 }
 
 export default function TurnosSolicitados() {
