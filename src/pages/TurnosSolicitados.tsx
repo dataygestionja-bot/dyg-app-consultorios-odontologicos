@@ -447,7 +447,7 @@ export default function TurnosSolicitados() {
                             <span>
                               {s.paciente ? `${s.paciente.nombre} ${s.paciente.apellido}` : "—"}
                             </span>
-                            {necesitaValidar && (
+                            {validar && (
                               <Badge
                                 variant="outline"
                                 className="border-warning text-warning gap-1"
@@ -477,7 +477,7 @@ export default function TurnosSolicitados() {
                         <TableCell className="text-right">
                           {esPendiente ? (
                             <div className="inline-flex items-center gap-1 flex-wrap justify-end">
-                              {necesitaValidar && (
+                              {validar && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -489,7 +489,7 @@ export default function TurnosSolicitados() {
                                   <span className="ml-1">Validar</span>
                                 </Button>
                               )}
-                              {!necesitaValidar && (
+                              {!validar && (
                                 <Button
                                   size="sm"
                                   variant="outline"
