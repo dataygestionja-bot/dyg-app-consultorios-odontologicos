@@ -51,7 +51,7 @@ interface Item {
 }
 
 const itemsOperatoria: Item[] = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Mis turnos de hoy", url: "/mis-turnos", icon: ListTodo },
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Atenciones", url: "/atenciones", icon: ClipboardList },
