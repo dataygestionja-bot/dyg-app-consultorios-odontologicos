@@ -968,9 +968,15 @@ function CalendarGrid({
                             {turno.es_sobreturno && (
                               <AlertTriangle className="h-3 w-3 text-[hsl(var(--estado-sobreturno))] shrink-0" />
                             )}
-                            <span className="truncate">
+                            <span className="truncate flex-1">
                               {turno.paciente ? `${turno.paciente.apellido}, ${turno.paciente.nombre}` : "—"}
                             </span>
+                            <WhatsAppTurnoButton
+                              telefono={turno.paciente?.telefono ?? null}
+                              nombrePaciente={turno.paciente ? `${turno.paciente.nombre} ${turno.paciente.apellido}` : ""}
+                              fecha={turno.fecha}
+                              hora={turno.hora_inicio}
+                            />
                           </div>
                           <div className="flex flex-wrap gap-1 mt-1">
                             <Badge className={`${TURNO_ESTADO_CLASSES[turno.estado]} text-[10px] px-1 py-0`}>
