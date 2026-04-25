@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Users, Plus, Clock, AlertCircle, Inbox, Globe, ArrowRight, Phone } from "lucide-react";
+import { CalendarDays, Users, Plus, Clock, AlertCircle, Inbox, Globe, ArrowRight, Phone, UserX, Ban, Stethoscope } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TURNO_ESTADO_CLASSES, TURNO_ESTADO_LABELS, type TurnoEstado } from "@/lib/constants";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
