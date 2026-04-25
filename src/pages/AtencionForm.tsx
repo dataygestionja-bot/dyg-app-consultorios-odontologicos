@@ -432,6 +432,26 @@ export default function AtencionForm() {
     navigate("/atenciones");
   }
 
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-5xl">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/atenciones")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {isEdit ? "Editar atención" : "Nueva atención"}
+          </h1>
+        </div>
+        <Card>
+          <CardContent className="py-10 text-center text-muted-foreground text-sm">
+            Cargando datos de la atención...
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-5xl">
       <div className="flex items-center gap-3">
