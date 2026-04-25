@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Users, Plus, Clock, AlertCircle } from "lucide-react";
+import { CalendarDays, Users, Plus, Clock, AlertCircle, Inbox, Globe, ArrowRight, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TURNO_ESTADO_CLASSES, TURNO_ESTADO_LABELS, type TurnoEstado } from "@/lib/constants";
 import { format } from "date-fns";
@@ -16,13 +16,17 @@ interface TurnoRow {
   hora_fin: string;
   estado: TurnoEstado;
   motivo_consulta: string | null;
-  paciente: { nombre: string; apellido: string } | null;
+  origen?: string | null;
+  created_at?: string | null;
+  paciente: { nombre: string; apellido: string; telefono?: string | null } | null;
   profesional: { nombre: string; apellido: string; color_agenda: string } | null;
 }
 
 export default function Dashboard() {
   const [hoy, setHoy] = useState<TurnoRow[]>([]);
   const [proximos, setProximos] = useState<TurnoRow[]>([]);
+  const [solicitudes, setSolicitudes] = useState<TurnoRow[]>([]);
+  const [solicitudesCount, setSolicitudesCount] = useState<number>(0);
   const [atendidosHoy, setAtendidosHoy] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [ahora, setAhora] = useState<Date>(new Date());
@@ -56,16 +60,21 @@ export default function Dashboard() {
     const in7 = format(new Date(Date.now() + 7 * 86400000), "yyyy-MM-dd");
 
     const select = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido, color_agenda)";
+    const selectSolic = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, origen, created_at, paciente:pacientes(nombre, apellido, telefono), profesional:profesionales(nombre, apellido, color_agenda)";
 
-    const [hoyRes, proxRes, atRes] = await Promise.all([
+    const [hoyRes, proxRes, atRes, solicRes, solicCountRes] = await Promise.all([
       supabase.from("turnos").select(select).eq("fecha", today).order("hora_inicio"),
       supabase.from("turnos").select(select).gt("fecha", today).lte("fecha", in7).order("fecha").order("hora_inicio").limit(10),
       supabase.from("turnos").select("id", { count: "exact", head: true }).eq("fecha", today).eq("estado", "atendido"),
+      supabase.from("turnos").select(selectSolic).eq("estado", "solicitado").order("created_at", { ascending: false }).limit(5),
+      supabase.from("turnos").select("id", { count: "exact", head: true }).eq("estado", "solicitado"),
     ]);
 
     setHoy((hoyRes.data ?? []) as unknown as TurnoRow[]);
     setProximos((proxRes.data ?? []) as unknown as TurnoRow[]);
     setAtendidosHoy(atRes.count ?? 0);
+    setSolicitudes((solicRes.data ?? []) as unknown as TurnoRow[]);
+    setSolicitudesCount(solicCountRes.count ?? 0);
     setLoading(false);
   }
 
@@ -88,7 +97,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Turnos hoy</CardTitle>
@@ -119,7 +128,95 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground">Turnos próximos</p>
           </CardContent>
         </Card>
+        <Link to="/turnos/solicitudes" className="block">
+          <Card
+            className="h-full transition-all hover:shadow-md border-l-4"
+            style={{ borderLeftColor: "hsl(var(--estado-solicitado))" }}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Solicitudes pendientes</CardTitle>
+              <Inbox className="h-4 w-4" style={{ color: "hsl(var(--estado-solicitado))" }} />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold" style={{ color: "hsl(var(--estado-solicitado))" }}>
+                {solicitudesCount}
+              </div>
+              <p className="text-xs text-muted-foreground">Reservas a confirmar</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
+
+      {solicitudesCount > 0 && (
+        <Card
+          className="border-l-4"
+          style={{
+            borderLeftColor: "hsl(var(--estado-solicitado))",
+            backgroundColor: "hsl(var(--estado-solicitado) / 0.06)",
+          }}
+        >
+          <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <Inbox className="h-5 w-5 shrink-0" style={{ color: "hsl(var(--estado-solicitado))" }} />
+              <div className="min-w-0">
+                <CardTitle className="flex items-center gap-2 flex-wrap">
+                  Turnos solicitados
+                  <Badge className={TURNO_ESTADO_CLASSES.solicitado}>{solicitudesCount}</Badge>
+                </CardTitle>
+                <CardDescription>Reservas pendientes de aprobación desde el formulario público</CardDescription>
+              </div>
+            </div>
+            <Button asChild size="sm" variant="outline" className="shrink-0">
+              <Link to="/turnos/solicitudes">
+                Gestionar <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y">
+              {solicitudes.map((s) => (
+                <li key={s.id} className="py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="h-9 w-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: s.profesional?.color_agenda ?? "hsl(var(--estado-solicitado))" }}
+                    />
+                    <div className="min-w-0">
+                      <p className="font-medium truncate flex items-center gap-2">
+                        {s.paciente ? `${s.paciente.apellido}, ${s.paciente.nombre}` : "—"}
+                        {s.origen === "publico" && (
+                          <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {format(new Date(s.fecha + "T00:00:00"), "EEE d MMM", { locale: es })} · {s.hora_inicio.slice(0, 5)} · Dr. {s.profesional?.apellido ?? "—"}
+                        {s.motivo_consulta ? ` · ${s.motivo_consulta}` : ""}
+                      </p>
+                      {s.paciente?.telefono && (
+                        <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                          <Phone className="h-3 w-3" /> {s.paciente.telefono}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Badge className={`${TURNO_ESTADO_CLASSES.solicitado} shrink-0`}>
+                    {TURNO_ESTADO_LABELS.solicitado}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+            {solicitudesCount > solicitudes.length && (
+              <div className="pt-3 text-right">
+                <Button asChild variant="link" size="sm">
+                  <Link to="/turnos/solicitudes">
+                    Ver todas ({solicitudesCount}) <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
