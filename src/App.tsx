@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +8,7 @@ import { PermissionsProvider } from "@/hooks/usePermissions";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import Landing from "./pages/Landing";
 import AuthPage from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Pacientes from "./pages/Pacientes";
@@ -47,29 +47,6 @@ const Private = ({ children }: { children: React.ReactNode }) => (
   </ProtectedRoute>
 );
 
-/**
- * Landing en "/":
- * - Si hay sesión activa => Dashboard interno.
- * - Si no hay sesión => redirige al formulario público de reserva.
- */
-const RootLanding = () => {
-  const { user, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground">Cargando...</div>
-      </div>
-    );
-  }
-  if (!user) return <Navigate to="/reservar" replace />;
-  return (
-    <AppLayout>
-      <ErrorBoundary>
-        <Dashboard />
-      </ErrorBoundary>
-    </AppLayout>
-  );
-};
 
 const AdminOnly = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute roles={["admin"]}>
