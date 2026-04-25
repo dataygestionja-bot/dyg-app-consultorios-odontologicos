@@ -132,6 +132,11 @@ export default function Turnos() {
   const [saving, setSaving] = useState(false);
   // Confirmación de sobreturno cuando hay choque
   const [confirmSobreturno, setConfirmSobreturno] = useState(false);
+  // Indicador visual en vivo de superposición
+  const [choqueCheck, setChoqueCheck] = useState<{
+    estado: "idle" | "checking" | "ok" | "conflicto";
+    detalle?: string;
+  }>({ estado: "idle" });
 
   const ESTADOS_SISTEMA: TurnoEstado[] = ["atendido"] as TurnoEstado[];
   // System-managed states present in DB enum but not always in TURNO_ESTADOS
