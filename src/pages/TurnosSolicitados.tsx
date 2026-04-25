@@ -314,6 +314,27 @@ export default function TurnosSolicitados() {
     }
   }
 
+  // ----- Confirmar y marcar paciente como validado (paciente nuevo provisorio) -----
+  async function handleConfirmarYValidarPaciente(s: Solicitud) {
+    if (!s.paciente_id) return;
+    setActionLoadingId(s.id);
+    try {
+      const { error: errPac } = await supabase
+        .from("pacientes")
+        .update({ pendiente_validacion: false })
+        .eq("id", s.paciente_id);
+      if (errPac) throw errPac;
+    } catch (e) {
+      toast.error("No se pudo marcar el paciente como validado", {
+        description: e instanceof Error ? e.message : "Error desconocido",
+      });
+      setActionLoadingId(null);
+      return;
+    }
+    setActionLoadingId(null);
+    await handleConfirmar(s);
+  }
+
   // ----- Rechazar -----
   async function handleRechazar(s: Solicitud) {
     setActionLoadingId(s.id);
