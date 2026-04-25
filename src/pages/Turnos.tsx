@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, startOfWeek, parseISO, isSameDay, isValid } from "date-fns";
 import { es } from "date-fns/locale";
@@ -132,6 +132,11 @@ export default function Turnos() {
   const [saving, setSaving] = useState(false);
   // Confirmación de sobreturno cuando hay choque
   const [confirmSobreturno, setConfirmSobreturno] = useState(false);
+  // Indicador visual en vivo de superposición
+  const [choqueCheck, setChoqueCheck] = useState<{
+    estado: "idle" | "checking" | "ok" | "conflicto";
+    detalle?: string;
+  }>({ estado: "idle" });
 
   const ESTADOS_SISTEMA: TurnoEstado[] = ["atendido"] as TurnoEstado[];
   // System-managed states present in DB enum but not always in TURNO_ESTADOS
@@ -300,6 +305,81 @@ export default function Turnos() {
     }
     return (data ?? []).length > 0;
   }
+
+  // Chequeo en vivo de superposición mientras el usuario edita fecha/hora/profesional.
+  // Reutiliza haySolapamiento y se muestra como indicador visual en el formulario.
+  useEffect(() => {
+    if (!open) {
+      setChoqueCheck({ estado: "idle" });
+      return;
+    }
+    if (esSobreturno || ["cancelado", "reprogramado", "ausente"].includes(estado)) {
+      setChoqueCheck({ estado: "ok" });
+      return;
+    }
+
+    let profId = "";
+    let fechaChk = "";
+    let hi = "";
+    let hf = "";
+    let excluirId: string | undefined;
+
+    if (editing && !isSystemManaged) {
+      profId = editProfId;
+      fechaChk = editFecha;
+      hi = editHoraInicio;
+      hf = editHoraFin;
+      excluirId = editing.id;
+    } else if (slot) {
+      profId = slot.profesional_id;
+      fechaChk = slot.fecha;
+      hi = slot.hora_inicio;
+      hf = slot.hora_fin;
+    } else {
+      setChoqueCheck({ estado: "idle" });
+      return;
+    }
+
+    if (!profId || !fechaChk || !hi || !hf || hf <= hi) {
+      setChoqueCheck({ estado: "idle" });
+      return;
+    }
+
+    setChoqueCheck({ estado: "checking" });
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const choque = await haySolapamiento({
+        profesionalId: profId,
+        fecha: fechaChk,
+        horaInicio: hi,
+        horaFin: hf,
+        excluirTurnoId: excluirId,
+        esSobreturno: false,
+      });
+      if (cancelled) return;
+      setChoqueCheck(
+        choque
+          ? { estado: "conflicto", detalle: "Hay otro turno del profesional que se superpone con este horario." }
+          : { estado: "ok" },
+      );
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [
+    open,
+    editing,
+    isSystemManaged,
+    slot,
+    editProfId,
+    editFecha,
+    editHoraInicio,
+    editHoraFin,
+    esSobreturno,
+    estado,
+  ]);
 
   async function guardar(forceSobreturno?: boolean) {
     if (saving) return;
@@ -648,7 +728,41 @@ export default function Turnos() {
                     <Input type="time" value={editHoraFin} onChange={(e) => setEditHoraFin(e.target.value)} />
                   </div>
                 </div>
+
+                {/* Indicador visual de superposición en vivo */}
+                {choqueCheck.estado === "checking" && (
+                  <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Verificando disponibilidad del horario...
+                  </div>
+                )}
+                {choqueCheck.estado === "ok" && (
+                  <div className="flex items-center gap-2 rounded-md border border-success/40 bg-success/10 px-3 py-2 text-xs text-success">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Horario disponible para el profesional.
+                  </div>
+                )}
+                {choqueCheck.estado === "conflicto" && (
+                  <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <div className="space-y-1">
+                      <p className="font-medium">Choque de horario</p>
+                      <p>{choqueCheck.detalle} Marcá "Sobreturno" si querés guardarlo igual.</p>
+                    </div>
+                  </div>
+                )}
               </>
+            )}
+
+            {/* Indicador para alta desde slot (sin edición de fecha/hora) */}
+            {!editing && slot && choqueCheck.estado === "conflicto" && (
+              <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="font-medium">Choque de horario</p>
+                  <p>{choqueCheck.detalle} Marcá "Sobreturno" si querés guardarlo igual.</p>
+                </div>
+              </div>
             )}
 
             {editing && isSystemManaged && (
