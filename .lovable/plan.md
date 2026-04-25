@@ -1,47 +1,34 @@
 ## Diagnóstico
 
-Hoy la bandeja `Turnos solicitados` muestra el botón **Validar** únicamente cuando `turnos.requiere_validacion = true`, lo que solo se setea en el edge function cuando el teléfono del formulario matchea con un paciente existente y los datos (nombre/apellido/DNI) difieren.
+En `src/pages/TurnosSolicitados.tsx` (líneas 480-503), las acciones "Validar" y "Confirmar" están en un `if/else` excluyente:
 
-Cuando entra un teléfono **nuevo**, el edge crea un paciente provisorio con `pacientes.pendiente_validacion = true` y deja `turnos.requiere_validacion = false`. Resultado: los pacientes nuevos no aparecen como "a validar" en la bandeja, aunque el paciente sí esté marcado pendiente en la tabla `pacientes`. Eso es lo que ves con los dos turnos que creaste (Federico Nieto y Juan Roman Riquelme): ambos son pacientes nuevos provisorios.
+- Si `necesitaValidar(s) === true` → solo se renderiza **Validar** (warning).
+- Si no → solo se renderiza **Confirmar** (verde).
 
-## Cambios
+Como tus dos turnos actuales (Federico Nieto y Juan Roman Riquelme) son pacientes nuevos provisorios, ambos caen en el primer caso y por eso desapareció el botón verde de Confirmar.
 
-### 1. `src/pages/TurnosSolicitados.tsx`
+## Cambio propuesto
 
-- Extender el `select` de `fetchItems` para traer también `paciente.pendiente_validacion`.
-- Ampliar la interfaz `Solicitud` con `paciente.pendiente_validacion: boolean`.
-- Definir un helper `necesitaValidar(s)` que devuelva `true` cuando:
-  - `s.requiere_validacion === true` (datos divergen de un paciente existente), **o**
-  - `s.paciente?.pendiente_validacion === true` (paciente provisorio recién creado desde el formulario público).
-- Reemplazar los usos actuales del flag por ese helper (badge "validar", fila resaltada, botón "Validar", contador "a validar", filtro "Requieren validación").
-- Ajustar el filtro `filtroEstado === "validacion"`: traer todos los `solicitado` con `origen=publico` y filtrar en cliente con el helper (volumen bajo, sigue eficiente).
+En la columna **Acciones** de la grilla de turnos solicitados:
 
-### 2. Diálogo "Validar"
+- Mostrar **siempre** el botón **Confirmar** (verde) para turnos pendientes.
+- Mostrar **además** el botón **Validar** (warning) cuando `necesitaValidar(s) === true`, ubicado **antes** de Confirmar para que sea la acción sugerida visualmente.
+- Mantener Reprogramar y Rechazar como hoy.
 
-- Caso **paciente nuevo provisorio** (sin diferencias porque no hay paciente previo):
-  - Mensaje: "Paciente nuevo creado desde el formulario público. Revisá los datos antes de confirmar."
-  - Mostrar los datos ingresados (`nombre_solicitante`, `apellido_solicitante`, `dni_solicitante`, `telefono_solicitante`, `email_solicitante`).
-  - Acciones:
-    - **Confirmar y marcar paciente como validado** → setea `pacientes.pendiente_validacion = false` y ejecuta el confirm habitual (estado=confirmado + WhatsApp).
-    - **Rechazar** → flujo existente.
-- Caso **datos divergen de paciente existente** (hoy): conservar las tres acciones existentes (Confirmar usando paciente existente / Actualizar datos del paciente / Crear paciente nuevo).
+Orden final en filas que requieren validación:
+**[⚠ Validar] [✓ Confirmar] [📅 Reprogramar] [✕ Rechazar]**
 
-### 3. Acción "Confirmar usando paciente existente"
+En filas sin necesidad de validar:
+**[✓ Confirmar] [📅 Reprogramar] [✕ Rechazar]**
 
-- No tocar `pendiente_validacion` del paciente automáticamente — solo se baja explícitamente desde "marcar como validado" o desde la ficha del paciente.
+## Comportamiento
 
-## Resultado esperado
-
-| Caso | Badge "validar" | Botón "Validar" |
-|---|---|---|
-| Datos divergen contra paciente existente | ✅ | ✅ (3 acciones existentes) |
-| Paciente nuevo provisorio (tus 2 turnos) | ✅ | ✅ (Confirmar + marcar validado / Rechazar) |
-| Match exacto contra paciente existente | ❌ | ❌ (Confirmar / Reprogramar / Rechazar) |
-
-Los dos turnos actuales pasarán a mostrar el badge "validar" y la acción **Validar** en la grilla.
+- "Confirmar" ejecuta `handleConfirmar(s)` directamente (sin pasar por el diálogo de validación), confirmando el turno y enviando WhatsApp tal como antes.
+- "Validar" sigue abriendo el diálogo con la comparación / el flujo de paciente provisorio.
+- La recepcionista decide: si confía en los datos, click directo en Confirmar; si quiere revisar primero, abre Validar.
 
 ## Archivos a tocar
 
-- `src/pages/TurnosSolicitados.tsx` (único cambio).
+- `src/pages/TurnosSolicitados.tsx` (única edición, ~10 líneas en la sección Acciones de la tabla).
 
-No se requiere migración ni cambios en el edge function.
+No requiere migración ni cambios en edge functions.
