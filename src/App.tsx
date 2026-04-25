@@ -31,6 +31,7 @@ import Perfiles from "./pages/seguridad/Perfiles";
 import MiPerfil from "./pages/seguridad/MiPerfil";
 import Reportes from "./pages/seguridad/Reportes";
 import Auditoria from "./pages/seguridad/Auditoria";
+import TwilioTest from "./pages/TwilioTest";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
