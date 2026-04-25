@@ -142,24 +142,45 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ----- Buscar / crear paciente -----
+    // ----- Buscar paciente por TELÉFONO (criterio principal) -----
+    // Probamos las dos variantes (con y sin '+' inicial) para ser tolerantes.
+    const telSinPlus = telefono.replace(/^\+/, "");
+    const telConPlus = `+${telSinPlus}`;
+
     let pacienteId: string | null = null;
-    const { data: existing } = await supabase
+    let pacienteExistente: {
+      id: string;
+      nombre: string;
+      apellido: string;
+      dni: string;
+    } | null = null;
+
+    const { data: porTel } = await supabase
       .from("pacientes")
-      .select("id")
-      .eq("dni", dni)
+      .select("id, nombre, apellido, dni")
+      .or(`telefono.eq.${telConPlus},telefono.eq.${telSinPlus}`)
       .limit(1)
       .maybeSingle();
 
-    if (existing?.id) {
-      pacienteId = existing.id;
-      // Si no tiene teléfono cargado, lo actualizamos (no pisamos uno existente)
-      await supabase
-        .from("pacientes")
-        .update({ telefono })
-        .eq("id", pacienteId)
-        .is("telefono", null);
+    if (porTel?.id) {
+      pacienteExistente = porTel;
+      pacienteId = porTel.id;
     } else {
+      // Fallback: buscar por DNI (no actualizamos teléfono automáticamente)
+      const { data: porDni } = await supabase
+        .from("pacientes")
+        .select("id, nombre, apellido, dni")
+        .eq("dni", dni)
+        .limit(1)
+        .maybeSingle();
+      if (porDni?.id) {
+        pacienteExistente = porDni;
+        pacienteId = porDni.id;
+      }
+    }
+
+    // Si no se encontró ningún paciente, creamos uno provisorio pendiente_validacion
+    if (!pacienteId) {
       const { data: nuevo, error: errPac } = await supabase
         .from("pacientes")
         .insert({
@@ -180,6 +201,25 @@ Deno.serve(async (req) => {
       pacienteId = nuevo.id;
     }
 
+    // ----- Determinar si requiere validación -----
+    // Comparamos los datos ingresados contra el paciente existente (nombre, apellido, dni).
+    // Nunca sobreescribimos los datos maestros del paciente desde el formulario público.
+    const norm = (s: string | null | undefined) =>
+      (s ?? "").trim().toLowerCase();
+    let requiereValidacion = false;
+    if (pacienteExistente) {
+      const nombreIn = norm(payload.nombre);
+      const apellidoIn = norm(payload.apellido);
+      const dniIn = dni;
+      if (
+        norm(pacienteExistente.nombre) !== nombreIn ||
+        norm(pacienteExistente.apellido) !== apellidoIn ||
+        (pacienteExistente.dni ?? "") !== dniIn
+      ) {
+        requiereValidacion = true;
+      }
+    }
+
     // ----- Crear el turno solicitado -----
     const motivoCompleto = payload.observaciones?.trim()
       ? `${payload.motivo.trim()}\n\nObservaciones: ${payload.observaciones.trim()}`
@@ -197,6 +237,12 @@ Deno.serve(async (req) => {
         estado: "solicitado",
         origen: "publico",
         es_sobreturno: false,
+        nombre_solicitante: payload.nombre.trim(),
+        apellido_solicitante: payload.apellido.trim(),
+        dni_solicitante: dni,
+        telefono_solicitante: telefono,
+        email_solicitante: payload.email?.trim() || null,
+        requiere_validacion: requiereValidacion,
       })
       .select("id")
       .single();
