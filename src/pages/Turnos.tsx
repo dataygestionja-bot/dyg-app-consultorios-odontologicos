@@ -47,7 +47,7 @@ interface Turno {
   motivo_consulta: string | null;
   estado: TurnoEstado;
   es_sobreturno: boolean;
-  paciente?: { nombre: string; apellido: string } | null;
+  paciente?: { nombre: string; apellido: string; telefono?: string | null } | null;
 }
 
 interface Bloqueo {
