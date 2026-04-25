@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
           console.error("Error buscando turno:", errTurnos);
           resultado = "error_busqueda_turno";
         } else if (!turnos || turnos.length === 0) {
-          resultado = "sin_turno_reservado";
+          resultado = "sin_turno_activo";
         } else {
           const turno = turnos[0];
           turnoId = turno.id;
