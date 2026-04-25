@@ -106,12 +106,12 @@ Deno.serve(async (req) => {
         const pacienteIds = pacientes.map((p) => p.id);
         const hoy = new Date().toISOString().slice(0, 10);
 
-        // Próximo turno reservado del paciente (a partir de hoy)
+        // Próximo turno activo del paciente (reservado o confirmado, a partir de hoy)
         const { data: turnos, error: errTurnos } = await supabase
           .from("turnos")
           .select("id, fecha, hora_inicio, estado")
           .in("paciente_id", pacienteIds)
-          .eq("estado", "reservado")
+          .in("estado", ["reservado", "confirmado"])
           .gte("fecha", hoy)
           .order("fecha", { ascending: true })
           .order("hora_inicio", { ascending: true })
