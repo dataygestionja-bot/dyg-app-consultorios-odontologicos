@@ -238,8 +238,11 @@ export default function AtencionForm() {
     };
   }, [id, isEdit, turnoIdParam]);
 
-  // Cargar turnos disponibles del paciente cuando es "con_turno"
+  // Cargar turnos disponibles del paciente cuando es "con_turno".
+  // Importante: solo corre después de que terminó la fase 2 (loading=false),
+  // así no pisa el turno vinculado que se cargó en la fase inicial.
   useEffect(() => {
+    if (loading) return;
     if (form.tipo_atencion !== "con_turno" || !form.paciente_id) {
       setTurnosDisponibles([]);
       return;
@@ -252,15 +255,21 @@ export default function AtencionForm() {
       .order("fecha", { ascending: true })
       .order("hora_inicio", { ascending: true })
       .limit(50)
-      .then(({ data }) => {
-        setTurnosDisponibles((data ?? []) as TurnoOpcion[]);
+      .then(async ({ data }) => {
+        let lista = (data ?? []) as TurnoOpcion[];
         // Si la atención ya tiene un turno vinculado que no quedó en la lista
-        // (típicamente porque ya está en estado "atendido"), lo agregamos
-        if (form.turno_id && !(data ?? []).some((t: any) => t.id === form.turno_id)) {
-          asegurarTurno(form.turno_id);
+        // (típicamente porque ya está en estado "atendido"), lo agregamos.
+        if (form.turno_id && !lista.some((t) => t.id === form.turno_id)) {
+          const { data: vinc } = await supabase
+            .from("turnos")
+            .select("id, fecha, hora_inicio, motivo_consulta, paciente_id, profesional_id")
+            .eq("id", form.turno_id)
+            .maybeSingle();
+          if (vinc) lista = [...lista, vinc as TurnoOpcion];
         }
+        setTurnosDisponibles(lista);
       });
-  }, [form.tipo_atencion, form.paciente_id, form.turno_id]);
+  }, [loading, form.tipo_atencion, form.paciente_id, form.turno_id]);
 
   function setTipoAtencion(tipo: TipoAtencion) {
     setForm((f) => ({
