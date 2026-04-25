@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { format, addDays, startOfWeek, parseISO, isSameDay, isValid } from "date-fns";
 import { es } from "date-fns/locale";
 import { TURNO_ESTADOS, TURNO_ESTADO_LABELS, TURNO_ESTADO_CLASSES, type TurnoEstado } from "@/lib/constants";
+import { WhatsAppTurnoButton } from "@/components/turnos/WhatsAppTurnoButton";
 
 const safeFormat = (d: Date | null | undefined, fmt: string, opts?: Parameters<typeof format>[2]) => {
   if (!d || !isValid(d)) return "";
@@ -46,7 +47,7 @@ interface Turno {
   motivo_consulta: string | null;
   estado: TurnoEstado;
   es_sobreturno: boolean;
-  paciente?: { nombre: string; apellido: string } | null;
+  paciente?: { nombre: string; apellido: string; telefono?: string | null } | null;
 }
 
 interface Bloqueo {
@@ -178,7 +179,7 @@ export default function Turnos() {
       const hasta = vista === "dia" ? fecha : addDays(desde, 6);
       let q = supabase
         .from("turnos")
-        .select("*, paciente:pacientes(nombre, apellido)")
+        .select("*, paciente:pacientes(nombre, apellido, telefono)")
         .gte("fecha", format(desde, "yyyy-MM-dd"))
         .lte("fecha", format(hasta, "yyyy-MM-dd"));
       if (profSel) q = q.eq("profesional_id", profSel);
@@ -967,9 +968,15 @@ function CalendarGrid({
                             {turno.es_sobreturno && (
                               <AlertTriangle className="h-3 w-3 text-[hsl(var(--estado-sobreturno))] shrink-0" />
                             )}
-                            <span className="truncate">
+                            <span className="truncate flex-1">
                               {turno.paciente ? `${turno.paciente.apellido}, ${turno.paciente.nombre}` : "—"}
                             </span>
+                            <WhatsAppTurnoButton
+                              telefono={turno.paciente?.telefono ?? null}
+                              nombrePaciente={turno.paciente ? `${turno.paciente.nombre} ${turno.paciente.apellido}` : ""}
+                              fecha={turno.fecha}
+                              hora={turno.hora_inicio}
+                            />
                           </div>
                           <div className="flex flex-wrap gap-1 mt-1">
                             <Badge className={`${TURNO_ESTADO_CLASSES[turno.estado]} text-[10px] px-1 py-0`}>
