@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Users, Plus, Clock, AlertCircle } from "lucide-react";
+import { CalendarDays, Users, Plus, Clock, AlertCircle, Inbox, Globe, ArrowRight, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TURNO_ESTADO_CLASSES, TURNO_ESTADO_LABELS, type TurnoEstado } from "@/lib/constants";
 import { format } from "date-fns";
@@ -16,13 +16,17 @@ interface TurnoRow {
   hora_fin: string;
   estado: TurnoEstado;
   motivo_consulta: string | null;
-  paciente: { nombre: string; apellido: string } | null;
+  origen?: string | null;
+  created_at?: string | null;
+  paciente: { nombre: string; apellido: string; telefono?: string | null } | null;
   profesional: { nombre: string; apellido: string; color_agenda: string } | null;
 }
 
 export default function Dashboard() {
   const [hoy, setHoy] = useState<TurnoRow[]>([]);
   const [proximos, setProximos] = useState<TurnoRow[]>([]);
+  const [solicitudes, setSolicitudes] = useState<TurnoRow[]>([]);
+  const [solicitudesCount, setSolicitudesCount] = useState<number>(0);
   const [atendidosHoy, setAtendidosHoy] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [ahora, setAhora] = useState<Date>(new Date());
@@ -56,16 +60,21 @@ export default function Dashboard() {
     const in7 = format(new Date(Date.now() + 7 * 86400000), "yyyy-MM-dd");
 
     const select = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido, color_agenda)";
+    const selectSolic = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, origen, created_at, paciente:pacientes(nombre, apellido, telefono), profesional:profesionales(nombre, apellido, color_agenda)";
 
-    const [hoyRes, proxRes, atRes] = await Promise.all([
+    const [hoyRes, proxRes, atRes, solicRes, solicCountRes] = await Promise.all([
       supabase.from("turnos").select(select).eq("fecha", today).order("hora_inicio"),
       supabase.from("turnos").select(select).gt("fecha", today).lte("fecha", in7).order("fecha").order("hora_inicio").limit(10),
       supabase.from("turnos").select("id", { count: "exact", head: true }).eq("fecha", today).eq("estado", "atendido"),
+      supabase.from("turnos").select(selectSolic).eq("estado", "solicitado").order("created_at", { ascending: false }).limit(5),
+      supabase.from("turnos").select("id", { count: "exact", head: true }).eq("estado", "solicitado"),
     ]);
 
     setHoy((hoyRes.data ?? []) as unknown as TurnoRow[]);
     setProximos((proxRes.data ?? []) as unknown as TurnoRow[]);
     setAtendidosHoy(atRes.count ?? 0);
+    setSolicitudes((solicRes.data ?? []) as unknown as TurnoRow[]);
+    setSolicitudesCount(solicCountRes.count ?? 0);
     setLoading(false);
   }
 
