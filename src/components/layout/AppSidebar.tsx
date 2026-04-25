@@ -75,6 +75,7 @@ const itemsSeguridad: Item[] = [
   { title: "Mi perfil", url: "/seguridad/mi-perfil", icon: UserCog },
   { title: "Reportes de seguridad", url: "/seguridad/reportes", icon: FileBarChart, roles: ["admin"] },
   { title: "Auditoría de seguridad", url: "/seguridad/auditoria", icon: ScrollText, roles: ["admin"] },
+  { title: "Prueba Twilio", url: "/seguridad/twilio-test", icon: MessageSquare, roles: ["admin"] },
 ];
 
 export function AppSidebar() {
