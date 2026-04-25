@@ -737,7 +737,7 @@ export default function Turnos() {
                   </div>
                 )}
                 {choqueCheck.estado === "ok" && (
-                  <div className="flex items-center gap-2 rounded-md border border-border bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
+                  <div className="flex items-center gap-2 rounded-md border border-success/40 bg-success/10 px-3 py-2 text-xs text-success">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Horario disponible para el profesional.
                   </div>
