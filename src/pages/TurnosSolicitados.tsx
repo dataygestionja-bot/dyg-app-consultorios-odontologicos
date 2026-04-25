@@ -151,13 +151,15 @@ export default function TurnosSolicitados() {
     let q = supabase
       .from("turnos")
       .select(
-        "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, origen, paciente_id, profesional_id, requiere_validacion, nombre_solicitante, apellido_solicitante, dni_solicitante, telefono_solicitante, email_solicitante, paciente:pacientes!inner(nombre, apellido, dni, telefono, email), profesional:profesionales!inner(nombre, apellido)",
+        "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, origen, paciente_id, profesional_id, requiere_validacion, nombre_solicitante, apellido_solicitante, dni_solicitante, telefono_solicitante, email_solicitante, paciente:pacientes!inner(nombre, apellido, dni, telefono, email, pendiente_validacion), profesional:profesionales!inner(nombre, apellido)",
       )
       .eq("origen", "publico")
       .order("created_at", { ascending: false });
 
     if (filtroEstado === "validacion") {
-      q = q.eq("requiere_validacion", true).eq("estado", "solicitado" as TurnoEstado);
+      // Traemos todos los solicitados y filtramos en cliente con el helper
+      // (necesario porque no se puede OR sobre columna de tabla embebida).
+      q = q.eq("estado", "solicitado" as TurnoEstado);
     } else if (filtroEstado !== "todos") {
       q = q.eq("estado", filtroEstado as TurnoEstado);
     }
@@ -167,7 +169,11 @@ export default function TurnosSolicitados() {
       toast.error("Error cargando solicitudes", { description: error.message });
       setItems([]);
     } else {
-      setItems((data ?? []) as unknown as Solicitud[]);
+      let rows = (data ?? []) as unknown as Solicitud[];
+      if (filtroEstado === "validacion") {
+        rows = rows.filter(necesitaValidar);
+      }
+      setItems(rows);
     }
     setLoading(false);
   }
@@ -179,7 +185,7 @@ export default function TurnosSolicitados() {
     [items],
   );
   const requierenValidacionCount = useMemo(
-    () => items.filter((i) => i.estado === "solicitado" && i.requiere_validacion).length,
+    () => items.filter(necesitaValidar).length,
     [items],
   );
 
