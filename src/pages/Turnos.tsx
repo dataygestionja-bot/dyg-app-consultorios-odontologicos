@@ -306,6 +306,81 @@ export default function Turnos() {
     return (data ?? []).length > 0;
   }
 
+  // Chequeo en vivo de superposición mientras el usuario edita fecha/hora/profesional.
+  // Reutiliza haySolapamiento y se muestra como indicador visual en el formulario.
+  useEffect(() => {
+    if (!open) {
+      setChoqueCheck({ estado: "idle" });
+      return;
+    }
+    if (esSobreturno || ["cancelado", "reprogramado", "ausente"].includes(estado)) {
+      setChoqueCheck({ estado: "ok" });
+      return;
+    }
+
+    let profId = "";
+    let fechaChk = "";
+    let hi = "";
+    let hf = "";
+    let excluirId: string | undefined;
+
+    if (editing && !isSystemManaged) {
+      profId = editProfId;
+      fechaChk = editFecha;
+      hi = editHoraInicio;
+      hf = editHoraFin;
+      excluirId = editing.id;
+    } else if (slot) {
+      profId = slot.profesional_id;
+      fechaChk = slot.fecha;
+      hi = slot.hora_inicio;
+      hf = slot.hora_fin;
+    } else {
+      setChoqueCheck({ estado: "idle" });
+      return;
+    }
+
+    if (!profId || !fechaChk || !hi || !hf || hf <= hi) {
+      setChoqueCheck({ estado: "idle" });
+      return;
+    }
+
+    setChoqueCheck({ estado: "checking" });
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const choque = await haySolapamiento({
+        profesionalId: profId,
+        fecha: fechaChk,
+        horaInicio: hi,
+        horaFin: hf,
+        excluirTurnoId: excluirId,
+        esSobreturno: false,
+      });
+      if (cancelled) return;
+      setChoqueCheck(
+        choque
+          ? { estado: "conflicto", detalle: "Hay otro turno del profesional que se superpone con este horario." }
+          : { estado: "ok" },
+      );
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [
+    open,
+    editing,
+    isSystemManaged,
+    slot,
+    editProfId,
+    editFecha,
+    editHoraInicio,
+    editHoraFin,
+    esSobreturno,
+    estado,
+  ]);
+
   async function guardar(forceSobreturno?: boolean) {
     if (saving) return;
     setSaving(true);
