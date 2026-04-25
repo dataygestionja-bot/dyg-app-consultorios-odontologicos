@@ -98,7 +98,8 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/reservar" element={<ReservarTurno />} />
             <Route path="/reservar-turno" element={<Navigate to="/reservar" replace />} />
-            <Route path="/" element={<RootLanding />} />
+            <Route path="/" element={<Landing />} />
+            <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
             <Route path="/pacientes" element={<Private><Pacientes /></Private>} />
             <Route path="/pacientes/:id" element={<Private><PacienteForm /></Private>} />
             <Route path="/profesionales" element={<AdminOnly><Profesionales /></AdminOnly>} />
