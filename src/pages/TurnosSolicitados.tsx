@@ -226,7 +226,9 @@ export default function TurnosSolicitados() {
     if (!s.paciente_id) return;
     setActionLoadingId(s.id);
     try {
-      const upd: Record<string, unknown> = {};
+      const upd: {
+        nombre?: string; apellido?: string; dni?: string;
+      } = {};
       if (s.nombre_solicitante) upd.nombre = s.nombre_solicitante.trim();
       if (s.apellido_solicitante) upd.apellido = s.apellido_solicitante.trim();
       if (s.dni_solicitante) upd.dni = s.dni_solicitante.trim();
