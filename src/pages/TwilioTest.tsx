@@ -139,8 +139,8 @@ export default function TwilioTest() {
           </CardHeader>
           <CardContent className="space-y-3">
             {resultado.tipo === "ok" && (
-              <Alert className="border-green-600/40">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <Alert>
+                <CheckCircle2 className="h-4 w-4" />
                 <AlertTitle>Mensaje enviado</AlertTitle>
                 <AlertDescription>
                   SID: <code className="text-xs">{resultado.data.sid}</code> — Estado:{" "}
