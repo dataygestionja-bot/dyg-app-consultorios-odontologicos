@@ -67,7 +67,7 @@ export function WhatsAppTurnoButton({
       const conProfesional = nombreProfesional && nombreProfesional.trim().length > 0
         ? ` con el/la Dr/a. ${nombreProfesional}`
         : "";
-      const mensaje = `Hola ${nombrePaciente}, te recordamos tu turno${conProfesional} el día ${fechaLeg} a las ${horaLeg}. Por favor confirma o responde a este mensaje.`;
+      const mensaje = `Hola ${nombrePaciente}, te recordamos tu turno${conProfesional} el día ${fechaLeg} a las ${horaLeg}.\n\nPor favor respondé: CONFIRMO o CANCELO`;
 
       const { data, error } = await supabase.functions.invoke("send_whatsapp", {
         body: { telefono, mensaje },
