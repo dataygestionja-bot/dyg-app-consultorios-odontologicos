@@ -132,6 +132,7 @@ const App = () => (
             <Route path="/seguridad/mi-perfil" element={<Private><MiPerfil /></Private>} />
             <Route path="/seguridad/reportes" element={<AdminOnly><Reportes /></AdminOnly>} />
             <Route path="/seguridad/auditoria" element={<AdminOnly><Auditoria /></AdminOnly>} />
+            <Route path="/seguridad/twilio-test" element={<AdminOnly><TwilioTest /></AdminOnly>} />
 
             {/* Compatibilidad ruta vieja */}
             <Route path="/usuarios" element={<AdminOnly><Usuarios /></AdminOnly>} />
