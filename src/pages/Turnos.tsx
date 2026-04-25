@@ -264,6 +264,43 @@ export default function Turnos() {
     setEditHoraInicio(nuevaHora);
   }
 
+  /**
+   * Verifica en cliente si el horario propuesto se superpone con otro turno activo
+   * del mismo profesional. Devuelve true si hay choque (y NO es sobreturno).
+   * El trigger en DB es la red de seguridad; esta validación mejora la UX.
+   */
+  async function haySolapamiento(params: {
+    profesionalId: string;
+    fecha: string;
+    horaInicio: string; // "HH:mm"
+    horaFin: string;    // "HH:mm"
+    excluirTurnoId?: string;
+    esSobreturno: boolean;
+  }): Promise<boolean> {
+    if (params.esSobreturno) return false; // los sobreturnos pueden convivir
+    const hi = params.horaInicio.length === 5 ? `${params.horaInicio}:00` : params.horaInicio;
+    const hf = params.horaFin.length === 5 ? `${params.horaFin}:00` : params.horaFin;
+
+    let q = supabase
+      .from("turnos")
+      .select("id, hora_inicio, hora_fin, estado, es_sobreturno")
+      .eq("profesional_id", params.profesionalId)
+      .eq("fecha", params.fecha)
+      .eq("es_sobreturno", false)
+      .not("estado", "in", "(cancelado,reprogramado,ausente)")
+      .lt("hora_inicio", hf)
+      .gt("hora_fin", hi);
+
+    if (params.excluirTurnoId) q = q.neq("id", params.excluirTurnoId);
+
+    const { data, error } = await q;
+    if (error) {
+      console.warn("Pre-check de solapamiento falló, se delega al trigger:", error);
+      return false;
+    }
+    return (data ?? []).length > 0;
+  }
+
   async function guardar(forceSobreturno?: boolean) {
     if (saving) return;
     setSaving(true);
@@ -291,7 +328,23 @@ export default function Turnos() {
         if (editHoraFin <= editHoraInicio) return toast.error("La hora de fin debe ser mayor a la de inicio");
         if (motivo.trim() === "") return toast.error("El motivo es obligatorio");
 
-        // El chequeo de superposición ahora lo hace el trigger en DB.
+        // Pre-check en cliente para superposición (mejora UX antes del round-trip)
+        if (
+          !["cancelado", "reprogramado", "ausente"].includes(estado) &&
+          (await haySolapamiento({
+            profesionalId: editProfId,
+            fecha: editFecha,
+            horaInicio: editHoraInicio,
+            horaFin: editHoraFin,
+            excluirTurnoId: editing.id,
+            esSobreturno: sobreturnoFlag,
+          }))
+        ) {
+          setConfirmSobreturno(true);
+          return;
+        }
+
+        // El chequeo definitivo lo hace el trigger en DB (red de seguridad).
         const { error } = await supabase
           .from("turnos")
           .update({
@@ -329,6 +382,22 @@ export default function Turnos() {
       } else if (slot) {
         if (!pacienteId) return toast.error("Seleccioná un paciente");
         if (motivo.trim() === "") return toast.error("El motivo es obligatorio");
+
+        // Pre-check en cliente para superposición (alta desde slot)
+        if (
+          !["cancelado", "reprogramado", "ausente"].includes(estado) &&
+          (await haySolapamiento({
+            profesionalId: slot.profesional_id,
+            fecha: slot.fecha,
+            horaInicio: slot.hora_inicio,
+            horaFin: slot.hora_fin,
+            esSobreturno: sobreturnoFlag,
+          }))
+        ) {
+          setConfirmSobreturno(true);
+          return;
+        }
+
         const { error } = await supabase.from("turnos").insert({
           paciente_id: pacienteId,
           profesional_id: slot.profesional_id,
