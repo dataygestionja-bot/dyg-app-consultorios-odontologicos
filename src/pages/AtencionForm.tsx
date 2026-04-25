@@ -77,112 +77,172 @@ export default function AtencionForm() {
   const [submitting, setSubmitting] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickTargetIdx, setQuickTargetIdx] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const [turnosDisponibles, setTurnosDisponibles] = useState<TurnoOpcion[]>([]);
 
-  // Asegura que un paciente esté en la lista (aunque esté inactivo o no haya cargado)
-  async function asegurarPaciente(pacienteId: string) {
-    setPacientes((list) => list);
-    if (!pacienteId) return;
-    const { data } = await supabase
-      .from("pacientes")
-      .select("id, nombre, apellido, dni")
-      .eq("id", pacienteId)
-      .maybeSingle();
-    if (data) {
-      setPacientes((list) => (list.some((p) => p.id === data.id) ? list : [...list, data as Paciente]));
-    }
-  }
-
-  async function asegurarProfesional(profId: string) {
-    if (!profId) return;
-    const { data } = await supabase
-      .from("profesionales")
-      .select("id, nombre, apellido")
-      .eq("id", profId)
-      .maybeSingle();
-    if (data) {
-      setProfesionales((list) => (list.some((p) => p.id === data.id) ? list : [...list, data as Profesional]));
-    }
-  }
-
-  async function asegurarTurno(turnoId: string) {
-    if (!turnoId) return;
-    const { data } = await supabase
-      .from("turnos")
-      .select("id, fecha, hora_inicio, motivo_consulta, paciente_id, profesional_id")
-      .eq("id", turnoId)
-      .maybeSingle();
-    if (data) {
-      setTurnosDisponibles((list) => (list.some((t) => t.id === data.id) ? list : [...list, data as TurnoOpcion]));
-    }
+  // Helpers para mergear (sin duplicar) un registro a una lista
+  function mergeUnique<T extends { id: string }>(list: T[], item: T | null | undefined): T[] {
+    if (!item) return list;
+    return list.some((x) => x.id === item.id) ? list : [...list, item];
   }
 
   useEffect(() => {
     document.title = isEdit ? "Editar atención | Consultorio" : "Nueva atención | Consultorio";
-    Promise.all([
-      supabase.from("pacientes").select("id, nombre, apellido, dni").eq("activo", true).order("apellido"),
-      supabase.from("profesionales").select("id, nombre, apellido").eq("activo", true).order("apellido"),
-      supabase.from("prestaciones").select("id, codigo, descripcion, precio_base").eq("activo", true).order("codigo"),
-    ]).then(([pa, pr, pe]) => {
-      setPacientes((pa.data ?? []) as Paciente[]);
-      setProfesionales((pr.data ?? []) as Profesional[]);
-      setPrestaciones(((pe.data ?? []) as any[]).map((p) => ({ ...p, precio_base: Number(p.precio_base) })));
-    });
+    let cancelled = false;
 
-    if (isEdit) {
-      supabase.from("atenciones").select("*").eq("id", id).maybeSingle()
-        .then(({ data }) => {
-          if (data) {
-            setForm({
-              paciente_id: data.paciente_id,
-              profesional_id: data.profesional_id,
-              fecha: data.fecha,
-              diagnostico: data.diagnostico ?? "",
-              indicaciones: data.indicaciones ?? "",
-              observaciones: data.observaciones ?? "",
-              proxima_visita_sugerida: (data as any).proxima_visita_sugerida ?? "",
-              turno_id: data.turno_id,
-              tipo_atencion: ((data as any).tipo_atencion ?? "con_turno") as TipoAtencion,
-            });
-            // Garantizar que los registros vinculados estén en las listas,
-            // incluso si el paciente/profesional están inactivos o el turno ya está "atendido"
-            asegurarPaciente(data.paciente_id);
-            asegurarProfesional(data.profesional_id);
-            if (data.turno_id) asegurarTurno(data.turno_id);
-          }
-        });
-      supabase.from("atencion_practicas").select("*").eq("atencion_id", id).order("orden")
-        .then(({ data }) => {
-          if (data && data.length > 0) {
-            setPracticas(data.map((p) => ({
-              id: p.id,
-              prestacion_id: p.prestacion_id,
-              pieza_dental: p.pieza_dental ?? "",
-              cara_dental: p.cara_dental ?? "",
-              cantidad: p.cantidad,
-              observacion: p.observacion ?? "",
-              orden: p.orden,
-            })));
-          }
-        });
-    } else if (turnoIdParam) {
-      supabase.from("turnos").select("paciente_id, profesional_id, fecha, motivo_consulta").eq("id", turnoIdParam).maybeSingle()
-        .then(({ data }) => {
-          if (data) setForm((f) => ({
-            ...f,
-            paciente_id: data.paciente_id,
-            profesional_id: data.profesional_id,
-            fecha: data.fecha,
+    async function cargar() {
+      setLoading(true);
+
+      // ============ FASE 1: Traer la atención (o el turno param) y obtener los IDs ============
+      let pacienteIdActual: string | null = null;
+      let profesionalIdActual: string | null = null;
+      let turnoIdActual: string | null = null;
+      let tipoActual: TipoAtencion = "con_turno";
+      let formInicial = empty;
+      let practicasIniciales: PracticaRow[] | null = null;
+
+      if (isEdit) {
+        const [{ data: at }, { data: prs }] = await Promise.all([
+          supabase.from("atenciones").select("*").eq("id", id!).maybeSingle(),
+          supabase.from("atencion_practicas").select("*").eq("atencion_id", id!).order("orden"),
+        ]);
+
+        if (cancelled) return;
+
+        if (at) {
+          pacienteIdActual = at.paciente_id;
+          profesionalIdActual = at.profesional_id;
+          turnoIdActual = at.turno_id;
+          tipoActual = ((at as any).tipo_atencion ?? "con_turno") as TipoAtencion;
+          formInicial = {
+            paciente_id: at.paciente_id,
+            profesional_id: at.profesional_id,
+            fecha: at.fecha,
+            diagnostico: at.diagnostico ?? "",
+            indicaciones: at.indicaciones ?? "",
+            observaciones: at.observaciones ?? "",
+            proxima_visita_sugerida: (at as any).proxima_visita_sugerida ?? "",
+            turno_id: at.turno_id,
+            tipo_atencion: tipoActual,
+          };
+        }
+
+        if (prs && prs.length > 0) {
+          practicasIniciales = prs.map((p) => ({
+            id: p.id,
+            prestacion_id: p.prestacion_id,
+            pieza_dental: p.pieza_dental ?? "",
+            cara_dental: p.cara_dental ?? "",
+            cantidad: p.cantidad,
+            observacion: p.observacion ?? "",
+            orden: p.orden,
+          }));
+        }
+      } else if (turnoIdParam) {
+        const { data: t } = await supabase
+          .from("turnos")
+          .select("id, paciente_id, profesional_id, fecha, hora_inicio, motivo_consulta")
+          .eq("id", turnoIdParam)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        if (t) {
+          pacienteIdActual = t.paciente_id;
+          profesionalIdActual = t.profesional_id;
+          turnoIdActual = turnoIdParam;
+          tipoActual = "con_turno";
+          formInicial = {
+            ...empty,
+            paciente_id: t.paciente_id,
+            profesional_id: t.profesional_id,
+            fecha: t.fecha,
             turno_id: turnoIdParam,
             tipo_atencion: "con_turno",
-          }));
+          };
+        }
+      }
+
+      // ============ FASE 2: Cargar listas y asegurar los valores vinculados en paralelo ============
+      const [
+        pacientesRes,
+        profesionalesRes,
+        prestacionesRes,
+        pacienteVinculadoRes,
+        profesionalVinculadoRes,
+        turnoVinculadoRes,
+      ] = await Promise.all([
+        supabase.from("pacientes").select("id, nombre, apellido, dni").eq("activo", true).order("apellido"),
+        supabase.from("profesionales").select("id, nombre, apellido").eq("activo", true).order("apellido"),
+        supabase.from("prestaciones").select("id, codigo, descripcion, precio_base").eq("activo", true).order("codigo"),
+        pacienteIdActual
+          ? supabase.from("pacientes").select("id, nombre, apellido, dni").eq("id", pacienteIdActual).maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        profesionalIdActual
+          ? supabase.from("profesionales").select("id, nombre, apellido").eq("id", profesionalIdActual).maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        turnoIdActual
+          ? supabase
+              .from("turnos")
+              .select("id, fecha, hora_inicio, motivo_consulta, paciente_id, profesional_id")
+              .eq("id", turnoIdActual)
+              .maybeSingle()
+          : Promise.resolve({ data: null } as any),
+      ]);
+
+      if (cancelled) return;
+
+      // Merge: lista activa + el registro vinculado (aunque esté inactivo / atendido / filtrado por RLS list)
+      const pacientesList = mergeUnique(
+        (pacientesRes.data ?? []) as Paciente[],
+        pacienteVinculadoRes.data as Paciente | null,
+      );
+      const profesionalesList = mergeUnique(
+        (profesionalesRes.data ?? []) as Profesional[],
+        profesionalVinculadoRes.data as Profesional | null,
+      );
+      const turnosList = turnoVinculadoRes.data
+        ? [turnoVinculadoRes.data as TurnoOpcion]
+        : [];
+
+      // Validaciones de consistencia: si el turno vinculado no coincide, avisar
+      if (turnoIdActual && !turnoVinculadoRes.data) {
+        toast.warning("Turno vinculado no encontrado", {
+          description: "La atención referencia un turno que ya no existe. Podés reasignarlo o cambiar el tipo de atención.",
         });
+      } else if (
+        turnoVinculadoRes.data &&
+        pacienteIdActual &&
+        (turnoVinculadoRes.data as any).paciente_id !== pacienteIdActual
+      ) {
+        toast.warning("Inconsistencia en el turno", {
+          description: "El turno vinculado no corresponde al paciente de la atención.",
+        });
+      }
+
+      // Aplicar todo el estado de una vez (evita renders intermedios con selects vacíos)
+      setPacientes(pacientesList);
+      setProfesionales(profesionalesList);
+      setPrestaciones(((prestacionesRes.data ?? []) as any[]).map((p) => ({ ...p, precio_base: Number(p.precio_base) })));
+      setTurnosDisponibles(turnosList);
+      if (isEdit || turnoIdParam) setForm(formInicial);
+      if (practicasIniciales) setPracticas(practicasIniciales);
+
+      setLoading(false);
     }
+
+    cargar();
+    return () => {
+      cancelled = true;
+    };
   }, [id, isEdit, turnoIdParam]);
 
-  // Cargar turnos disponibles del paciente cuando es "con_turno"
+  // Cargar turnos disponibles del paciente cuando es "con_turno".
+  // Importante: solo corre después de que terminó la fase 2 (loading=false),
+  // así no pisa el turno vinculado que se cargó en la fase inicial.
   useEffect(() => {
+    if (loading) return;
     if (form.tipo_atencion !== "con_turno" || !form.paciente_id) {
       setTurnosDisponibles([]);
       return;
@@ -195,15 +255,21 @@ export default function AtencionForm() {
       .order("fecha", { ascending: true })
       .order("hora_inicio", { ascending: true })
       .limit(50)
-      .then(({ data }) => {
-        setTurnosDisponibles((data ?? []) as TurnoOpcion[]);
+      .then(async ({ data }) => {
+        let lista = (data ?? []) as TurnoOpcion[];
         // Si la atención ya tiene un turno vinculado que no quedó en la lista
-        // (típicamente porque ya está en estado "atendido"), lo agregamos
-        if (form.turno_id && !(data ?? []).some((t: any) => t.id === form.turno_id)) {
-          asegurarTurno(form.turno_id);
+        // (típicamente porque ya está en estado "atendido"), lo agregamos.
+        if (form.turno_id && !lista.some((t) => t.id === form.turno_id)) {
+          const { data: vinc } = await supabase
+            .from("turnos")
+            .select("id, fecha, hora_inicio, motivo_consulta, paciente_id, profesional_id")
+            .eq("id", form.turno_id)
+            .maybeSingle();
+          if (vinc) lista = [...lista, vinc as TurnoOpcion];
         }
+        setTurnosDisponibles(lista);
       });
-  }, [form.tipo_atencion, form.paciente_id, form.turno_id]);
+  }, [loading, form.tipo_atencion, form.paciente_id, form.turno_id]);
 
   function setTipoAtencion(tipo: TipoAtencion) {
     setForm((f) => ({
@@ -364,6 +430,26 @@ export default function AtencionForm() {
     setSubmitting(false);
     toast.success(isEdit ? "Atención actualizada" : "Atención registrada");
     navigate("/atenciones");
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-5xl">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/atenciones")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {isEdit ? "Editar atención" : "Nueva atención"}
+          </h1>
+        </div>
+        <Card>
+          <CardContent className="py-10 text-center text-muted-foreground text-sm">
+            Cargando datos de la atención...
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
