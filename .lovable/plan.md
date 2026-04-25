@@ -1,67 +1,47 @@
+## Diagnóstico
 
-## Objetivo
+Hoy la bandeja `Turnos solicitados` muestra el botón **Validar** únicamente cuando `turnos.requiere_validacion = true`, lo que solo se setea en el edge function cuando el teléfono del formulario matchea con un paciente existente y los datos (nombre/apellido/DNI) difieren.
 
-Separar claramente el acceso público (pacientes) del acceso interno (profesionales / recepción / admin), y reemplazar la redirección automática de `/` por una **landing simple con dos botones**.
+Cuando entra un teléfono **nuevo**, el edge crea un paciente provisorio con `pacientes.pendiente_validacion = true` y deja `turnos.requiere_validacion = false`. Resultado: los pacientes nuevos no aparecen como "a validar" en la bandeja, aunque el paciente sí esté marcado pendiente en la tabla `pacientes`. Eso es lo que ves con los dos turnos que creaste (Federico Nieto y Juan Roman Riquelme): ambos son pacientes nuevos provisorios.
 
----
+## Cambios
 
-## Cambios propuestos
+### 1. `src/pages/TurnosSolicitados.tsx`
 
-### 1. Nueva landing pública en `/`
+- Extender el `select` de `fetchItems` para traer también `paciente.pendiente_validacion`.
+- Ampliar la interfaz `Solicitud` con `paciente.pendiente_validacion: boolean`.
+- Definir un helper `necesitaValidar(s)` que devuelva `true` cuando:
+  - `s.requiere_validacion === true` (datos divergen de un paciente existente), **o**
+  - `s.paciente?.pendiente_validacion === true` (paciente provisorio recién creado desde el formulario público).
+- Reemplazar los usos actuales del flag por ese helper (badge "validar", fila resaltada, botón "Validar", contador "a validar", filtro "Requieren validación").
+- Ajustar el filtro `filtroEstado === "validacion"`: traer todos los `solicitado` con `origen=publico` y filtrar en cliente con el helper (volumen bajo, sigue eficiente).
 
-Crear `src/pages/Landing.tsx`:
-- Pantalla simple, centrada, con el branding actual (mismo estilo que `Auth.tsx`: ícono `Stethoscope`, tipografía, tokens del design system).
-- Título: "Consultorios DG" + subtítulo breve.
-- **Dos botones grandes**, uno debajo del otro (o lado a lado en desktop):
-  - **"Solicitar turno"** → `Link` a `/reservar` (variante `default`, destacado).
-  - **"Ingresar al sistema"** → `Link` a `/auth` (variante `outline`, secundario).
-- Sin dependencia de `useAuth` → carga instantánea, accesible sin sesión.
-- Footer mínimo opcional con un texto institucional.
+### 2. Diálogo "Validar"
 
-### 2. Ajuste de ruteo en `src/App.tsx`
+- Caso **paciente nuevo provisorio** (sin diferencias porque no hay paciente previo):
+  - Mensaje: "Paciente nuevo creado desde el formulario público. Revisá los datos antes de confirmar."
+  - Mostrar los datos ingresados (`nombre_solicitante`, `apellido_solicitante`, `dni_solicitante`, `telefono_solicitante`, `email_solicitante`).
+  - Acciones:
+    - **Confirmar y marcar paciente como validado** → setea `pacientes.pendiente_validacion = false` y ejecuta el confirm habitual (estado=confirmado + WhatsApp).
+    - **Rechazar** → flujo existente.
+- Caso **datos divergen de paciente existente** (hoy): conservar las tres acciones existentes (Confirmar usando paciente existente / Actualizar datos del paciente / Crear paciente nuevo).
 
-- **Eliminar** el componente `RootLanding` (que hoy redirige a `/reservar` o muestra Dashboard).
-- La ruta `/` pasa a renderizar **`<Landing />`** directamente (pública, sin `ProtectedRoute`, sin `AppLayout`).
-- **Nueva ruta `/dashboard`** protegida que muestra el `Dashboard` actual (para que el personal logueado tenga su pantalla principal sin chocar con la landing).
-- Mantener:
-  - `/reservar` → público (`ReservarTurno`).
-  - `/reservar-turno` → redirect a `/reservar`.
-  - `/auth` → página de login interna (sin cambios de lógica).
-- El resto de rutas privadas siguen igual.
+### 3. Acción "Confirmar usando paciente existente"
 
-### 3. Ajuste post-login
-
-En `src/lib/landing.ts`, cambiar `getLandingPathForRoles` para que devuelva **`/dashboard`** en lugar de `/` (todos los roles internos aterrizan en el Dashboard tras iniciar sesión, en vez de volver a la landing pública).
-
-`Auth.tsx` no requiere cambios: ya usa `resolvePostLoginPath(roles, from)` para redirigir.
-
-### 4. Sidebar / navegación interna
-
-Revisar `AppSidebar.tsx`: si el link "Inicio / Dashboard" apunta a `/`, cambiarlo a `/dashboard` para que el personal interno no caiga en la landing pública desde el menú.
-
----
+- No tocar `pendiente_validacion` del paciente automáticamente — solo se baja explícitamente desde "marcar como validado" o desde la ficha del paciente.
 
 ## Resultado esperado
 
-| Usuario | Entra a `/` | Ve |
+| Caso | Badge "validar" | Botón "Validar" |
 |---|---|---|
-| Paciente (sin sesión) | `/` | Landing con 2 botones |
-| Paciente | clic "Solicitar turno" | Formulario público `/reservar` |
-| Personal | clic "Ingresar al sistema" | Login `/auth` |
-| Personal logueado | tras login | `/dashboard` (Dashboard interno) |
-| Personal logueado | navega a `/` manualmente | Sigue viendo la landing pública (no lo desloguea) |
+| Datos divergen contra paciente existente | ✅ | ✅ (3 acciones existentes) |
+| Paciente nuevo provisorio (tus 2 turnos) | ✅ | ✅ (Confirmar + marcar validado / Rechazar) |
+| Match exacto contra paciente existente | ❌ | ❌ (Confirmar / Reprogramar / Rechazar) |
 
-- `/auth` queda exclusivamente para staff.
-- `/reservar` queda 100% público, sin redirecciones forzadas.
-- Ya no hay redirección automática de `/` → `/reservar`.
-
----
+Los dos turnos actuales pasarán a mostrar el badge "validar" y la acción **Validar** en la grilla.
 
 ## Archivos a tocar
 
-1. **Crear** `src/pages/Landing.tsx` — landing pública.
-2. **Editar** `src/App.tsx` — quitar `RootLanding`, agregar `/` → `Landing` y `/dashboard` → Dashboard protegido.
-3. **Editar** `src/lib/landing.ts` — `getLandingPathForRoles` devuelve `/dashboard`.
-4. **Editar** `src/components/layout/AppSidebar.tsx` — actualizar el link de "Inicio/Dashboard" a `/dashboard` si correspondiera.
+- `src/pages/TurnosSolicitados.tsx` (único cambio).
 
-¿Avanzo con la implementación?
+No se requiere migración ni cambios en el edge function.
