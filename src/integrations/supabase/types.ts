@@ -456,6 +456,7 @@ export type Database = {
           numero_afiliado: string | null
           obra_social_id: string | null
           observaciones: string | null
+          pendiente_validacion: boolean
           telefono: string | null
           updated_at: string
         }
@@ -478,6 +479,7 @@ export type Database = {
           numero_afiliado?: string | null
           obra_social_id?: string | null
           observaciones?: string | null
+          pendiente_validacion?: boolean
           telefono?: string | null
           updated_at?: string
         }
@@ -500,6 +502,7 @@ export type Database = {
           numero_afiliado?: string | null
           obra_social_id?: string | null
           observaciones?: string | null
+          pendiente_validacion?: boolean
           telefono?: string | null
           updated_at?: string
         }
@@ -764,6 +767,7 @@ export type Database = {
           hora_inicio: string
           id: string
           motivo_consulta: string
+          origen: string
           paciente_id: string
           profesional_id: string
           updated_at: string
@@ -778,6 +782,7 @@ export type Database = {
           hora_inicio: string
           id?: string
           motivo_consulta: string
+          origen?: string
           paciente_id: string
           profesional_id: string
           updated_at?: string
@@ -792,6 +797,7 @@ export type Database = {
           hora_inicio?: string
           id?: string
           motivo_consulta?: string
+          origen?: string
           paciente_id?: string
           profesional_id?: string
           updated_at?: string
@@ -942,6 +948,8 @@ export type Database = {
         | "reprogramado"
         | "en_atencion"
         | "pendiente_cierre"
+        | "solicitado"
+        | "rechazado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1107,6 +1115,8 @@ export const Constants = {
         "reprogramado",
         "en_atencion",
         "pendiente_cierre",
+        "solicitado",
+        "rechazado",
       ],
     },
   },

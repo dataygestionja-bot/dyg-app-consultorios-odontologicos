@@ -57,12 +57,14 @@
     --sidebar-ring: 187 85% 45%;
 
     /* Estados de turnos */
+    --estado-solicitado: 38 92% 50%;
     --estado-reservado: 217 91% 60%;
     --estado-confirmado: 145 63% 42%;
     --estado-atendido: 215 16% 47%;
     --estado-cancelado: 0 75% 50%;
     --estado-ausente: 25 95% 53%;
     --estado-reprogramado: 271 76% 53%;
+    --estado-rechazado: 0 60% 40%;
     --estado-sobreturno: 350 85% 50%;
     --estado-bloqueado: 215 16% 55%;
   }

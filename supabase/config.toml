@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.whatsapp_webhook]
 verify_jwt = false
+
+[functions.public_agenda_disponibilidad]
+verify_jwt = false
+
+[functions.public_solicitar_turno]
+verify_jwt = false

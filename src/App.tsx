@@ -16,6 +16,8 @@ import Profesionales from "./pages/Profesionales";
 import ProfesionalForm from "./pages/ProfesionalForm";
 import ObrasSociales from "./pages/ObrasSociales";
 import Turnos from "./pages/Turnos";
+import TurnosSolicitados from "./pages/TurnosSolicitados";
+import ReservarTurno from "./pages/public/ReservarTurno";
 import MisTurnos from "./pages/MisTurnos";
 import Bloqueos from "./pages/Bloqueos";
 import Atenciones from "./pages/Atenciones";
@@ -92,6 +94,7 @@ const App = () => (
           <PermissionsProvider>
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/reservar-turno" element={<ReservarTurno />} />
             <Route path="/" element={<Private><Dashboard /></Private>} />
             <Route path="/pacientes" element={<Private><Pacientes /></Private>} />
             <Route path="/pacientes/:id" element={<Private><PacienteForm /></Private>} />
@@ -102,6 +105,9 @@ const App = () => (
             } />
             <Route path="/turnos" element={
               <PermProtected module="agenda" action="read"><Turnos /></PermProtected>
+            } />
+            <Route path="/turnos/solicitudes" element={
+              <RoleProtected roles={["admin", "recepcion"]}><TurnosSolicitados /></RoleProtected>
             } />
             <Route path="/mis-turnos" element={<Private><MisTurnos /></Private>} />
             <Route path="/bloqueos" element={
