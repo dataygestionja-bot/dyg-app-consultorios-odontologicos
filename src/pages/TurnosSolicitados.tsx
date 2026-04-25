@@ -489,18 +489,16 @@ export default function TurnosSolicitados() {
                                   <span className="ml-1">Validar</span>
                                 </Button>
                               )}
-                              {!validar && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleConfirmar(s)}
-                                  disabled={acting}
-                                  className="text-success hover:text-success"
-                                >
-                                  {acting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                                  <span className="ml-1">Confirmar</span>
-                                </Button>
-                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleConfirmar(s)}
+                                disabled={acting}
+                                className="text-success hover:text-success"
+                              >
+                                {acting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                                <span className="ml-1">Confirmar</span>
+                              </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
