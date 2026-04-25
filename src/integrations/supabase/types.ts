@@ -834,6 +834,47 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_respuestas: {
+        Row: {
+          accion_detectada: string | null
+          fecha_recepcion: string
+          id: string
+          mensaje: string | null
+          message_sid: string | null
+          resultado: string | null
+          telefono: string
+          turno_id: string | null
+        }
+        Insert: {
+          accion_detectada?: string | null
+          fecha_recepcion?: string
+          id?: string
+          mensaje?: string | null
+          message_sid?: string | null
+          resultado?: string | null
+          telefono: string
+          turno_id?: string | null
+        }
+        Update: {
+          accion_detectada?: string | null
+          fecha_recepcion?: string
+          id?: string
+          mensaje?: string | null
+          message_sid?: string | null
+          resultado?: string | null
+          telefono?: string
+          turno_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_respuestas_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "turnos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
