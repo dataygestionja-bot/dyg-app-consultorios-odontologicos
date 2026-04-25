@@ -758,8 +758,11 @@ export type Database = {
       }
       turnos: {
         Row: {
+          apellido_solicitante: string | null
           created_at: string
           created_by: string | null
+          dni_solicitante: string | null
+          email_solicitante: string | null
           es_sobreturno: boolean
           estado: Database["public"]["Enums"]["turno_estado"]
           fecha: string
@@ -767,14 +770,20 @@ export type Database = {
           hora_inicio: string
           id: string
           motivo_consulta: string
+          nombre_solicitante: string | null
           origen: string
           paciente_id: string
           profesional_id: string
+          requiere_validacion: boolean
+          telefono_solicitante: string | null
           updated_at: string
         }
         Insert: {
+          apellido_solicitante?: string | null
           created_at?: string
           created_by?: string | null
+          dni_solicitante?: string | null
+          email_solicitante?: string | null
           es_sobreturno?: boolean
           estado?: Database["public"]["Enums"]["turno_estado"]
           fecha: string
@@ -782,14 +791,20 @@ export type Database = {
           hora_inicio: string
           id?: string
           motivo_consulta: string
+          nombre_solicitante?: string | null
           origen?: string
           paciente_id: string
           profesional_id: string
+          requiere_validacion?: boolean
+          telefono_solicitante?: string | null
           updated_at?: string
         }
         Update: {
+          apellido_solicitante?: string | null
           created_at?: string
           created_by?: string | null
+          dni_solicitante?: string | null
+          email_solicitante?: string | null
           es_sobreturno?: boolean
           estado?: Database["public"]["Enums"]["turno_estado"]
           fecha?: string
@@ -797,9 +812,12 @@ export type Database = {
           hora_inicio?: string
           id?: string
           motivo_consulta?: string
+          nombre_solicitante?: string | null
           origen?: string
           paciente_id?: string
           profesional_id?: string
+          requiere_validacion?: boolean
+          telefono_solicitante?: string | null
           updated_at?: string
         }
         Relationships: [
