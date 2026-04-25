@@ -1,34 +1,35 @@
-## Diagnóstico
+## Objetivo
 
-En `src/pages/TurnosSolicitados.tsx` (líneas 480-503), las acciones "Validar" y "Confirmar" están en un `if/else` excluyente:
+Hacer los botones de la columna **Acciones** más compactos y con etiquetas más descriptivas en `/turnos/solicitudes`.
 
-- Si `necesitaValidar(s) === true` → solo se renderiza **Validar** (warning).
-- Si no → solo se renderiza **Confirmar** (verde).
+## Cambios en `src/pages/TurnosSolicitados.tsx` (líneas 478-521)
 
-Como tus dos turnos actuales (Federico Nieto y Juan Roman Riquelme) son pacientes nuevos provisorios, ambos caen en el primer caso y por eso desapareció el botón verde de Confirmar.
+### 1. Reducir tamaño de los botones
 
-## Cambio propuesto
+- Reemplazar `size="sm"` por una clase más compacta: `h-7 px-2 text-xs` (más bajos y con menos padding horizontal).
+- Mantener los íconos en `h-3.5 w-3.5`.
+- Cambiar `gap-1` por `gap-1.5` para que los botones más juntos respiren un poco mejor.
 
-En la columna **Acciones** de la grilla de turnos solicitados:
+### 2. Renombrar etiquetas
 
-- Mostrar **siempre** el botón **Confirmar** (verde) para turnos pendientes.
-- Mostrar **además** el botón **Validar** (warning) cuando `necesitaValidar(s) === true`, ubicado **antes** de Confirmar para que sea la acción sugerida visualmente.
-- Mantener Reprogramar y Rechazar como hoy.
+| Antes | Después |
+|---|---|
+| Validar | **Validar datos de paciente** |
+| Confirmar | **Confirmar turno** |
+| Reprogramar | Reprogramar *(sin cambios)* |
+| Rechazar | **Rechazar turno** |
 
-Orden final en filas que requieren validación:
-**[⚠ Validar] [✓ Confirmar] [📅 Reprogramar] [✕ Rechazar]**
+### 3. Resultado visual
 
-En filas sin necesidad de validar:
-**[✓ Confirmar] [📅 Reprogramar] [✕ Rechazar]**
+Fila con validación requerida:
+**[⚠ Validar datos de paciente] [✓ Confirmar turno] [📅 Reprogramar] [✕ Rechazar turno]**
 
-## Comportamiento
+Fila sin validación:
+**[✓ Confirmar turno] [📅 Reprogramar] [✕ Rechazar turno]**
 
-- "Confirmar" ejecuta `handleConfirmar(s)` directamente (sin pasar por el diálogo de validación), confirmando el turno y enviando WhatsApp tal como antes.
-- "Validar" sigue abriendo el diálogo con la comparación / el flujo de paciente provisorio.
-- La recepcionista decide: si confía en los datos, click directo en Confirmar; si quiere revisar primero, abre Validar.
+Los botones quedan ~25% más bajos y con texto más informativo. Si en pantallas chicas la fila se vuelve muy larga, el `flex-wrap justify-end` ya existente permite que los botones bajen a una segunda línea sin romper el layout.
 
-## Archivos a tocar
+## Fuera de alcance
 
-- `src/pages/TurnosSolicitados.tsx` (única edición, ~10 líneas en la sección Acciones de la tabla).
-
-No requiere migración ni cambios en edge functions.
+- No se tocan los diálogos de Validar / Reprogramar / Rechazar (los textos internos ya son descriptivos).
+- No se modifica lógica ni handlers, solo estilos y labels.
