@@ -476,17 +476,17 @@ export default function TurnosSolicitados() {
                         </TableCell>
                         <TableCell className="text-right">
                           {esPendiente ? (
-                            <div className="inline-flex items-center gap-1 flex-wrap justify-end">
+                            <div className="inline-flex items-center gap-1.5 flex-wrap justify-end">
                               {validar && (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => setValidarItem(s)}
                                   disabled={acting}
-                                  className="border-warning text-warning hover:text-warning"
+                                  className="h-7 px-2 text-xs border-warning text-warning hover:text-warning"
                                 >
                                   <AlertTriangle className="h-3.5 w-3.5" />
-                                  <span className="ml-1">Validar</span>
+                                  <span className="ml-1">Validar datos de paciente</span>
                                 </Button>
                               )}
                               <Button
@@ -494,16 +494,17 @@ export default function TurnosSolicitados() {
                                 variant="outline"
                                 onClick={() => handleConfirmar(s)}
                                 disabled={acting}
-                                className="text-success hover:text-success"
+                                className="h-7 px-2 text-xs text-success hover:text-success"
                               >
                                 {acting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                                <span className="ml-1">Confirmar</span>
+                                <span className="ml-1">Confirmar turno</span>
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => setReprogramarItem(s)}
                                 disabled={acting}
+                                className="h-7 px-2 text-xs"
                               >
                                 <CalendarClock className="h-3.5 w-3.5" />
                                 <span className="ml-1">Reprogramar</span>
@@ -513,10 +514,10 @@ export default function TurnosSolicitados() {
                                 variant="outline"
                                 onClick={() => setConfirmRechazoId(s.id)}
                                 disabled={acting}
-                                className="text-destructive hover:text-destructive"
+                                className="h-7 px-2 text-xs text-destructive hover:text-destructive"
                               >
                                 <XCircle className="h-3.5 w-3.5" />
-                                <span className="ml-1">Rechazar</span>
+                                <span className="ml-1">Rechazar turno</span>
                               </Button>
                             </div>
                           ) : (
