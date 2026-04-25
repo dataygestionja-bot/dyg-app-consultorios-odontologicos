@@ -136,7 +136,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild>
                       <NavLink
                         to={item.url}
-                        end={item.url === "/"}
+                        end={item.url === "/dashboard"}
                         className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                         activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                       >
@@ -145,7 +145,7 @@ export function AppSidebar() {
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  {item.url === "/" && visibleTur.length > 0 && (
+                  {item.url === "/dashboard" && visibleTur.length > 0 && (
                     <Collapsible key="turnos-group" open={collapsed ? true : turOpen} onOpenChange={setTurOpen}>
                       <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
