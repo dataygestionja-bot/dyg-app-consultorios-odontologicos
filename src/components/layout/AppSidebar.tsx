@@ -18,6 +18,7 @@ import {
   Wallet,
   ListTodo,
   MessageSquare,
+  Inbox,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -60,6 +61,7 @@ const itemsOperatoria: Item[] = [
 
 const itemsTurnos: Item[] = [
   { title: "Agenda", url: "/turnos", icon: CalendarDays, perm: { module: "agenda", action: "read" } },
+  { title: "Turnos solicitados", url: "/turnos/solicitudes", icon: Inbox, roles: ["admin", "recepcion"] },
   { title: "Bloqueos de agenda", url: "/bloqueos", icon: CalendarOff, perm: { module: "bloqueos_agenda", action: "read" } },
 ];
 
