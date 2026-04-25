@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -45,6 +46,30 @@ const Private = ({ children }: { children: React.ReactNode }) => (
     </AppLayout>
   </ProtectedRoute>
 );
+
+/**
+ * Landing en "/":
+ * - Si hay sesión activa => Dashboard interno.
+ * - Si no hay sesión => redirige al formulario público de reserva.
+ */
+const RootLanding = () => {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-muted-foreground">Cargando...</div>
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/reservar" replace />;
+  return (
+    <AppLayout>
+      <ErrorBoundary>
+        <Dashboard />
+      </ErrorBoundary>
+    </AppLayout>
+  );
+};
 
 const AdminOnly = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute roles={["admin"]}>
@@ -94,8 +119,9 @@ const App = () => (
           <PermissionsProvider>
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/reservar-turno" element={<ReservarTurno />} />
-            <Route path="/" element={<Private><Dashboard /></Private>} />
+            <Route path="/reservar" element={<ReservarTurno />} />
+            <Route path="/reservar-turno" element={<Navigate to="/reservar" replace />} />
+            <Route path="/" element={<RootLanding />} />
             <Route path="/pacientes" element={<Private><Pacientes /></Private>} />
             <Route path="/pacientes/:id" element={<Private><PacienteForm /></Private>} />
             <Route path="/profesionales" element={<AdminOnly><Profesionales /></AdminOnly>} />
