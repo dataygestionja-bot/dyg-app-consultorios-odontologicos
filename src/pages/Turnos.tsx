@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { format, addDays, startOfWeek, parseISO, isSameDay, isValid } from "date-fns";
 import { es } from "date-fns/locale";
 import { TURNO_ESTADOS, TURNO_ESTADO_LABELS, TURNO_ESTADO_CLASSES, type TurnoEstado } from "@/lib/constants";
+import { WhatsAppTurnoButton } from "@/components/turnos/WhatsAppTurnoButton";
 
 const safeFormat = (d: Date | null | undefined, fmt: string, opts?: Parameters<typeof format>[2]) => {
   if (!d || !isValid(d)) return "";
