@@ -25,10 +25,16 @@ interface TurnoRow {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const { hasAnyRole } = useAuth();
+  const canManagePendientes = hasAnyRole(["admin", "recepcion"]);
+
   const [hoy, setHoy] = useState<TurnoRow[]>([]);
   const [proximos, setProximos] = useState<TurnoRow[]>([]);
   const [solicitudes, setSolicitudes] = useState<TurnoRow[]>([]);
   const [solicitudesCount, setSolicitudesCount] = useState<number>(0);
+  const [pendientesCierre, setPendientesCierre] = useState<TurnoRow[]>([]);
+  const [pendientesCierreCount, setPendientesCierreCount] = useState<number>(0);
   const [atendidosHoy, setAtendidosHoy] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [ahora, setAhora] = useState<Date>(new Date());
