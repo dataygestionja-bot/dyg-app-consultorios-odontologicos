@@ -128,9 +128,7 @@ export default function TwilioTest() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               Resultado
-              {resultado.tipo === "ok" && (
-                <Badge className="bg-green-600 hover:bg-green-600">OK</Badge>
-              )}
+              {resultado.tipo === "ok" && <Badge>OK</Badge>}
               {resultado.tipo === "auth" && (
                 <Badge variant="destructive">401 Auth</Badge>
               )}
