@@ -181,7 +181,7 @@ export default function ReservarTurno() {
           nombre: form.nombre.trim(),
           apellido: form.apellido.trim(),
           dni: form.dni.replace(/\D/g, ""),
-          telefono: form.telefono.replace(/[\s-]/g, ""),
+          telefono: `${TEL_PREFIJO}${form.telefono}`,
           email: form.email.trim() || undefined,
           motivo: form.motivo.trim(),
           observaciones: form.observaciones.trim() || undefined,
