@@ -16,6 +16,7 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import CuentaCorriente from "@/components/paciente/CuentaCorriente";
 import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
+import Odontograma from "@/components/paciente/Odontograma";
 
 interface ObraSocial { id: string; nombre: string; }
 
