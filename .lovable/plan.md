@@ -1,89 +1,64 @@
-## Objetivo
+## Diagnóstico
 
-Agregar una **bandeja de gestión de turnos pendientes de cierre** en el Dashboard, ubicada **inmediatamente después de la sección "Turnos de hoy"**, para que recepción/admin pueda resolver rápidamente los turnos que el cierre diario automático dejó en estado `pendiente_cierre` (turnos pasados sin atención registrada).
+Hoy las dos tarjetas en el Dashboard usan tonos casi idénticos:
+- **Solicitudes pendientes** → `--estado-solicitado` = `hsl(38 92% 50%)` (ámbar/naranja).
+- **Pendientes de cierre** → `amber-500` de Tailwind ≈ `hsl(38 92% 50%)` (también ámbar).
 
----
+Por eso visualmente parecen lo mismo, aunque conceptualmente representan flujos distintos:
+- *Solicitudes* = entrada nueva al sistema (algo por confirmar).
+- *Pendientes de cierre* = problema/alerta operativa (algo del pasado sin resolver).
 
-## Contexto técnico
+## Propuesta
 
-- El estado `pendiente_cierre` lo asigna automáticamente la función SQL `cierre_diario_turnos()` (corre vía pg_cron a las 23:55) sobre turnos `confirmado / reservado / en_atencion` cuya hora_fin pasó sin tener una `atencion` asociada.
-- Hoy ya hay **5+ turnos** en ese estado en la base, sin una vista clara para gestionarlos masivamente (solo se ven uno a uno desde la agenda y MisTurnos).
-- El estado existe en el enum de DB y en `src/integrations/supabase/types.ts`, pero **falta** en `src/lib/constants.ts` (`TURNO_ESTADOS`, `TURNO_ESTADO_LABELS`, `TURNO_ESTADO_CLASSES`). Hoy MisTurnos lo casteo con `as TurnoEstado` para evadir el tipo.
+Asignar a cada tarjeta una identidad cromática propia, alineada con su semántica:
 
----
+### 1. "Solicitudes pendientes" → mantener color de marca de "solicitado"
+- Sigue usando `--estado-solicitado` (ámbar). Sin cambios; es coherente con el badge del estado "solicitado" en toda la agenda.
 
-## Cambios propuestos
+### 2. "Pendientes de cierre" → cambiar a **rosa/magenta** (alerta operativa diferenciada)
+- Es un estado que **requiere acción correctiva** sobre el pasado, no una entrada nueva.
+- Crear nueva variable CSS `--estado-pendiente-cierre` con un tono claramente distinto del resto:
+  - "Cancelado" ya es rojo (`0 75% 50%`).
+  - "Rechazado" rojo oscuro (`0 60% 40%`).
+  - "Solicitado" ámbar (`38 92% 50%`).
+  - **Propuesta default: magenta `340 75% 50%`** — claramente distinguible de todos los anteriores.
 
-### 1. `src/lib/constants.ts` — incorporar `pendiente_cierre` como estado de primera clase
+### 3. Aplicar la nueva variable de forma consistente
 
-- Agregar `"pendiente_cierre"` al array `TURNO_ESTADOS`.
-- Agregar label: **"Pendiente de cierre"**.
-- Agregar clase de color: usar tono ámbar/warning para destacar que requiere atención del operador, ej. `"bg-amber-500 text-white"` (o una variable CSS si ya existe `--estado-pendiente-cierre`; si no, hardcodear ámbar es consistente con los avisos "Fuera de horario" del Dashboard).
-- Beneficio colateral: `MisTurnos.tsx` y otros archivos podrán quitar los `as TurnoEstado` posteriores (no es objetivo de esta tarea, pero queda preparado).
+**`src/index.css`** (light + dark mode):
+- Agregar `--estado-pendiente-cierre: 340 75% 50%;` en ambos bloques `:root` y `.dark`.
 
-### 2. `src/pages/Dashboard.tsx` — nueva bandeja "Turnos pendientes de cierre"
+**`src/lib/constants.ts`**:
+- Reemplazar `pendiente_cierre: "bg-amber-500 text-white"` por `"bg-[hsl(var(--estado-pendiente-cierre))] text-white"` para que el badge en toda la app (Dashboard, MisTurnos, Turnos, etc.) refleje el nuevo color.
 
-**Estado y carga de datos:**
-- Nuevo estado `const [pendientesCierre, setPendientesCierre] = useState<TurnoRow[]>([])`.
-- En `cargar()`, agregar al `Promise.all` una consulta:
-  ```ts
-  supabase.from("turnos")
-    .select(select)  // mismo select que "hoy"
-    .eq("estado", "pendiente_cierre")
-    .order("fecha", { ascending: false })
-    .order("hora_inicio")
-    .limit(20)
-  ```
-  (sin filtro por fecha; pueden quedar de varios días).
+**`src/pages/Dashboard.tsx`** (líneas 182–199 y la bandeja inferior):
+- Reemplazar `border-amber-500`, `text-amber-500`, `text-amber-600 dark:text-amber-400` por estilos inline con `hsl(var(--estado-pendiente-cierre))`, igual que ya se hace con la tarjeta de Solicitudes.
+- Aplicar el mismo cambio a la **bandeja de "Turnos pendientes de cierre"** (borde izquierdo, ícono y badge de cantidad) para mantener coherencia.
 
-**KPI extra (opcional, decidido como SÍ para visibilidad):**
-- Agregar una 5ª tarjeta en la grilla de KPIs (o reemplazar diseño a `lg:grid-cols-5`) con título **"Pendientes de cierre"**, ícono `AlertCircle`, número total y borde ámbar. Click → scroll/anchor a la nueva bandeja.
-- Si preferís no tocar la grilla de KPIs, se omite y solo aparece la bandeja. **Propuesta default: agregar la KPI** porque es coherente con cómo ya se muestra "Solicitudes pendientes".
+## Resultado visual
 
-**Bandeja (Card):**
-- Ubicación: **entre el bloque de "Solicitudes pendientes" y el grid `Turnos de hoy / Próximos turnos`**, NO dentro del grid, así ocupa el ancho completo y queda visualmente entre "Turnos de hoy" y los siguientes paneles. Solo se renderiza si `pendientesCierre.length > 0`.
-- Estilo coherente con el card de "Turnos solicitados": borde izquierdo ámbar (`border-l-4`), fondo tenue ámbar.
-- Header:
-  - Ícono `AlertCircle` ámbar.
-  - Título: **"Turnos pendientes de cierre"** + Badge con la cantidad.
-  - Descripción: *"Turnos pasados sin atención registrada. Resolvelos para mantener la agenda al día."*
-- Body: lista (`<ul className="divide-y">`) con cada turno mostrando:
-  - Barra de color del profesional.
-  - Paciente (apellido, nombre).
-  - Línea secundaria: `dd MMM · HH:mm · Dr. {apellido} · {motivo_consulta}`.
-  - Acciones rápidas (a la derecha) — **sin abrir modales**, ejecutadas con `confirm()` nativo + toast:
-    1. **Marcar como ausente** (variant `outline`, ícono `UserX`): `update turnos set estado='ausente'` → recarga.
-    2. **Cancelar turno** (variant `outline` destructivo, ícono `Ban`): `update turnos set estado='cancelado'` → recarga.
-    3. **Iniciar atención** (variant `default` primario, ícono `Stethoscope`): navega a `/atenciones/nuevo?turnoId={id}` (ruta ya existente vía `AtencionForm`). Esto cubre el caso "el turno sí se atendió pero nunca se cargó la atención".
-  - Botones compactos: `size="sm" className="h-7 px-2 text-xs"` (alineado con el estilo recientemente aplicado en TurnosSolicitados).
+| Tarjeta | Color actual | Color propuesto |
+|---|---|---|
+| Solicitudes pendientes | Ámbar | Ámbar (sin cambio) |
+| Pendientes de cierre | Ámbar (idéntico) | **Magenta** (claramente distinto) |
 
-**Permisos:**
-- La bandeja se muestra solo a `admin` o `recepcion` (usar `hasAnyRole(["admin","recepcion"])` desde `useAuth`). Los profesionales ya gestionan sus pendientes desde **MisTurnos**, así que no duplicamos en su Dashboard.
+Beneficios:
+- Se distinguen al instante.
+- "Pendientes de cierre" gana jerarquía visual sin chocar con "Cancelado" (rojo) ni con "Solicitado" (ámbar).
+- El cambio se propaga automáticamente al badge de estado en el resto de la app vía `TURNO_ESTADO_CLASSES`, manteniendo coherencia.
 
-**Auditoría:**
-- Cada UPDATE pasa por la tabla `turnos`; el trigger global `audit_trigger_func` ya registra el cambio en `audit_log`. No hace falta lógica adicional.
+## Archivos a modificar
 
----
+1. `src/index.css` — nueva variable `--estado-pendiente-cierre` (light y dark).
+2. `src/lib/constants.ts` — actualizar clase del estado.
+3. `src/pages/Dashboard.tsx` — KPI card y bandeja usando la nueva variable.
 
-## Lo que NO se cambia
+Sin migraciones de DB, sin cambios de lógica.
 
-- No se modifica el cron ni `cierre_diario_turnos()`.
-- No se toca `Turnos.tsx` (el bloqueo del campo "estado" para `pendiente_cierre` en el diálogo de edición sigue tal cual).
-- No se reemplaza el flujo existente de MisTurnos para profesionales.
-- No se crea una página nueva: todo vive dentro del Dashboard como un panel más.
+## Alternativas de color
 
----
+Si el magenta no te convence:
+- **Coral/naranja oscuro**: `hsl(15 80% 50%)` — más cálido, dentro de la familia "alerta".
+- **Violeta**: `hsl(280 65% 55%)` — muy diferenciado pero menos "alarmante".
 
-## Riesgos / consideraciones
-
-- Si la lista crece mucho, limitamos a 20 + mostramos "Ver todos" enlazando a `/turnos` (filtrable). Si querés, en una segunda iteración podemos agregar un filtro `?estado=pendiente_cierre` en `Turnos.tsx`.
-- El UPDATE a `cancelado` / `ausente` respeta los triggers existentes (`validar_turno_no_bloqueado`, `validar_solapamiento_turno`) — esos estados están explícitamente exentos, así que no hay conflictos de validación.
-
----
-
-## Archivos a editar
-
-1. `src/lib/constants.ts` — agregar `pendiente_cierre` al enum/labels/classes.
-2. `src/pages/Dashboard.tsx` — nueva carga, KPI y card de bandeja con acciones rápidas.
-
-Sin migraciones de DB, sin nuevas edge functions, sin cambios de RLS.
+Decime si vamos con magenta (default), coral o violeta y avanzo.
