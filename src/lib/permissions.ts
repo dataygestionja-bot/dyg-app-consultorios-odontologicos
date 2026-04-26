@@ -19,6 +19,7 @@ export const MODULES: ModuleDef[] = [
   { key: "agenda", label: "Agenda de turnos" },
   { key: "bloqueos_agenda", label: "Bloqueos de agenda" },
   { key: "atenciones", label: "Atenciones" },
+  { key: "odontograma", label: "Odontograma" },
   { key: "prestaciones", label: "Prestaciones" },
   { key: "obras_sociales", label: "Obras sociales" },
   { key: "cobros", label: "Cobros" },
