@@ -182,14 +182,15 @@ export default function Dashboard() {
         {canManagePendientes && (
           <a href="#pendientes-cierre" className="block">
             <Card
-              className="h-full transition-all hover:shadow-md border-l-4 border-amber-500"
+              className="h-full transition-all hover:shadow-md border-l-4"
+              style={{ borderLeftColor: "hsl(var(--estado-pendiente-cierre))" }}
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Pendientes de cierre</CardTitle>
-                <AlertCircle className="h-4 w-4 text-amber-500" />
+                <AlertCircle className="h-4 w-4" style={{ color: "hsl(var(--estado-pendiente-cierre))" }} />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+                <div className="text-3xl font-bold" style={{ color: "hsl(var(--estado-pendiente-cierre))" }}>
                   {pendientesCierreCount}
                 </div>
                 <p className="text-xs text-muted-foreground">Turnos sin cerrar</p>
