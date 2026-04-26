@@ -148,6 +148,7 @@ export default function PacienteForm() {
             <TabsTrigger value="clinica">Ficha clínica</TabsTrigger>
             <TabsTrigger value="otros">Observaciones</TabsTrigger>
             {isEdit && <TabsTrigger value="atenciones">Atenciones</TabsTrigger>}
+            {isEdit && <TabsTrigger value="odontograma">Odontograma</TabsTrigger>}
             {isEdit && <TabsTrigger value="cuenta">Cuenta corriente</TabsTrigger>}
           </TabsList>
 
