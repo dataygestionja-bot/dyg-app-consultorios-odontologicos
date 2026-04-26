@@ -385,15 +385,23 @@ export default function ReservarTurno() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="telefono">Teléfono WhatsApp *</Label>
-                  <Input
-                    id="telefono"
-                    placeholder="Ej: 5492214189600"
-                    value={form.telefono}
-                    onChange={(e) => set("telefono", e.target.value)}
-                    inputMode="tel"
-                    maxLength={20}
-                  />
-                  <p className="text-xs text-muted-foreground">Incluí código de país sin espacios.</p>
+                  <div className="flex">
+                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-sm text-muted-foreground select-none">
+                      {TEL_PREFIJO}
+                    </span>
+                    <Input
+                      id="telefono"
+                      placeholder="1123456789"
+                      value={form.telefono}
+                      onChange={(e) => set("telefono", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      inputMode="numeric"
+                      maxLength={10}
+                      className="rounded-l-none"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Ingresá los 10 dígitos sin 0 y sin 15 (código de área + número). El prefijo {TEL_PREFIJO} ya está incluido.
+                  </p>
                 </div>
                 <div className="grid gap-2 sm:col-span-2">
                   <Label htmlFor="email">Email (opcional)</Label>
