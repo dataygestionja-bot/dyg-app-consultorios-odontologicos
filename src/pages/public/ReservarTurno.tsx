@@ -43,8 +43,8 @@ interface FormData {
   observaciones: string;
 }
 
-const PHONE_RE = /^\+?\d{8,15}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const TEL_PREFIJO = "549";
 
 const initialForm: FormData = {
   profesional_id: "",
@@ -150,8 +150,7 @@ export default function ReservarTurno() {
     if (form.apellido.trim().length < 2) return "Ingresá tu apellido";
     const dni = form.dni.replace(/\D/g, "");
     if (dni.length < 6) return "DNI inválido";
-    const tel = form.telefono.replace(/[\s-]/g, "");
-    if (!PHONE_RE.test(tel)) return "Teléfono inválido. Incluí código de país (ej: 5492214189600)";
+    if (!/^\d{10}$/.test(form.telefono)) return "El teléfono debe tener exactamente 10 dígitos (sin 0 y sin 15)";
     if (form.email && !EMAIL_RE.test(form.email)) return "Email inválido";
     if (form.motivo.trim().length < 5) return "Contanos brevemente el motivo";
     return null;
@@ -182,7 +181,7 @@ export default function ReservarTurno() {
           nombre: form.nombre.trim(),
           apellido: form.apellido.trim(),
           dni: form.dni.replace(/\D/g, ""),
-          telefono: form.telefono.replace(/[\s-]/g, ""),
+          telefono: `${TEL_PREFIJO}${form.telefono}`,
           email: form.email.trim() || undefined,
           motivo: form.motivo.trim(),
           observaciones: form.observaciones.trim() || undefined,
@@ -386,15 +385,23 @@ export default function ReservarTurno() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="telefono">Teléfono WhatsApp *</Label>
-                  <Input
-                    id="telefono"
-                    placeholder="Ej: 5492214189600"
-                    value={form.telefono}
-                    onChange={(e) => set("telefono", e.target.value)}
-                    inputMode="tel"
-                    maxLength={20}
-                  />
-                  <p className="text-xs text-muted-foreground">Incluí código de país sin espacios.</p>
+                  <div className="flex">
+                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-sm text-muted-foreground select-none">
+                      {TEL_PREFIJO}
+                    </span>
+                    <Input
+                      id="telefono"
+                      placeholder="1123456789"
+                      value={form.telefono}
+                      onChange={(e) => set("telefono", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      inputMode="numeric"
+                      maxLength={10}
+                      className="rounded-l-none"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Ingresá los 10 dígitos sin 0 y sin 15 (código de área + número). El prefijo {TEL_PREFIJO} ya está incluido.
+                  </p>
                 </div>
                 <div className="grid gap-2 sm:col-span-2">
                   <Label htmlFor="email">Email (opcional)</Label>
