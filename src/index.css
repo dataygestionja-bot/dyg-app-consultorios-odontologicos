@@ -67,6 +67,7 @@
     --estado-rechazado: 0 60% 40%;
     --estado-sobreturno: 350 85% 50%;
     --estado-bloqueado: 215 16% 55%;
+    --estado-pendiente-cierre: 340 75% 50%;
   }
 
   .dark {
