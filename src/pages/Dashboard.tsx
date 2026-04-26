@@ -182,14 +182,15 @@ export default function Dashboard() {
         {canManagePendientes && (
           <a href="#pendientes-cierre" className="block">
             <Card
-              className="h-full transition-all hover:shadow-md border-l-4 border-amber-500"
+              className="h-full transition-all hover:shadow-md border-l-4"
+              style={{ borderLeftColor: "hsl(var(--estado-pendiente-cierre))" }}
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Pendientes de cierre</CardTitle>
-                <AlertCircle className="h-4 w-4 text-amber-500" />
+                <AlertCircle className="h-4 w-4" style={{ color: "hsl(var(--estado-pendiente-cierre))" }} />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+                <div className="text-3xl font-bold" style={{ color: "hsl(var(--estado-pendiente-cierre))" }}>
                   {pendientesCierreCount}
                 </div>
                 <p className="text-xs text-muted-foreground">Turnos sin cerrar</p>
@@ -355,11 +356,15 @@ export default function Dashboard() {
       {canManagePendientes && pendientesCierreCount > 0 && (
         <Card
           id="pendientes-cierre"
-          className="border-l-4 border-amber-500 bg-amber-500/5 scroll-mt-20"
+          className="border-l-4 scroll-mt-20"
+          style={{
+            borderLeftColor: "hsl(var(--estado-pendiente-cierre))",
+            backgroundColor: "hsl(var(--estado-pendiente-cierre) / 0.06)",
+          }}
         >
           <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
             <div className="flex items-center gap-2 min-w-0">
-              <AlertCircle className="h-5 w-5 shrink-0 text-amber-500" />
+              <AlertCircle className="h-5 w-5 shrink-0" style={{ color: "hsl(var(--estado-pendiente-cierre))" }} />
               <div className="min-w-0">
                 <CardTitle className="flex items-center gap-2 flex-wrap">
                   Turnos pendientes de cierre

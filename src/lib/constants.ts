@@ -47,7 +47,7 @@ export const TURNO_ESTADO_CLASSES: Record<TurnoEstado, string> = {
   ausente: "bg-[hsl(var(--estado-ausente))] text-white",
   reprogramado: "bg-[hsl(var(--estado-reprogramado))] text-white",
   rechazado: "bg-[hsl(var(--estado-rechazado))] text-white",
-  pendiente_cierre: "bg-amber-500 text-white",
+  pendiente_cierre: "bg-[hsl(var(--estado-pendiente-cierre))] text-white",
 };
 
 export const DIENTE_ESTADOS = [
