@@ -50,6 +50,42 @@ export const TURNO_ESTADO_CLASSES: Record<TurnoEstado, string> = {
   pendiente_cierre: "bg-amber-500 text-white",
 };
 
+export const DIENTE_ESTADOS = [
+  "sano",
+  "caries",
+  "restauracion",
+  "ausente",
+  "observacion",
+] as const;
+
+export type DienteEstado = (typeof DIENTE_ESTADOS)[number];
+
+export const DIENTE_ESTADO_LABELS: Record<DienteEstado, string> = {
+  sano: "Sano",
+  caries: "Caries",
+  restauracion: "Restauración",
+  ausente: "Ausente",
+  observacion: "Observación",
+};
+
+// Mapeo visual (solo UI). Usamos clases Tailwind con colores de marca.
+export const DIENTE_ESTADO_CLASSES: Record<DienteEstado, string> = {
+  sano: "bg-green-500 text-white",
+  caries: "bg-red-500 text-white",
+  restauracion: "bg-blue-500 text-white",
+  ausente: "bg-gray-400 text-white",
+  observacion: "bg-yellow-400 text-black",
+};
+
+// Color "punto" para tabla resumen
+export const DIENTE_ESTADO_DOT: Record<DienteEstado, string> = {
+  sano: "bg-green-500",
+  caries: "bg-red-500",
+  restauracion: "bg-blue-500",
+  ausente: "bg-gray-400",
+  observacion: "bg-yellow-400",
+};
+
 export const DIAS_SEMANA = [
   "Domingo",
   "Lunes",

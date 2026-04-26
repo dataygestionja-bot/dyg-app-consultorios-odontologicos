@@ -436,6 +436,57 @@ export type Database = {
         }
         Relationships: []
       }
+      odontograma_registros: {
+        Row: {
+          created_at: string
+          diente: number
+          estado: Database["public"]["Enums"]["diente_estado"]
+          fecha: string
+          id: string
+          observaciones: string | null
+          paciente_id: string
+          profesional_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          diente: number
+          estado: Database["public"]["Enums"]["diente_estado"]
+          fecha?: string
+          id?: string
+          observaciones?: string | null
+          paciente_id: string
+          profesional_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          diente?: number
+          estado?: Database["public"]["Enums"]["diente_estado"]
+          fecha?: string
+          id?: string
+          observaciones?: string | null
+          paciente_id?: string
+          profesional_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "odontograma_registros_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "odontograma_registros_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pacientes: {
         Row: {
           activo: boolean
@@ -933,6 +984,12 @@ export type Database = {
     Enums: {
       app_role: "admin" | "recepcion" | "profesional"
       bloqueo_estado: "activo" | "cancelado"
+      diente_estado:
+        | "sano"
+        | "caries"
+        | "restauracion"
+        | "ausente"
+        | "observacion"
       medio_pago:
         | "efectivo"
         | "transferencia"
@@ -1097,6 +1154,13 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "recepcion", "profesional"],
       bloqueo_estado: ["activo", "cancelado"],
+      diente_estado: [
+        "sano",
+        "caries",
+        "restauracion",
+        "ausente",
+        "observacion",
+      ],
       medio_pago: [
         "efectivo",
         "transferencia",
