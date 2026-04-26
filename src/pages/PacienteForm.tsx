@@ -232,6 +232,12 @@ export default function PacienteForm() {
           )}
 
           {isEdit && (
+            <TabsContent value="odontograma">
+              <Odontograma pacienteId={id!} />
+            </TabsContent>
+          )}
+
+          {isEdit && (
             <TabsContent value="cuenta">
               <CuentaCorriente pacienteId={id!} />
             </TabsContent>
