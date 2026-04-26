@@ -150,8 +150,7 @@ export default function ReservarTurno() {
     if (form.apellido.trim().length < 2) return "Ingresá tu apellido";
     const dni = form.dni.replace(/\D/g, "");
     if (dni.length < 6) return "DNI inválido";
-    const tel = form.telefono.replace(/[\s-]/g, "");
-    if (!PHONE_RE.test(tel)) return "Teléfono inválido. Incluí código de país (ej: 5492214189600)";
+    if (!/^\d{10}$/.test(form.telefono)) return "El teléfono debe tener exactamente 10 dígitos (sin 0 y sin 15)";
     if (form.email && !EMAIL_RE.test(form.email)) return "Email inválido";
     if (form.motivo.trim().length < 5) return "Contanos brevemente el motivo";
     return null;
