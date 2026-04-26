@@ -43,8 +43,8 @@ interface FormData {
   observaciones: string;
 }
 
-const PHONE_RE = /^\+?\d{8,15}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const TEL_PREFIJO = "549";
 
 const initialForm: FormData = {
   profesional_id: "",
