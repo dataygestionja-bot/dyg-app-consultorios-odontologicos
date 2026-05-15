@@ -163,6 +163,19 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
     setLoading(false);
   }
 
+  async function confirmarTurno(t: TurnoLite) {
+    const { error } = await supabase
+      .from("turnos")
+      .update({ estado: "confirmado" })
+      .eq("id", t.id);
+    if (error) {
+      toast.error("No se pudo confirmar el turno", { description: error.message });
+      return;
+    }
+    toast.success("Turno confirmado");
+    cargarDatos();
+  }
+
   async function confirmarCancelacion() {
     if (!turnoCancelar) return;
     setCancelando(true);
@@ -481,6 +494,12 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                  {t.estado === "reservado" && (
+                                    <DropdownMenuItem onClick={() => confirmarTurno(t)}>
+                                      <Check className="mr-2 h-4 w-4" />
+                                      Confirmar turno
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem onClick={() => setTurnoReprogramar(t)}>
                                     <CalendarClock className="mr-2 h-4 w-4" />
                                     Reprogramar
