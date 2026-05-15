@@ -141,8 +141,8 @@
    --agenda-medio-fg: 270 70% 92%;
    --agenda-lleno: 45 60% 38%;
    --agenda-lleno-fg: 45 90% 90%;
-   --agenda-ausencia: 220 10% 35%;
-   --agenda-ausencia-fg: 220 15% 90%;
+   --agenda-ausencia: 25 50% 38%;
+   --agenda-ausencia-fg: 25 80% 92%;
    --agenda-festivo: 0 50% 38%;
    --agenda-festivo-fg: 0 80% 92%;
   }
