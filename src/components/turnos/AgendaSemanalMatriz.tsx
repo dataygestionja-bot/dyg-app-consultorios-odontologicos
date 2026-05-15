@@ -244,17 +244,30 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
               <th className="sticky left-0 top-0 z-30 w-[260px] min-w-[260px] border-b border-r bg-muted/60 p-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Profesional
               </th>
-              {dias.map((d) => (
-                <th
-                  key={d.toISOString()}
-                  className="sticky top-0 z-20 min-w-[140px] border-b bg-muted/60 p-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-                >
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span>{format(d, "EEE", { locale: es })}</span>
-                    <span className="text-foreground">{format(d, "d", { locale: es })}</span>
-                  </div>
-                </th>
-              ))}
+              {dias.map((d) => {
+                const esHoy = format(d, "yyyy-MM-dd") === hoyStr;
+                return (
+                  <th
+                    key={d.toISOString()}
+                    className={cn(
+                      "sticky top-0 z-20 min-w-[140px] border-b bg-muted/60 p-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+                      esHoy && "bg-primary/10 text-primary border-b-2 border-b-primary"
+                    )}
+                  >
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span>{format(d, "EEE", { locale: es })}</span>
+                      <span className={cn(esHoy ? "text-primary" : "text-foreground")}>
+                        {format(d, "d", { locale: es })}
+                      </span>
+                      {esHoy && (
+                        <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">
+                          HOY
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
