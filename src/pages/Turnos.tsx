@@ -646,19 +646,22 @@ export default function Turnos() {
         </TabsContent>
 
         <TabsContent value="matriz">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                Semana del {safeFormat(dias[0], "d MMM", { locale: es })} al {safeFormat(dias[6], "d MMM yyyy", { locale: es })}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AgendaSemanalMatriz
-                semanaInicio={startOfWeek(fecha, { weekStartsOn: 1 })}
-                filtroProfesional={profSel}
-              />
-            </CardContent>
-          </Card>
+          {(() => {
+            const inicio = startOfWeek(fecha, { weekStartsOn: 1 });
+            const fin = addDays(inicio, 6);
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    Semana del {safeFormat(inicio, "d MMM", { locale: es })} al {safeFormat(fin, "d MMM yyyy", { locale: es })}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AgendaSemanalMatriz semanaInicio={inicio} filtroProfesional={profSel} />
+                </CardContent>
+              </Card>
+            );
+          })()}
         </TabsContent>
       </Tabs>
 
