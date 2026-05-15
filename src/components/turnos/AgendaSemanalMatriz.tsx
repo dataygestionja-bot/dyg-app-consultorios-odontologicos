@@ -494,6 +494,12 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                  {t.estado === "reservado" && (
+                                    <DropdownMenuItem onClick={() => confirmarTurno(t)}>
+                                      <Check className="mr-2 h-4 w-4" />
+                                      Confirmar turno
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem onClick={() => setTurnoReprogramar(t)}>
                                     <CalendarClock className="mr-2 h-4 w-4" />
                                     Reprogramar
