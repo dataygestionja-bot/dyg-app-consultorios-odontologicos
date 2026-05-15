@@ -104,7 +104,7 @@ export default function NuevoTurnoDialog({
 }: Props) {
   const [pacientes, setPacientes] = useState<PacienteOpt[]>([]);
   const [pacienteId, setPacienteId] = useState("");
-  const [busqueda, setBusqueda] = useState("");
+  const [pacientePopoverOpen, setPacientePopoverOpen] = useState(false);
   const [slot, setSlot] = useState("");
   const [motivo, setMotivo] = useState("");
   const [sobreturno, setSobreturno] = useState(false);
@@ -115,7 +115,7 @@ export default function NuevoTurnoDialog({
   useEffect(() => {
     if (!open) return;
     setPacienteId("");
-    setBusqueda("");
+    setPacientePopoverOpen(false);
     setSlot("");
     setMotivo("");
     setSobreturno(false);
@@ -126,7 +126,7 @@ export default function NuevoTurnoDialog({
       .select("id,nombre,apellido,dni")
       .eq("activo", true)
       .order("apellido")
-      .limit(500)
+      .limit(2000)
       .then(({ data }) => setPacientes((data ?? []) as PacienteOpt[]));
   }, [open]);
 
