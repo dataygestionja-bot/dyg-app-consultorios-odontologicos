@@ -1,9 +1,12 @@
 ## Objetivo
 
-Cambiar el texto del tooltip del botón de WhatsApp de "Enviar WhatsApp" a "Enviar recordatorio de turno" cuando el paciente tiene teléfono.
+Reemplazar el ícono de tres puntos (`MoreVertical`) del menú de acciones de cada turno por un ícono de lápiz (`Pencil`), más intuitivo para indicar "editar".
 
 ## Cambio
 
-**Archivo único: `src/components/turnos/WhatsAppTurnoButton.tsx`**
+**Archivo único: `src/components/turnos/AgendaSemanalMatriz.tsx`**
 
-En la lógica de `tooltipText` (línea ~93), reemplazar el literal `"Enviar WhatsApp"` por `"Enviar recordatorio de turno"`. Se mantienen los otros dos casos: `"Paciente sin teléfono"` (sin teléfono) y `"Enviando..."` (loading).
+1. Línea 26: en el import de `lucide-react`, cambiar `MoreVertical` por `Pencil`.
+2. Línea 479: reemplazar `<MoreVertical className="h-4 w-4" />` por `<Pencil className="h-3.5 w-3.5" />` (ligeramente más chico para mantener la proporción visual junto al ícono de WhatsApp y el badge).
+
+No se modifica el comportamiento del `DropdownMenu` ni sus opciones (Reprogramar / Cancelar). No hay cambios de lógica ni de backend.
