@@ -109,6 +109,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
     () => Array.from({ length: 7 }, (_, i) => addDays(semanaInicio, i)),
     [semanaInicio]
   );
+  const hoyStr = format(new Date(), "yyyy-MM-dd");
 
   async function cargarDatos() {
     setLoading(true);
