@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ArrowLeft, Plus, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { DIAS_SEMANA } from "@/lib/constants";
 import {
@@ -37,6 +38,7 @@ const empty = {
   email: "",
   color_agenda: "#0ea5e9",
   activo: true,
+  foto_url: "" as string | "",
 };
 
 export default function ProfesionalForm() {
@@ -46,6 +48,7 @@ export default function ProfesionalForm() {
   const [form, setForm] = useState(empty);
   const [horarios, setHorarios] = useState<Horario[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     document.title = isEdit ? "Editar profesional | Consultorio" : "Nuevo profesional | Consultorio";
@@ -57,6 +60,7 @@ export default function ProfesionalForm() {
             matricula: data.matricula ?? "", especialidad: data.especialidad ?? "",
             telefono: data.telefono ?? "", email: data.email ?? "",
             color_agenda: data.color_agenda, activo: data.activo,
+            foto_url: (data as any).foto_url ?? "",
           });
         });
       supabase.from("horarios_profesional").select("*").eq("profesional_id", id).order("dia_semana")
@@ -77,6 +81,7 @@ export default function ProfesionalForm() {
       especialidad: form.especialidad || null,
       telefono: form.telefono || null,
       email: form.email || null,
+      foto_url: form.foto_url || null,
     };
     const res = isEdit
       ? await supabase.from("profesionales").update(payload).eq("id", id!)
@@ -86,6 +91,36 @@ export default function ProfesionalForm() {
     toast.success(isEdit ? "Profesional actualizado" : "Profesional creado");
     navigate("/profesionales");
   }
+
+  async function onFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return toast.error("Debe ser una imagen");
+    if (file.size > 2 * 1024 * 1024) return toast.error("Máximo 2 MB");
+    if (!isEdit) return toast.error("Guardá primero el profesional");
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${id}/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("profesionales-fotos").upload(path, file, { upsert: true, contentType: file.type });
+    if (upErr) { setUploading(false); return toast.error("No se pudo subir", { description: upErr.message }); }
+    const { data: pub } = supabase.storage.from("profesionales-fotos").getPublicUrl(path);
+    const url = pub.publicUrl;
+    const { error: updErr } = await supabase.from("profesionales").update({ foto_url: url } as any).eq("id", id!);
+    setUploading(false);
+    if (updErr) return toast.error("No se pudo guardar la foto", { description: updErr.message });
+    set("foto_url", url);
+    toast.success("Foto actualizada");
+  }
+
+  async function quitarFoto() {
+    if (!isEdit) return;
+    const { error } = await supabase.from("profesionales").update({ foto_url: null } as any).eq("id", id!);
+    if (error) return toast.error("Error", { description: error.message });
+    set("foto_url", "");
+    toast.success("Foto eliminada");
+  }
+
 
   function addHorario() {
     setHorarios((h) => [...h, { dia_semana: 1, hora_inicio: "09:00", hora_fin: "13:00", duracion_slot_min: 30, activo: true }]);
@@ -144,6 +179,29 @@ export default function ProfesionalForm() {
                 <CardTitle className="text-base">Datos del profesional</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
+                <div className="md:col-span-2 flex items-center gap-4">
+                  <Avatar className="h-20 w-20">
+                    {form.foto_url && <AvatarImage src={form.foto_url} alt="Foto" />}
+                    <AvatarFallback>{(form.apellido[0] ?? "") + (form.nombre[0] ?? "") || "?"}</AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-2">
+                    <Label className="block">Foto de perfil</Label>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" disabled={!isEdit || uploading} asChild>
+                        <label className="cursor-pointer">
+                          <Upload className="h-4 w-4" /> {uploading ? "Subiendo..." : "Subir foto"}
+                          <input type="file" accept="image/*" className="hidden" onChange={onFotoChange} disabled={!isEdit || uploading} />
+                        </label>
+                      </Button>
+                      {form.foto_url && (
+                        <Button type="button" variant="ghost" size="sm" onClick={quitarFoto}>
+                          <X className="h-4 w-4" /> Quitar
+                        </Button>
+                      )}
+                    </div>
+                    {!isEdit && <p className="text-xs text-muted-foreground">Guardá el profesional para poder subir la foto.</p>}
+                  </div>
+                </div>
                 <Field label="Nombre *" required value={form.nombre} onChange={(v) => set("nombre", v)} />
                 <Field label="Apellido *" required value={form.apellido} onChange={(v) => set("apellido", v)} />
                 <Field label="Matrícula" value={form.matricula} onChange={(v) => set("matricula", v)} />

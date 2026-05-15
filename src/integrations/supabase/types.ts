@@ -713,6 +713,7 @@ export type Database = {
           created_at: string
           email: string | null
           especialidad: string | null
+          foto_url: string | null
           id: string
           matricula: string | null
           nombre: string
@@ -727,6 +728,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           especialidad?: string | null
+          foto_url?: string | null
           id?: string
           matricula?: string | null
           nombre: string
@@ -741,6 +743,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           especialidad?: string | null
+          foto_url?: string | null
           id?: string
           matricula?: string | null
           nombre?: string
