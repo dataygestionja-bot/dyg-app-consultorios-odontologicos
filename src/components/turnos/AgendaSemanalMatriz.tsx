@@ -241,7 +241,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
         <table className="w-full border-separate border-spacing-0 text-sm">
           <thead>
             <tr>
-              <th className="sticky left-0 top-0 z-30 w-[260px] min-w-[260px] border-b border-r bg-muted p-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <th className="sticky left-0 top-0 z-30 w-[260px] min-w-[260px] border-b border-r bg-muted p-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground shadow-[2px_0_4px_-2px_hsl(var(--foreground)/0.15)]">
                 Profesional
               </th>
               {dias.map((d) => {
@@ -273,7 +273,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
           <tbody>
             {filas.map((p) => (
               <tr key={p.id}>
-                <td className="sticky left-0 z-10 w-[260px] min-w-[260px] border-b border-r bg-card p-3 align-top">
+                <td className="sticky left-0 z-10 w-[260px] min-w-[260px] border-b border-r bg-card p-3 align-top shadow-[2px_0_4px_-2px_hsl(var(--foreground)/0.12)]">
                   <div className="flex items-start gap-3">
                     <Avatar className="h-10 w-10">
                       {p.foto_url && <AvatarImage src={p.foto_url} alt={`${p.apellido} ${p.nombre}`} />}
