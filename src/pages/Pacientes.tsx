@@ -19,6 +19,7 @@ interface Row {
   dni: string;
   telefono: string | null;
   activo: boolean;
+  pendiente_validacion: boolean;
   obra_social: { nombre: string } | null;
 }
 
@@ -38,7 +39,7 @@ export default function Pacientes() {
     setLoading(true);
     const { data } = await supabase
       .from("pacientes")
-      .select("id, nombre, apellido, dni, telefono, activo, obra_social:obras_sociales(nombre)")
+      .select("id, nombre, apellido, dni, telefono, activo, pendiente_validacion, obra_social:obras_sociales(nombre)")
       .order("apellido");
     setRows((data ?? []) as unknown as Row[]);
     setLoading(false);
@@ -119,7 +120,12 @@ export default function Pacientes() {
                     <TableCell>{p.telefono ?? "—"}</TableCell>
                     <TableCell>{p.obra_social?.nombre ?? "—"}</TableCell>
                     <TableCell>
-                      {p.activo ? <Badge>Activo</Badge> : <Badge variant="secondary">Inactivo</Badge>}
+                      <div className="flex flex-wrap gap-1">
+                        {p.activo ? <Badge>Activo</Badge> : <Badge variant="secondary">Inactivo</Badge>}
+                        {p.pendiente_validacion && (
+                          <Badge className="bg-yellow-400 text-yellow-950 hover:bg-yellow-400/80 border-transparent">Datos incompletos</Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       {can("pacientes", "update") ? (
