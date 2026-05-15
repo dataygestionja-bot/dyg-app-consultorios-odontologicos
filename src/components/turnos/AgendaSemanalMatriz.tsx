@@ -162,6 +162,23 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
     setLoading(false);
   }
 
+  async function confirmarCancelacion() {
+    if (!turnoCancelar) return;
+    setCancelando(true);
+    const { error } = await supabase
+      .from("turnos")
+      .update({ estado: "cancelado" })
+      .eq("id", turnoCancelar.id);
+    setCancelando(false);
+    if (error) {
+      toast.error("No se pudo cancelar el turno", { description: error.message });
+      return;
+    }
+    toast.success("Turno cancelado");
+    setTurnoCancelar(null);
+    cargarDatos();
+  }
+
   useEffect(() => {
     cargarDatos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
