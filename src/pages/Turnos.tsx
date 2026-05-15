@@ -594,10 +594,11 @@ export default function Turnos() {
         </div>
       </div>
 
-      <Tabs value={vista} onValueChange={(v) => setVista(v as "dia" | "semana")}>
+      <Tabs value={vista} onValueChange={(v) => setVista(v as "dia" | "semana" | "matriz")}>
         <TabsList>
           <TabsTrigger value="dia">Día</TabsTrigger>
           <TabsTrigger value="semana">Semana</TabsTrigger>
+          <TabsTrigger value="matriz">Matriz semanal</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dia">
