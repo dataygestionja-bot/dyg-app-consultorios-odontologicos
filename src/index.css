@@ -131,6 +131,20 @@
     --sidebar-accent-foreground: 210 30% 96%;
     --sidebar-border: 215 28% 18%;
     --sidebar-ring: 187 75% 55%;
+
+    /* Agenda semanal (matriz) - dark */
+    --agenda-manana: 45 60% 35%;
+    --agenda-manana-fg: 45 90% 90%;
+    --agenda-tarde: 142 40% 30%;
+    --agenda-tarde-fg: 142 70% 88%;
+    --agenda-noche: 217 50% 35%;
+    --agenda-noche-fg: 217 80% 92%;
+    --agenda-libre: 0 50% 35%;
+    --agenda-libre-fg: 0 80% 92%;
+    --agenda-ausencia: 14 55% 35%;
+    --agenda-ausencia-fg: 14 80% 92%;
+    --agenda-festivo: 270 40% 38%;
+    --agenda-festivo-fg: 270 70% 92%;
   }
 }
 
