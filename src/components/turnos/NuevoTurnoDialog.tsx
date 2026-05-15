@@ -160,18 +160,10 @@ export default function NuevoTurnoDialog({
     return slots;
   }, [horariosDia, turnosOcupados, bloqueosDia]);
 
-  const pacientesFiltrados = useMemo(() => {
-    if (!busqueda) return pacientes.slice(0, 50);
-    const s = busqueda.toLowerCase();
-    return pacientes
-      .filter(
-        (p) =>
-          p.apellido.toLowerCase().includes(s) ||
-          p.nombre.toLowerCase().includes(s) ||
-          p.dni.toLowerCase().includes(s),
-      )
-      .slice(0, 50);
-  }, [pacientes, busqueda]);
+  const pacienteSeleccionado = useMemo(
+    () => pacientes.find((p) => p.id === pacienteId) ?? null,
+    [pacientes, pacienteId],
+  );
 
   async function guardar() {
     if (!pacienteId) return toast.error("Seleccioná un paciente");
