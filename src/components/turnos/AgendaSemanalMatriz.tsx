@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { TURNO_ESTADO_LABELS, TURNO_ESTADO_CLASSES, type TurnoEstado } from "@/lib/constants";
 import NuevoTurnoDialog from "./NuevoTurnoDialog";
 import { ReprogramarDialog } from "./ReprogramarDialog";
+import WhatsAppTurnoButton from "./WhatsAppTurnoButton";
 
 interface Profesional {
   id: string;
@@ -456,6 +457,18 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                             )}
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
+                            <WhatsAppTurnoButton
+                              telefono={t.paciente?.telefono ?? null}
+                              nombrePaciente={
+                                t.paciente
+                                  ? `${t.paciente.nombre} ${t.paciente.apellido}`.trim()
+                                  : "Paciente"
+                              }
+                              nombreProfesional={`${detalle!.prof.nombre} ${detalle!.prof.apellido}`}
+                              fecha={t.fecha}
+                              hora={t.hora_inicio}
+                              size="sm"
+                            />
                             <Badge className={TURNO_ESTADO_CLASSES[t.estado] ?? ""}>
                               {TURNO_ESTADO_LABELS[t.estado] ?? t.estado}
                             </Badge>
