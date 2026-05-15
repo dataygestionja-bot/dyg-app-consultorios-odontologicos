@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { addDays, format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarClock, Check, Clock, MoreVertical, Plus, XCircle } from "lucide-react";
+import { CalendarClock, Check, Clock, Pencil, Plus, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TURNO_ESTADO_LABELS, TURNO_ESTADO_CLASSES, type TurnoEstado } from "@/lib/constants";
@@ -476,8 +476,8 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-7 w-7">
-                                    <MoreVertical className="h-4 w-4" />
-                                    <span className="sr-only">Acciones</span>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    <span className="sr-only">Editar</span>
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
