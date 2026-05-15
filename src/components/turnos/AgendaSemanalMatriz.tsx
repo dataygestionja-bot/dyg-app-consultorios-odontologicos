@@ -357,7 +357,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                   const info = cellFor(p, d);
                   const esHoy = format(d, "yyyy-MM-dd") === hoyStr;
                   return (
-                    <td key={d.toISOString()} className={cn("border-b p-1.5 align-top", esHoy && "bg-primary/5")}>
+                    <td key={d.toISOString()} className={cn("border-b p-1.5 align-top", esHoy && "bg-[hsl(120,100%,25%)]/10")}>
                       <button
                         type="button"
                         onClick={() => setDetalle({ prof: p, fecha: d })}
