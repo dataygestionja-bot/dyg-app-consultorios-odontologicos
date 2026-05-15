@@ -43,23 +43,22 @@ export default function Turnos() {
             className="w-[200px]"
           />
           <div className="flex items-center gap-1 rounded-md border">
-            <Button variant="ghost" size="icon" onClick={() => setFecha(addDays(fecha, -7))}>
+            <Button variant="ghost" size="icon" onClick={() => setFecha(addDays(inicio, -7))}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Input
               type="date"
-              value={safeFormat(fecha, "yyyy-MM-dd")}
+              value={safeFormat(inicio, "yyyy-MM-dd")}
               onChange={(e) => {
                 const d = safeParseISO(e.target.value);
                 if (d) setFecha(d);
               }}
               className="w-[150px] border-0 focus-visible:ring-0"
             />
-            <Button variant="ghost" size="icon" onClick={() => setFecha(addDays(fecha, 7))}>
+            <Button variant="ghost" size="icon" onClick={() => setFecha(addDays(inicio, 7))}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setFecha(new Date())}>Hoy</Button>
         </div>
       </div>
 
