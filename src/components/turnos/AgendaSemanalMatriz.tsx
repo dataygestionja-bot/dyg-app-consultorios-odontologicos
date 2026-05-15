@@ -122,6 +122,9 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
   const [turnos, setTurnos] = useState<TurnoLite[]>([]);
   const [detalle, setDetalle] = useState<{ prof: Profesional; fecha: Date } | null>(null);
   const [nuevoTurnoOpen, setNuevoTurnoOpen] = useState(false);
+  const [turnoReprogramar, setTurnoReprogramar] = useState<TurnoLite | null>(null);
+  const [turnoCancelar, setTurnoCancelar] = useState<TurnoLite | null>(null);
+  const [cancelando, setCancelando] = useState(false);
 
   const dias = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(semanaInicio, i)),
