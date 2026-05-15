@@ -293,8 +293,13 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
         <table className="w-full border-separate border-spacing-0 text-sm">
           <thead>
             <tr>
-              <th className="sticky left-0 top-0 z-30 w-[260px] min-w-[260px] border-b border-r bg-muted p-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground shadow-[2px_0_4px_-2px_hsl(var(--foreground)/0.15)]">
-                Profesional
+              <th className="sticky left-0 top-0 z-30 w-[260px] min-w-[260px] border-b border-r bg-primary p-3 text-center text-xs font-semibold uppercase tracking-wide text-primary-foreground shadow-[2px_0_4px_-2px_hsl(var(--foreground)/0.15)]">
+                <div className="flex flex-col items-center gap-0.5">
+                  <span>Profesional</span>
+                  <span className="text-[10px] font-normal normal-case opacity-90">
+                    Semana del {format(dias[0], "d MMM", { locale: es })} al {format(dias[6], "d MMM yyyy", { locale: es })}
+                  </span>
+                </div>
               </th>
               {dias.map((d) => {
                 const esHoy = format(d, "yyyy-MM-dd") === hoyStr;
@@ -302,17 +307,15 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                   <th
                     key={d.toISOString()}
                     className={cn(
-                      "sticky top-0 z-20 min-w-[140px] border-b bg-muted p-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground shadow-[0_2px_4px_-2px_hsl(var(--foreground)/0.12)]",
-                      esHoy && "bg-primary/15 text-primary border-b-2 border-b-primary"
+                      "sticky top-0 z-20 min-w-[140px] border-b bg-primary p-3 text-center text-xs font-semibold uppercase tracking-wide text-primary-foreground shadow-[0_2px_4px_-2px_hsl(var(--foreground)/0.12)]",
+                      esHoy && "ring-2 ring-inset ring-primary-foreground/60"
                     )}
                   >
                     <div className="flex items-baseline justify-center gap-1">
                       <span>{format(d, "EEE", { locale: es })}</span>
-                      <span className={cn(esHoy ? "text-primary" : "text-foreground")}>
-                        {format(d, "d", { locale: es })}
-                      </span>
+                      <span>{format(d, "d", { locale: es })}</span>
                       {esHoy && (
-                        <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">
+                        <span className="ml-1 rounded-full bg-primary-foreground px-1.5 py-0.5 text-[9px] font-bold text-primary">
                           HOY
                         </span>
                       )}
