@@ -78,7 +78,13 @@ export default function Profesionales() {
                 rows.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell>
-                      <div className="h-5 w-5 rounded-full border" style={{ backgroundColor: p.color_agenda }} />
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          {p.foto_url && <AvatarImage src={p.foto_url} alt={`${p.apellido} ${p.nombre}`} />}
+                          <AvatarFallback className="text-xs">{(p.apellido[0] ?? "") + (p.nombre[0] ?? "")}</AvatarFallback>
+                        </Avatar>
+                        <div className="h-3 w-3 rounded-full border" style={{ backgroundColor: p.color_agenda }} />
+                      </div>
                     </TableCell>
                     <TableCell className="font-medium">{p.apellido}, {p.nombre}</TableCell>
                     <TableCell>{p.matricula ?? "—"}</TableCell>
