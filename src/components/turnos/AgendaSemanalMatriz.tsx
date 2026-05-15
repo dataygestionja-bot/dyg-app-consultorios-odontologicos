@@ -308,7 +308,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                     key={d.toISOString()}
                     className={cn(
                       "sticky top-0 z-20 min-w-[140px] border-b bg-primary p-3 text-center text-xs font-semibold uppercase tracking-wide text-primary-foreground shadow-[0_2px_4px_-2px_hsl(var(--foreground)/0.12)]",
-                      esHoy && "ring-2 ring-inset ring-primary-foreground/60"
+                      esHoy && "bg-[hsl(120,100%,25%)]"
                     )}
                   >
                     <div className="flex items-baseline justify-center gap-1">
@@ -357,7 +357,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                   const info = cellFor(p, d);
                   const esHoy = format(d, "yyyy-MM-dd") === hoyStr;
                   return (
-                    <td key={d.toISOString()} className={cn("border-b p-1.5 align-top", esHoy && "bg-primary/5")}>
+                    <td key={d.toISOString()} className={cn("border-b p-1.5 align-top", esHoy && "bg-[hsl(120,100%,25%)]/10")}>
                       <button
                         type="button"
                         onClick={() => setDetalle({ prof: p, fecha: d })}
