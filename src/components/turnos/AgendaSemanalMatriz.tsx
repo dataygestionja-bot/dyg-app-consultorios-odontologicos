@@ -47,7 +47,7 @@ interface TurnoLite {
   paciente?: { nombre: string; apellido: string } | null;
 }
 
-type CellKind = "festivo" | "ausencia" | "libre" | "pocos" | "medio" | "lleno";
+type CellKind = "festivo" | "ausencia" | "libre" | "sinturnos" | "pocos" | "medio" | "lleno";
 
 interface CellInfo {
   kind: CellKind;
@@ -61,13 +61,14 @@ const KIND_CLASSES: Record<CellKind, string> = {
   festivo: "bg-[hsl(var(--agenda-festivo))] text-[hsl(var(--agenda-festivo-fg))]",
   ausencia: "bg-[hsl(var(--agenda-ausencia))] text-[hsl(var(--agenda-ausencia-fg))]",
   libre: "bg-[hsl(var(--agenda-libre))] text-[hsl(var(--agenda-libre-fg))]",
+  sinturnos: "bg-[hsl(var(--agenda-sinturnos))] text-[hsl(var(--agenda-sinturnos-fg))]",
   pocos: "bg-[hsl(var(--agenda-pocos))] text-[hsl(var(--agenda-pocos-fg))]",
   medio: "bg-[hsl(var(--agenda-medio))] text-[hsl(var(--agenda-medio-fg))]",
   lleno: "bg-[hsl(var(--agenda-lleno))] text-[hsl(var(--agenda-lleno-fg))]",
 };
 
-function clasificarCarga(count: number): "libre" | "pocos" | "medio" | "lleno" {
-  if (count === 0) return "libre";
+function clasificarCarga(count: number): "sinturnos" | "pocos" | "medio" | "lleno" {
+  if (count === 0) return "sinturnos";
   if (count <= 3) return "pocos";
   if (count <= 6) return "medio";
   return "lleno";
@@ -187,13 +188,9 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
     const hf = horariosDia[horariosDia.length - 1].hora_fin.slice(0, 5);
     const kind = clasificarCarga(count);
     const label =
-      kind === "libre"
+      kind === "sinturnos"
         ? "Sin turnos"
-        : kind === "pocos"
-        ? `${count} turno${count === 1 ? "" : "s"}`
-        : kind === "medio"
-        ? `${count} turnos`
-        : `${count} turnos`;
+        : `${count} turno${count === 1 ? "" : "s"}`;
     return { kind, label, rango: `${hi} - ${hf}`, count };
   }
 
@@ -322,7 +319,8 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
         <span className="font-medium">Referencias:</span>
         {(
           [
-            ["libre", "Día libre / sin turnos"],
+            ["libre", "Día libre"],
+            ["sinturnos", "Sin turnos"],
             ["pocos", "1 a 3 turnos"],
             ["medio", "4 a 6 turnos"],
             ["lleno", "7 o más turnos"],
