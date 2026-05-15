@@ -1,45 +1,27 @@
-## Objetivo
+## Cambio
 
-Agregar en la página de Turnos un botón que abra un listado simple de turnos agrupados/listados por paciente, mostrando: **paciente, fecha del turno, hora y profesional**.
+En `src/components/turnos/AgendaSemanalMatriz.tsx`, el badge "HOY" del encabezado de la columna del día actual.
 
-## UX
+### Estado actual (línea ~319)
+```tsx
+<span className="ml-1 rounded-full bg-[hsl(120,100%,25%)] px-1.5 py-0.5 text-[9px] font-bold text-white">
+  HOY
+</span>
+```
 
-- Nuevo botón **"Listar por paciente"** en la barra superior de `src/pages/Turnos.tsx`, junto al buscador y el navegador de semana.
-- Al hacer click se abre un **Dialog** (modal) con:
-  - Input de búsqueda por nombre de paciente.
-  - Filtro de rango de fechas (por defecto: la semana actual ya seleccionada en la página; con opción de cambiar "desde / hasta").
-  - Tabla simple ordenada por **paciente (A-Z)** y luego por fecha:
-    - Paciente (apellido, nombre)
-    - Fecha (dd/MM/yyyy)
-    - Hora
-    - Profesional
-    - Estado (badge)
-  - Botón para cerrar.
+Es una píldora verde con texto blanco.
 
-No se modifica la matriz semanal existente ni el backend.
+### Nuevo estilo
+- Forma: círculo perfecto (mismo ancho y alto, ej. `h-6 w-6`).
+- Fondo: blanco para que destaque sobre el verde de la cabecera.
+- Borde: negro de 1.5px (`border-2 border-black`).
+- Texto: negro, en negrita, tamaño chico (`text-[9px] font-bold`) para que entre dentro del círculo.
+- Centrado con `inline-flex items-center justify-center`.
 
-## Implementación técnica
+```tsx
+<span className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full border-2 border-black bg-white text-[9px] font-bold text-black">
+  HOY
+</span>
+```
 
-**Archivos:**
-
-1. **Nuevo:** `src/components/turnos/ListadoPorPacienteDialog.tsx`
-   - Componente con `Dialog` de shadcn.
-   - Props: `open`, `onOpenChange`, `fechaInicial: Date` (la semana actual de la página).
-   - Estado interno: `desde`, `hasta`, `search`.
-   - Query a Supabase:
-     ```ts
-     supabase.from("turnos")
-       .select("id, fecha, hora_inicio, estado, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido)")
-       .gte("fecha", desde).lte("fecha", hasta)
-       .order("fecha", { ascending: true })
-     ```
-   - Orden en cliente por `apellido, nombre` del paciente y luego fecha/hora.
-   - Filtrado en cliente por `search` (apellido + nombre).
-   - Render con `Table` de shadcn + `Badge` con `TURNO_ESTADO_LABELS` / `TURNO_ESTADO_CLASSES`.
-
-2. **Editar:** `src/pages/Turnos.tsx`
-   - Agregar estado `listadoOpen`.
-   - Botón `<Button variant="outline">Listar por paciente</Button>` en la barra de acciones.
-   - Renderizar `<ListadoPorPacienteDialog open=... onOpenChange=... fechaInicial={inicio} />`.
-
-Sin cambios de schema ni de RLS (se usa el mismo acceso a `turnos` que ya tiene `AgendaSemanalMatriz`).
+No se tocan otros estilos (fondo verde de la columna, header, etc.).
