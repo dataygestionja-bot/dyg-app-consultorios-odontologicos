@@ -307,7 +307,11 @@ export default function NuevoTurnoDialog({
                           type="button"
                           variant={selected ? "default" : "outline"}
                           size="sm"
-                          className="h-8 px-2 text-xs font-medium"
+                          className={cn(
+                            "h-8 px-2 text-xs font-medium transition-all",
+                            selected &&
+                              "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.03]",
+                          )}
                           onClick={() => setSlot(s.key)}
                         >
                           {s.inicio}
@@ -340,6 +344,36 @@ export default function NuevoTurnoDialog({
               </div>
             </div>
           )}
+
+          {(() => {
+            let preview: { inicio: string; fin: string } | null = null;
+            if (sobreturno && horaManual) {
+              const start = toMin(horaManual);
+              const end = start + (duracionManual || 30);
+              preview = { inicio: horaManual, fin: fromMin(end) };
+            } else if (!sobreturno && slot) {
+              const [hi, hf] = slot.split("-");
+              preview = { inicio: hi, fin: hf };
+            }
+            if (!preview) return null;
+            const dur = toMin(preview.fin) - toMin(preview.inicio);
+            return (
+              <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-primary">
+                  Horario seleccionado
+                </div>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-lg font-semibold tabular-nums text-foreground">
+                    {preview.inicio} – {preview.fin}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    ({dur} min{sobreturno ? " · sobreturno" : ""})
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+
 
           <div className="space-y-2">
             <Label>Motivo de consulta</Label>
