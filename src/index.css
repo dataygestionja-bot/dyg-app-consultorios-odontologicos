@@ -72,6 +72,8 @@
     /* Agenda semanal (matriz) */
    --agenda-libre: 220 12% 88%;
    --agenda-libre-fg: 220 15% 30%;
+   --agenda-sinturnos: 142 65% 82%;
+   --agenda-sinturnos-fg: 145 60% 22%;
    --agenda-pocos: 217 90% 85%;
    --agenda-pocos-fg: 217 70% 25%;
    --agenda-medio: 270 75% 88%;
