@@ -21,6 +21,7 @@ import { format, addDays, startOfWeek, parseISO, isSameDay, isValid } from "date
 import { es } from "date-fns/locale";
 import { TURNO_ESTADOS, TURNO_ESTADO_LABELS, TURNO_ESTADO_CLASSES, type TurnoEstado } from "@/lib/constants";
 import { WhatsAppTurnoButton } from "@/components/turnos/WhatsAppTurnoButton";
+import { AgendaSemanalMatriz } from "@/components/turnos/AgendaSemanalMatriz";
 
 const safeFormat = (d: Date | null | undefined, fmt: string, opts?: Parameters<typeof format>[2]) => {
   if (!d || !isValid(d)) return "";
@@ -114,7 +115,7 @@ export default function Turnos() {
   const [bloqueos, setBloqueos] = useState<Bloqueo[]>([]);
   const [profSel, setProfSel] = useState<string>("");
   const [fecha, setFecha] = useState<Date>(new Date());
-  const [vista, setVista] = useState<"dia" | "semana">("dia");
+  const [vista, setVista] = useState<"dia" | "semana" | "matriz">("dia");
 
   // Dialog
   const [open, setOpen] = useState(false);
@@ -593,10 +594,11 @@ export default function Turnos() {
         </div>
       </div>
 
-      <Tabs value={vista} onValueChange={(v) => setVista(v as "dia" | "semana")}>
+      <Tabs value={vista} onValueChange={(v) => setVista(v as "dia" | "semana" | "matriz")}>
         <TabsList>
           <TabsTrigger value="dia">Día</TabsTrigger>
           <TabsTrigger value="semana">Semana</TabsTrigger>
+          <TabsTrigger value="matriz">Matriz semanal</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dia">
@@ -641,6 +643,25 @@ export default function Turnos() {
               />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="matriz">
+          {(() => {
+            const inicio = startOfWeek(fecha, { weekStartsOn: 1 });
+            const fin = addDays(inicio, 6);
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    Semana del {safeFormat(inicio, "d MMM", { locale: es })} al {safeFormat(fin, "d MMM yyyy", { locale: es })}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AgendaSemanalMatriz semanaInicio={inicio} filtroProfesional={profSel} />
+                </CardContent>
+              </Card>
+            );
+          })()}
         </TabsContent>
       </Tabs>
 
