@@ -223,29 +223,59 @@ export default function NuevoTurnoDialog({
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label>Paciente</Label>
-            <Input
-              placeholder="Buscar por nombre, apellido o DNI..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-            />
-            <Select value={pacienteId} onValueChange={setPacienteId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar paciente..." />
-              </SelectTrigger>
-              <SelectContent>
-                {pacientesFiltrados.length === 0 ? (
-                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                    Sin resultados
-                  </div>
-                ) : (
-                  pacientesFiltrados.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.apellido}, {p.nombre} — {p.dni}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+            <Popover open={pacientePopoverOpen} onOpenChange={setPacientePopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={pacientePopoverOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  <span className={cn("truncate", !pacienteSeleccionado && "text-muted-foreground")}>
+                    {pacienteSeleccionado
+                      ? `${pacienteSeleccionado.apellido}, ${pacienteSeleccionado.nombre} — ${pacienteSeleccionado.dni}`
+                      : "Buscar paciente por nombre, apellido o DNI..."}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command
+                  filter={(value, search) => {
+                    if (!search) return 1;
+                    return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                  }}
+                >
+                  <CommandInput placeholder="Escribí nombre, apellido o DNI..." />
+                  <CommandList>
+                    <CommandEmpty>Sin resultados.</CommandEmpty>
+                    <CommandGroup>
+                      {pacientes.map((p) => {
+                        const label = `${p.apellido}, ${p.nombre} — ${p.dni}`;
+                        return (
+                          <CommandItem
+                            key={p.id}
+                            value={`${p.apellido} ${p.nombre} ${p.dni}`}
+                            onSelect={() => {
+                              setPacienteId(p.id);
+                              setPacientePopoverOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                pacienteId === p.id ? "opacity-100" : "opacity-0",
+                              )}
+                            />
+                            {label}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="flex items-center gap-2">
