@@ -142,7 +142,10 @@ export default function ListadoPorPacienteDialog({ open, onOpenChange, fechaInic
           </Table>
         </div>
 
-        <div className="text-xs text-muted-foreground">{filtered.length} turno(s)</div>
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-muted-foreground">{filtered.length} turno(s)</div>
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cerrar</Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
