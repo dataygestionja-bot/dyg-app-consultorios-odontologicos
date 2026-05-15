@@ -47,7 +47,7 @@ interface TurnoLite {
   paciente?: { nombre: string; apellido: string } | null;
 }
 
-type CellKind = "festivo" | "ausencia" | "libre" | "manana" | "tarde" | "noche";
+type CellKind = "festivo" | "ausencia" | "libre" | "pocos" | "medio" | "lleno";
 
 interface CellInfo {
   kind: CellKind;
@@ -61,16 +61,16 @@ const KIND_CLASSES: Record<CellKind, string> = {
   festivo: "bg-[hsl(var(--agenda-festivo))] text-[hsl(var(--agenda-festivo-fg))]",
   ausencia: "bg-[hsl(var(--agenda-ausencia))] text-[hsl(var(--agenda-ausencia-fg))]",
   libre: "bg-[hsl(var(--agenda-libre))] text-[hsl(var(--agenda-libre-fg))]",
-  manana: "bg-[hsl(var(--agenda-manana))] text-[hsl(var(--agenda-manana-fg))]",
-  tarde: "bg-[hsl(var(--agenda-tarde))] text-[hsl(var(--agenda-tarde-fg))]",
-  noche: "bg-[hsl(var(--agenda-noche))] text-[hsl(var(--agenda-noche-fg))]",
+  pocos: "bg-[hsl(var(--agenda-pocos))] text-[hsl(var(--agenda-pocos-fg))]",
+  medio: "bg-[hsl(var(--agenda-medio))] text-[hsl(var(--agenda-medio-fg))]",
+  lleno: "bg-[hsl(var(--agenda-lleno))] text-[hsl(var(--agenda-lleno-fg))]",
 };
 
-function clasificarTurno(horaInicio: string): "manana" | "tarde" | "noche" {
-  const h = parseInt(horaInicio.slice(0, 2), 10);
-  if (h < 13) return "manana";
-  if (h < 19) return "tarde";
-  return "noche";
+function clasificarCarga(count: number): "libre" | "pocos" | "medio" | "lleno" {
+  if (count === 0) return "libre";
+  if (count <= 3) return "pocos";
+  if (count <= 6) return "medio";
+  return "lleno";
 }
 
 function MOTIVO_LABEL(m: string): string {
@@ -185,8 +185,15 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
     horariosDia.sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
     const hi = horariosDia[0].hora_inicio.slice(0, 5);
     const hf = horariosDia[horariosDia.length - 1].hora_fin.slice(0, 5);
-    const kind = clasificarTurno(hi);
-    const label = kind === "manana" ? "Mañana" : kind === "tarde" ? "Tarde" : "Noche";
+    const kind = clasificarCarga(count);
+    const label =
+      kind === "libre"
+        ? "Sin turnos"
+        : kind === "pocos"
+        ? `${count} turno${count === 1 ? "" : "s"}`
+        : kind === "medio"
+        ? `${count} turnos`
+        : `${count} turnos`;
     return { kind, label, rango: `${hi} - ${hf}`, count };
   }
 
@@ -315,12 +322,12 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
         <span className="font-medium">Referencias:</span>
         {(
           [
-            ["manana", "Mañana"],
-            ["tarde", "Tarde"],
-            ["noche", "Noche"],
-            ["libre", "Día libre"],
+            ["libre", "Día libre / sin turnos"],
+            ["pocos", "1 a 3 turnos"],
+            ["medio", "4 a 6 turnos"],
+            ["lleno", "7 o más turnos"],
             ["ausencia", "Ausencia"],
-            ["festivo", "Festivo"],
+            ["festivo", "Feriado"],
           ] as [CellKind, string][]
         ).map(([k, l]) => (
           <span key={k} className="inline-flex items-center gap-1.5">
