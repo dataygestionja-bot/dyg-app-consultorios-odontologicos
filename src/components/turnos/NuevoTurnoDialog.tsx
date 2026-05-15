@@ -297,18 +297,25 @@ export default function NuevoTurnoDialog({
                   No hay slots libres este día. Marcá "Sobreturno" para agendar fuera de horario.
                 </p>
               ) : (
-                <Select value={slot} onValueChange={setSlot}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Elegí un horario..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {slotsLibres.map((s) => (
-                      <SelectItem key={s.key} value={s.key}>
-                        {s.inicio} - {s.fin}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="max-h-56 overflow-y-auto rounded-md border p-2">
+                  <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                    {slotsLibres.map((s) => {
+                      const selected = slot === s.key;
+                      return (
+                        <Button
+                          key={s.key}
+                          type="button"
+                          variant={selected ? "default" : "outline"}
+                          size="sm"
+                          className="h-8 px-2 text-xs font-medium"
+                          onClick={() => setSlot(s.key)}
+                        >
+                          {s.inicio}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </div>
           ) : (
