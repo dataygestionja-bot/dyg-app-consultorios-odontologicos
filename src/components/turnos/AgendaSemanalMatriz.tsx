@@ -288,7 +288,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                   <th
                     key={d.toISOString()}
                     className={cn(
-                      "sticky top-0 z-20 min-w-[140px] border-b bg-muted p-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+                      "sticky top-0 z-20 min-w-[140px] border-b bg-muted p-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground shadow-[0_2px_4px_-2px_hsl(var(--foreground)/0.12)]",
                       esHoy && "bg-primary/15 text-primary border-b-2 border-b-primary"
                     )}
                   >
