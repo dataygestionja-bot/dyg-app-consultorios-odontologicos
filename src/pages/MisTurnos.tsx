@@ -198,6 +198,15 @@ export default function MisTurnos() {
       return;
     }
     // Intentar marcar el turno como en_atencion (best effort)
+    // Solo si el turno es de hoy: no tiene sentido iniciar la atención
+    // de un turno futuro o pasado.
+    const hoy = format(new Date(), "yyyy-MM-dd");
+    if (t.fecha !== hoy) {
+      toast.error("Solo se puede iniciar la atención el día del turno", {
+        description: `Este turno es del ${t.fecha}. Hoy es ${hoy}.`,
+      });
+      return;
+    }
     if (t.estado === "reservado" || t.estado === "confirmado") {
       await supabase
         .from("turnos")
