@@ -188,13 +188,9 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
     const hf = horariosDia[horariosDia.length - 1].hora_fin.slice(0, 5);
     const kind = clasificarCarga(count);
     const label =
-      kind === "libre"
+      kind === "sinturnos"
         ? "Sin turnos"
-        : kind === "pocos"
-        ? `${count} turno${count === 1 ? "" : "s"}`
-        : kind === "medio"
-        ? `${count} turnos`
-        : `${count} turnos`;
+        : `${count} turno${count === 1 ? "" : "s"}`;
     return { kind, label, rango: `${hi} - ${hf}`, count };
   }
 
