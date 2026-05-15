@@ -535,6 +535,65 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
           }}
         />
       )}
+
+      {turnoReprogramar && (() => {
+        const prof = profesionales.find((p) => p.id === turnoReprogramar.profesional_id);
+        return (
+          <ReprogramarDialog
+            turno={{
+              id: turnoReprogramar.id,
+              profesional_id: turnoReprogramar.profesional_id,
+              fecha: turnoReprogramar.fecha,
+              hora_inicio: turnoReprogramar.hora_inicio,
+              paciente_nombre: turnoReprogramar.paciente
+                ? `${turnoReprogramar.paciente.nombre} ${turnoReprogramar.paciente.apellido}`.trim()
+                : "Paciente",
+              paciente_telefono: turnoReprogramar.paciente?.telefono ?? null,
+              profesional_nombre: prof ? `${prof.nombre} ${prof.apellido}` : "",
+            }}
+            onClose={() => setTurnoReprogramar(null)}
+            onDone={() => {
+              setTurnoReprogramar(null);
+              cargarDatos();
+            }}
+          />
+        );
+      })()}
+
+      <AlertDialog open={!!turnoCancelar} onOpenChange={(v) => { if (!v && !cancelando) setTurnoCancelar(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cancelar este turno?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {turnoCancelar && (
+                <>
+                  Se cancelará el turno de{" "}
+                  <span className="font-medium text-foreground">
+                    {turnoCancelar.paciente
+                      ? `${turnoCancelar.paciente.apellido}, ${turnoCancelar.paciente.nombre}`
+                      : "el paciente"}
+                  </span>{" "}
+                  a las{" "}
+                  <span className="font-medium text-foreground">
+                    {turnoCancelar.hora_inicio.slice(0, 5)}
+                  </span>
+                  . Esta acción no se puede deshacer.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelando}>Volver</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmarCancelacion(); }}
+              disabled={cancelando}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelando ? "Cancelando..." : "Sí, cancelar turno"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
