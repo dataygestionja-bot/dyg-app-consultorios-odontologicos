@@ -81,6 +81,7 @@ export default function ProfesionalForm() {
       especialidad: form.especialidad || null,
       telefono: form.telefono || null,
       email: form.email || null,
+      foto_url: form.foto_url || null,
     };
     const res = isEdit
       ? await supabase.from("profesionales").update(payload).eq("id", id!)
@@ -90,6 +91,36 @@ export default function ProfesionalForm() {
     toast.success(isEdit ? "Profesional actualizado" : "Profesional creado");
     navigate("/profesionales");
   }
+
+  async function onFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return toast.error("Debe ser una imagen");
+    if (file.size > 2 * 1024 * 1024) return toast.error("Máximo 2 MB");
+    if (!isEdit) return toast.error("Guardá primero el profesional");
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${id}/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("profesionales-fotos").upload(path, file, { upsert: true, contentType: file.type });
+    if (upErr) { setUploading(false); return toast.error("No se pudo subir", { description: upErr.message }); }
+    const { data: pub } = supabase.storage.from("profesionales-fotos").getPublicUrl(path);
+    const url = pub.publicUrl;
+    const { error: updErr } = await supabase.from("profesionales").update({ foto_url: url } as any).eq("id", id!);
+    setUploading(false);
+    if (updErr) return toast.error("No se pudo guardar la foto", { description: updErr.message });
+    set("foto_url", url);
+    toast.success("Foto actualizada");
+  }
+
+  async function quitarFoto() {
+    if (!isEdit) return;
+    const { error } = await supabase.from("profesionales").update({ foto_url: null } as any).eq("id", id!);
+    if (error) return toast.error("Error", { description: error.message });
+    set("foto_url", "");
+    toast.success("Foto eliminada");
+  }
+
 
   function addHorario() {
     setHorarios((h) => [...h, { dia_semana: 1, hora_inicio: "09:00", hora_fin: "13:00", duracion_slot_min: 30, activo: true }]);
