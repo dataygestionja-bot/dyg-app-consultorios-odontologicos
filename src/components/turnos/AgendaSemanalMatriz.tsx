@@ -102,42 +102,46 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
   const [bloqueos, setBloqueos] = useState<Bloqueo[]>([]);
   const [turnos, setTurnos] = useState<TurnoLite[]>([]);
   const [detalle, setDetalle] = useState<{ prof: Profesional; fecha: Date } | null>(null);
+  const [nuevoTurnoOpen, setNuevoTurnoOpen] = useState(false);
 
   const dias = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(semanaInicio, i)),
     [semanaInicio]
   );
 
+  async function cargarDatos() {
+    setLoading(true);
+    const desde = format(semanaInicio, "yyyy-MM-dd");
+    const hasta = format(addDays(semanaInicio, 6), "yyyy-MM-dd");
+    const [pr, ho, bl, tu] = await Promise.all([
+      supabase
+        .from("profesionales")
+        .select("id, nombre, apellido, especialidad, foto_url, color_agenda")
+        .eq("activo", true)
+        .order("apellido"),
+      supabase.from("horarios_profesional").select("*").eq("activo", true),
+      supabase
+        .from("bloqueos_agenda")
+        .select("id, profesional_id, fecha_desde, fecha_hasta, todo_el_dia, hora_desde, hora_hasta, motivo")
+        .eq("estado", "activo")
+        .lte("fecha_desde", hasta)
+        .gte("fecha_hasta", desde),
+      supabase
+        .from("turnos")
+        .select("id, profesional_id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido)")
+        .gte("fecha", desde)
+        .lte("fecha", hasta),
+    ]);
+    setProfesionales((pr.data ?? []) as Profesional[]);
+    setHorarios((ho.data ?? []) as Horario[]);
+    setBloqueos((bl.data ?? []) as Bloqueo[]);
+    setTurnos((tu.data ?? []) as unknown as TurnoLite[]);
+    setLoading(false);
+  }
+
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const desde = format(semanaInicio, "yyyy-MM-dd");
-      const hasta = format(addDays(semanaInicio, 6), "yyyy-MM-dd");
-      const [pr, ho, bl, tu] = await Promise.all([
-        supabase
-          .from("profesionales")
-          .select("id, nombre, apellido, especialidad, foto_url, color_agenda")
-          .eq("activo", true)
-          .order("apellido"),
-        supabase.from("horarios_profesional").select("*").eq("activo", true),
-        supabase
-          .from("bloqueos_agenda")
-          .select("id, profesional_id, fecha_desde, fecha_hasta, todo_el_dia, hora_desde, hora_hasta, motivo")
-          .eq("estado", "activo")
-          .lte("fecha_desde", hasta)
-          .gte("fecha_hasta", desde),
-        supabase
-          .from("turnos")
-          .select("id, profesional_id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido)")
-          .gte("fecha", desde)
-          .lte("fecha", hasta),
-      ]);
-      setProfesionales((pr.data ?? []) as Profesional[]);
-      setHorarios((ho.data ?? []) as Horario[]);
-      setBloqueos((bl.data ?? []) as Bloqueo[]);
-      setTurnos((tu.data ?? []) as unknown as TurnoLite[]);
-      setLoading(false);
-    })();
+    cargarDatos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [semanaInicio]);
 
   const filas = useMemo(() => {
