@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { TURNO_ESTADO_LABELS, TURNO_ESTADO_CLASSES, type TurnoEstado } from "@/lib/constants";
 import NuevoTurnoDialog from "./NuevoTurnoDialog";
 import { ReprogramarDialog } from "./ReprogramarDialog";
+import WhatsAppTurnoButton from "./WhatsAppTurnoButton";
 
 interface Profesional {
   id: string;
