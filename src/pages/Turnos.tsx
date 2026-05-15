@@ -78,6 +78,8 @@ export default function Turnos() {
           <AgendaSemanalMatriz semanaInicio={inicio} search={search} />
         </CardContent>
       </Card>
+
+      <ListadoPorPacienteDialog open={listadoOpen} onOpenChange={setListadoOpen} fechaInicial={inicio} />
     </div>
   );
 }
