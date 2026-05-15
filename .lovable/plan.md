@@ -1,44 +1,40 @@
 ## Objetivo
 
-En la página pública de solicitud de turnos (`/reservar`), el campo de celular debe:
-- Mostrar **`549`** como prefijo fijo no editable (sin el signo `+`).
-- Permitir al usuario ingresar **solo los 10 dígitos restantes** (código de área + número, sin 0 y sin 15).
-- Enviar al backend el número completo de **13 dígitos** (`549XXXXXXXXXX`).
+Permitir subir y mostrar una foto de perfil para cada profesional, como base para la futura vista semanal de turnos.
 
-## Cambios técnicos
+## Cambios
 
-**Archivo a modificar:** `src/pages/public/ReservarTurno.tsx`
+### 1. Base de datos (migración)
 
-### 1. UI del campo teléfono
-- Reemplazar el `<Input>` simple por un grupo compuesto:
-  - Un addon a la izquierda con el texto fijo **`549`** (estilo `bg-muted`, no editable, visualmente integrado al input).
-  - El `<Input>` editable a la derecha, con:
-    - `maxLength={10}`
-    - `inputMode="numeric"`
-    - `placeholder="1123456789"`
-    - Filtro en `onChange`: `e.target.value.replace(/\D/g, "")` para aceptar solo dígitos.
+- Agregar columna `foto_url text` (nullable) a `profesionales`.
+- Crear bucket de Storage `profesionales-fotos` (público, para que la URL pueda mostrarse directamente).
+- Políticas RLS sobre `storage.objects`:
+  - SELECT público (cualquiera puede ver las fotos).
+  - INSERT / UPDATE / DELETE solo para admin (`has_role(auth.uid(), 'admin')`), que es el rol que ya gestiona profesionales.
 
-### 2. Texto de ayuda
-Actualizar el helper text debajo del campo:
-> *"Ingresá los 10 dígitos sin 0 y sin 15 (código de área + número). El prefijo 549 ya está incluido."*
+### 2. Formulario de profesional (`src/pages/ProfesionalForm.tsx`)
 
-### 3. Validación
-En `validarForm`, validar que `form.telefono` cumpla exactamente con `/^\d{10}$/`. Mensaje de error:
-> *"El teléfono debe tener exactamente 10 dígitos."*
+- Nuevo bloque "Foto de perfil":
+  - Avatar (preview circular) con la foto actual o iniciales como fallback.
+  - Botón "Subir foto" → input file (acepta `image/*`, máx. 2 MB).
+  - Botón "Quitar foto" si ya hay una cargada.
+- Al seleccionar archivo:
+  - Subir a `profesionales-fotos/{profesional_id}/{timestamp}.{ext}` con `upsert: true`.
+  - Obtener la public URL y guardarla en `foto_url`.
+  - Mostrar toast de éxito/error.
+- Si el profesional es nuevo (sin id), se sube recién después de guardar el alta.
 
-### 4. Envío al backend
-En `handleSubmit`, concatenar el prefijo antes de invocar la edge function:
+### 3. Listado de profesionales (`src/pages/Profesionales.tsx`)
 
-```typescript
-const response = await supabase.functions.invoke("public_solicitar_turno", {
-  body: { 
-    ...form, 
-    telefono: `549${form.telefono}` // 13 dígitos totales
-  },
-});
-```
+- Agregar columna con `Avatar` mostrando la foto (fallback a iniciales `Apellido[0]+Nombre[0]`), reemplazando o acompañando el círculo de color de agenda.
+- Incluir `foto_url` en el `select`.
 
-## Fuera de alcance
-- No se modifica la edge function `public_solicitar_turno` (sigue recibiendo el teléfono ya armado).
-- No se modifican otros formularios de teléfono del sistema (solo el público).
-- No se agrega el signo `+` en ningún punto.
+## Notas técnicas
+
+- Bucket público = URLs estables tipo `https://<proj>.supabase.co/storage/v1/object/public/profesionales-fotos/...`.
+- Validación de tamaño/tipo en el cliente (no se agrega edge function).
+- `foto_url` queda libre para que más adelante la vista semanal y otros lugares (header, agenda) la consuman sin migrar de nuevo.
+
+## Próximo paso (fuera de este plan)
+
+Una vez aprobado y subidas las fotos, armamos la vista semanal tipo grilla (filas = profesionales con avatar, columnas = días de la semana).
