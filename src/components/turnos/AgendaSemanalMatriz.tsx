@@ -3,12 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { addDays, format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Check, Clock } from "lucide-react";
+import { Check, Clock, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TURNO_ESTADO_LABELS, TURNO_ESTADO_CLASSES, type TurnoEstado } from "@/lib/constants";
+import NuevoTurnoDialog from "./NuevoTurnoDialog";
 
 interface Profesional {
   id: string;
