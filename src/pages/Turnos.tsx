@@ -21,6 +21,7 @@ const safeParseISO = (s: string | null | undefined): Date | null => {
 export default function Turnos() {
   const [fecha, setFecha] = useState<Date>(new Date());
   const [search, setSearch] = useState("");
+  const [listadoOpen, setListadoOpen] = useState(false);
 
   useEffect(() => {
     document.title = "Turnos | Consultorio";
