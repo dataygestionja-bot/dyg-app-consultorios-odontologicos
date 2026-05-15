@@ -151,7 +151,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
         .gte("fecha_hasta", desde),
       supabase
         .from("turnos")
-        .select("id, profesional_id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido)")
+        .select("id, profesional_id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido, telefono)")
         .gte("fecha", desde)
         .lte("fecha", hasta),
     ]);
