@@ -319,7 +319,8 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
         <span className="font-medium">Referencias:</span>
         {(
           [
-            ["libre", "Día libre / sin turnos"],
+            ["libre", "Día libre"],
+            ["sinturnos", "Sin turnos"],
             ["pocos", "1 a 3 turnos"],
             ["medio", "4 a 6 turnos"],
             ["lleno", "7 o más turnos"],
