@@ -38,7 +38,7 @@ export default function Turnos() {
           <p className="text-sm text-muted-foreground">Agenda semanal por profesional</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setListadoOpen(true)}>
+          <Button size="sm" onClick={() => setListadoOpen(true)}>
             <Users className="h-4 w-4 mr-2" />
             Listar por paciente
           </Button>
