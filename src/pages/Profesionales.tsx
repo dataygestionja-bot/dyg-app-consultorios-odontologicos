@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Plus, Pencil } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -17,6 +18,7 @@ interface Row {
   telefono: string | null;
   color_agenda: string;
   activo: boolean;
+  foto_url: string | null;
 }
 
 export default function Profesionales() {
