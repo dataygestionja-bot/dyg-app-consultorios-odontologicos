@@ -1,32 +1,36 @@
-## Problema
+## Objetivo
 
-En el diálogo "Agendar turno" hay un `Input` de búsqueda y un `Select` de paciente separados. La búsqueda filtra la lista interna pero el desplegable no se abre solo, así que parece que "no funciona" — el usuario escribe y no ve resultados.
+Agregar acciones para **reprogramar** y **cancelar** cada turno desde el panel lateral que se abre al hacer clic en una celda de la matriz semanal.
 
-Además, el `Select` de Radix sólo se filtra programáticamente; no soporta búsqueda nativa.
+## UX
 
-## Solución
+En el `Sheet` de detalle del día (en `AgendaSemanalMatriz`), cada turno listado tendrá un menú de acciones (botón con tres puntos) con:
 
-Reemplazar ambos controles por **un único combobox** (Popover + Command de cmdk, ya disponibles en el proyecto en `src/components/ui/popover.tsx` y `src/components/ui/command.tsx`).
+- **Reprogramar** — abre el `ReprogramarDialog` ya existente, que permite cambiar fecha/hora/profesional y notifica por WhatsApp.
+- **Cancelar turno** — abre un `AlertDialog` de confirmación (“¿Cancelar el turno de [paciente] a las [hora]?”). Al confirmar, el turno pasa a estado `cancelado`, se muestra `toast.success` y se refresca la matriz.
 
-### Comportamiento
+Los turnos en estado `cancelado`, `ausente`, `atendido` o `pendiente_cierre` no muestran las acciones (solo el badge de estado).
 
-- Botón con el paciente seleccionado (o placeholder "Buscar paciente...").
-- Al hacer click se abre un popover con:
-  - Campo de búsqueda al tope (focus automático).
-  - Lista filtrada en vivo por **apellido, nombre o DNI**.
-  - Mensaje "Sin resultados" si no hay coincidencias.
-- Al elegir un paciente, se cierra el popover y queda visible "Apellido, Nombre — DNI".
-- Limpieza con un botón "x" o re-abriendo y eligiendo otro.
+## Implementación técnica
 
-### Cambios
+**Archivo único: `src/components/turnos/AgendaSemanalMatriz.tsx`**
 
-1. `src/components/turnos/NuevoTurnoDialog.tsx`:
-   - Quitar el `Input` de búsqueda y el `Select` de paciente.
-   - Agregar un `PacienteCombobox` inline (o componente local) basado en `Popover` + `Command` (`CommandInput`, `CommandList`, `CommandEmpty`, `CommandItem`).
-   - Mantener `pacientes`, `pacienteId` y la carga inicial.
-   - El filtrado lo maneja `cmdk` automáticamente, pero le pasamos un `value` rico (`"apellido nombre dni"`) a cada `CommandItem` para que matchee por los tres campos.
+1. Importar `DropdownMenu`, `AlertDialog` (ya disponibles en `src/components/ui`), íconos `MoreVertical`, `CalendarClock`, `XCircle` y el componente `ReprogramarDialog`.
+2. Añadir estados locales:
+   - `turnoReprogramar: TurnoLite | null`
+   - `turnoCancelar: TurnoLite | null`
+   - `cancelando: boolean`
+3. En el render del listado de turnos del `Sheet`, junto al `Badge` de estado, agregar un `DropdownMenu` con las dos opciones (visible solo si el estado lo permite).
+4. Función `cancelarTurno(t)`:
+   ```ts
+   await supabase.from("turnos").update({ estado: "cancelado" }).eq("id", t.id);
+   ```
+   Manejo de error con `toast.error`, éxito con `toast.success("Turno cancelado")`, luego `cargarDatos()` y limpiar `turnoCancelar`.
+5. Renderizar `<ReprogramarDialog>` cuando `turnoReprogramar` esté seteado, mapeando los campos requeridos (`paciente_nombre`, `paciente_telefono`, `profesional_nombre`). Para obtener `paciente.telefono` se incluirá ese campo en la query existente de turnos: `paciente:pacientes(nombre, apellido, telefono)`.
+6. `onDone` del diálogo: cerrar y `cargarDatos()`.
+7. `AlertDialog` controlado con `turnoCancelar` para la confirmación de cancelación.
 
-### Sin cambios
+## Sin cambios
 
-- BD, RLS, lógica de slots, sobreturno, motivo, guardado, toasts, refresh.
-- Resto del flujo de la matriz.
+- Base de datos / RLS (la política `Turnos: modificacion por permiso` ya cubre el `UPDATE`).
+- `NuevoTurnoDialog`, `ReprogramarDialog`, layout de la matriz, leyenda, encabezados y resaltado del día actual.
