@@ -343,51 +343,116 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
 
       <Sheet open={!!detalle} onOpenChange={(v) => !v && setDetalle(null)}>
         <SheetContent className="w-full sm:max-w-md">
-          {detalle && (
-            <>
-              <SheetHeader>
-                <SheetTitle>
-                  {detalle.prof.apellido}, {detalle.prof.nombre}
-                </SheetTitle>
-                <SheetDescription>
-                  {format(detalle.fecha, "EEEE d 'de' MMMM yyyy", { locale: es })}
-                </SheetDescription>
-              </SheetHeader>
-              <div className="mt-6 space-y-2">
-                {turnosDetalle.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Sin turnos registrados este día.</p>
-                ) : (
-                  turnosDetalle.map((t) => (
-                    <div
-                      key={t.id}
-                      className="flex items-start justify-between gap-3 rounded-md border bg-card p-3"
-                    >
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium">
-                          {t.hora_inicio.slice(0, 5)} - {t.hora_fin.slice(0, 5)}
-                        </div>
-                        <div className="truncate text-sm text-muted-foreground">
-                          {t.paciente
-                            ? `${t.paciente.apellido}, ${t.paciente.nombre}`
-                            : "Sin paciente"}
-                        </div>
-                        {t.motivo_consulta && (
-                          <div className="mt-1 truncate text-xs text-muted-foreground">
-                            {t.motivo_consulta}
-                          </div>
-                        )}
-                      </div>
-                      <Badge className={TURNO_ESTADO_CLASSES[t.estado] ?? ""}>
-                        {TURNO_ESTADO_LABELS[t.estado] ?? t.estado}
-                      </Badge>
-                    </div>
-                  ))
+          {detalle && (() => {
+            const info = cellFor(detalle.prof, detalle.fecha);
+            const puedeAgendar = info.kind !== "libre" && info.kind !== "ausencia" && info.kind !== "festivo";
+            return (
+              <>
+                <SheetHeader>
+                  <SheetTitle>
+                    {detalle.prof.apellido}, {detalle.prof.nombre}
+                  </SheetTitle>
+                  <SheetDescription>
+                    {format(detalle.fecha, "EEEE d 'de' MMMM yyyy", { locale: es })}
+                  </SheetDescription>
+                </SheetHeader>
+
+                {puedeAgendar && (
+                  <div className="mt-4">
+                    <Button onClick={() => setNuevoTurnoOpen(true)} className="w-full">
+                      <Plus className="h-4 w-4" />
+                      Agendar turno
+                    </Button>
+                  </div>
                 )}
-              </div>
-            </>
-          )}
+                {!puedeAgendar && (
+                  <p className="mt-4 text-xs text-muted-foreground">
+                    {info.kind === "libre"
+                      ? "El profesional no tiene horario cargado este día."
+                      : info.kind === "ausencia"
+                      ? `Ausencia: ${info.motivo ?? ""}`
+                      : "Día feriado."}
+                  </p>
+                )}
+
+                <div className="mt-6 space-y-2">
+                  {turnosDetalle.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Sin turnos registrados este día.</p>
+                  ) : (
+                    turnosDetalle.map((t) => (
+                      <div
+                        key={t.id}
+                        className="flex items-start justify-between gap-3 rounded-md border bg-card p-3"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium">
+                            {t.hora_inicio.slice(0, 5)} - {t.hora_fin.slice(0, 5)}
+                          </div>
+                          <div className="truncate text-sm text-muted-foreground">
+                            {t.paciente
+                              ? `${t.paciente.apellido}, ${t.paciente.nombre}`
+                              : "Sin paciente"}
+                          </div>
+                          {t.motivo_consulta && (
+                            <div className="mt-1 truncate text-xs text-muted-foreground">
+                              {t.motivo_consulta}
+                            </div>
+                          )}
+                        </div>
+                        <Badge className={TURNO_ESTADO_CLASSES[t.estado] ?? ""}>
+                          {TURNO_ESTADO_LABELS[t.estado] ?? t.estado}
+                        </Badge>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
+            );
+          })()}
         </SheetContent>
       </Sheet>
+
+      {detalle && (
+        <NuevoTurnoDialog
+          open={nuevoTurnoOpen}
+          onOpenChange={setNuevoTurnoOpen}
+          profesionalId={detalle.prof.id}
+          profesionalNombre={`${detalle.prof.apellido}, ${detalle.prof.nombre}`}
+          fecha={detalle.fecha}
+          horariosDia={horarios
+            .filter(
+              (h) => h.profesional_id === detalle.prof.id && h.dia_semana === detalle.fecha.getDay(),
+            )
+            .map((h) => ({
+              hora_inicio: h.hora_inicio,
+              hora_fin: h.hora_fin,
+              duracion_slot_min: (h as Horario & { duracion_slot_min?: number }).duracion_slot_min ?? 30,
+            }))}
+          turnosOcupados={turnos
+            .filter(
+              (t) =>
+                t.profesional_id === detalle.prof.id &&
+                t.fecha === format(detalle.fecha, "yyyy-MM-dd"),
+            )
+            .map((t) => ({ hora_inicio: t.hora_inicio, hora_fin: t.hora_fin, estado: t.estado }))}
+          bloqueosDia={bloqueos
+            .filter(
+              (b) =>
+                b.profesional_id === detalle.prof.id &&
+                format(detalle.fecha, "yyyy-MM-dd") >= b.fecha_desde &&
+                format(detalle.fecha, "yyyy-MM-dd") <= b.fecha_hasta,
+            )
+            .map((b) => ({
+              hora_desde: b.hora_desde,
+              hora_hasta: b.hora_hasta,
+              todo_el_dia: b.todo_el_dia,
+            }))}
+          onSaved={() => {
+            setNuevoTurnoOpen(false);
+            cargarDatos();
+          }}
+        />
+      )}
     </>
   );
 }
