@@ -123,6 +123,17 @@ export default function PacienteForm() {
     navigate("/pacientes");
   }
 
+  async function marcarValidado() {
+    if (!isEdit) return;
+    const { error } = await supabase
+      .from("pacientes")
+      .update({ pendiente_validacion: false })
+      .eq("id", id!);
+    if (error) return toast.error("No se pudo validar", { description: error.message });
+    set("pendiente_validacion", false);
+    toast.success("Paciente marcado como validado");
+  }
+
   if (loading) return <div className="text-muted-foreground">Cargando...</div>;
 
   return (
