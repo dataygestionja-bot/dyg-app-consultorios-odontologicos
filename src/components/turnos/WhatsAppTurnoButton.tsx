@@ -94,7 +94,7 @@ export function WhatsAppTurnoButton({
     ? "Paciente sin teléfono"
     : loading
       ? "Enviando..."
-      : "Enviar WhatsApp";
+      : "Enviar recordatorio de turno";
 
   return (
     <TooltipProvider delayDuration={150}>
