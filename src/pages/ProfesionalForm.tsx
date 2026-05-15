@@ -48,6 +48,7 @@ export default function ProfesionalForm() {
   const [form, setForm] = useState(empty);
   const [horarios, setHorarios] = useState<Horario[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     document.title = isEdit ? "Editar profesional | Consultorio" : "Nuevo profesional | Consultorio";
@@ -59,6 +60,7 @@ export default function ProfesionalForm() {
             matricula: data.matricula ?? "", especialidad: data.especialidad ?? "",
             telefono: data.telefono ?? "", email: data.email ?? "",
             color_agenda: data.color_agenda, activo: data.activo,
+            foto_url: (data as any).foto_url ?? "",
           });
         });
       supabase.from("horarios_profesional").select("*").eq("profesional_id", id).order("dia_semana")
