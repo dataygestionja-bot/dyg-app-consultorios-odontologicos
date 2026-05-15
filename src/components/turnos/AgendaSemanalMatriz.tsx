@@ -26,6 +26,7 @@ interface Horario {
   dia_semana: number;
   hora_inicio: string;
   hora_fin: string;
+  duracion_slot_min: number;
   activo: boolean;
 }
 interface Bloqueo {
