@@ -427,7 +427,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
             .map((h) => ({
               hora_inicio: h.hora_inicio,
               hora_fin: h.hora_fin,
-              duracion_slot_min: (h as Horario & { duracion_slot_min?: number }).duracion_slot_min ?? 30,
+              duracion_slot_min: h.duracion_slot_min ?? 30,
             }))}
           turnosOcupados={turnos
             .filter(
