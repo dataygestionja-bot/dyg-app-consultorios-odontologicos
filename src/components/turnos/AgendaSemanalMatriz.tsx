@@ -250,8 +250,8 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                   <th
                     key={d.toISOString()}
                     className={cn(
-                      "sticky top-0 z-20 min-w-[140px] border-b bg-muted/60 p-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground",
-                      esHoy && "bg-primary/10 text-primary border-b-2 border-b-primary"
+                      "sticky top-0 z-20 min-w-[140px] border-b bg-muted p-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+                      esHoy && "bg-primary/15 text-primary border-b-2 border-b-primary"
                     )}
                   >
                     <div className="flex items-baseline justify-center gap-1">
