@@ -315,7 +315,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                       <span>{format(d, "EEE", { locale: es })}</span>
                       <span>{format(d, "d", { locale: es })}</span>
                       {esHoy && (
-                        <span className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full border-2 border-black bg-white text-[9px] font-bold text-black">
+                        <span className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full border border-gray-400 bg-white text-[9px] font-bold text-gray-700">
                           HOY
                         </span>
                       )}
