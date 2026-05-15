@@ -65,7 +65,7 @@ interface TurnoLite {
   hora_fin: string;
   estado: TurnoEstado;
   motivo_consulta: string | null;
-  paciente?: { nombre: string; apellido: string } | null;
+  paciente?: { nombre: string; apellido: string; telefono: string | null } | null;
 }
 
 type CellKind = "festivo" | "ausencia" | "libre" | "sinturnos" | "pocos" | "medio" | "lleno";
