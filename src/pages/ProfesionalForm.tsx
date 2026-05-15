@@ -38,6 +38,7 @@ const empty = {
   email: "",
   color_agenda: "#0ea5e9",
   activo: true,
+  foto_url: "" as string | "",
 };
 
 export default function ProfesionalForm() {
