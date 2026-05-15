@@ -179,6 +179,29 @@ export default function ProfesionalForm() {
                 <CardTitle className="text-base">Datos del profesional</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
+                <div className="md:col-span-2 flex items-center gap-4">
+                  <Avatar className="h-20 w-20">
+                    {form.foto_url && <AvatarImage src={form.foto_url} alt="Foto" />}
+                    <AvatarFallback>{(form.apellido[0] ?? "") + (form.nombre[0] ?? "") || "?"}</AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-2">
+                    <Label className="block">Foto de perfil</Label>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" disabled={!isEdit || uploading} asChild>
+                        <label className="cursor-pointer">
+                          <Upload className="h-4 w-4" /> {uploading ? "Subiendo..." : "Subir foto"}
+                          <input type="file" accept="image/*" className="hidden" onChange={onFotoChange} disabled={!isEdit || uploading} />
+                        </label>
+                      </Button>
+                      {form.foto_url && (
+                        <Button type="button" variant="ghost" size="sm" onClick={quitarFoto}>
+                          <X className="h-4 w-4" /> Quitar
+                        </Button>
+                      )}
+                    </div>
+                    {!isEdit && <p className="text-xs text-muted-foreground">Guardá el profesional para poder subir la foto.</p>}
+                  </div>
+                </div>
                 <Field label="Nombre *" required value={form.nombre} onChange={(v) => set("nombre", v)} />
                 <Field label="Apellido *" required value={form.apellido} onChange={(v) => set("apellido", v)} />
                 <Field label="Matrícula" value={form.matricula} onChange={(v) => set("matricula", v)} />
