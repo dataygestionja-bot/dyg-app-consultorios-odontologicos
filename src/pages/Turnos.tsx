@@ -115,7 +115,7 @@ export default function Turnos() {
   const [bloqueos, setBloqueos] = useState<Bloqueo[]>([]);
   const [profSel, setProfSel] = useState<string>("");
   const [fecha, setFecha] = useState<Date>(new Date());
-  const [vista, setVista] = useState<"dia" | "semana">("dia");
+  const [vista, setVista] = useState<"dia" | "semana" | "matriz">("dia");
 
   // Dialog
   const [open, setOpen] = useState(false);
