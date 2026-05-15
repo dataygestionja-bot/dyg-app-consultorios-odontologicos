@@ -140,9 +140,26 @@ export default function PacienteForm() {
               ? "Consulta de la ficha del paciente"
               : "Completá los datos del paciente y su ficha clínica"}
           </p>
+          {form.pendiente_validacion && (
+            <Badge className="bg-yellow-400 text-yellow-950 hover:bg-yellow-400/80 border-transparent">Datos incompletos</Badge>
+          )}
         </div>
       </div>
 
+      {isEdit && form.pendiente_validacion && (
+        <Alert className="border-yellow-400 bg-yellow-50 text-yellow-950 dark:bg-yellow-950/20 dark:text-yellow-100">
+          <AlertTriangle className="h-4 w-4 !text-yellow-600" />
+          <AlertTitle>Paciente pendiente de validación</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span>Este paciente fue registrado por WhatsApp. Por favor completá los datos faltantes y marcá como validado.</span>
+            {can("pacientes", "update") && (
+              <Button type="button" size="sm" onClick={marcarValidado} disabled={submitting}>
+                <CheckCircle2 className="h-4 w-4" /> Marcar como validado
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
       <form onSubmit={guardar}>
         <Tabs defaultValue="datos">
           <TabsList>
