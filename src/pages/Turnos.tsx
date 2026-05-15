@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { addDays, format, startOfWeek, isValid, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { AgendaSemanalMatriz } from "@/components/turnos/AgendaSemanalMatriz";
+import ListadoPorPacienteDialog from "@/components/turnos/ListadoPorPacienteDialog";
 
 const safeFormat = (d: Date | null | undefined, fmt: string, opts?: Parameters<typeof format>[2]) => {
   if (!d || !isValid(d)) return "";
@@ -20,6 +21,7 @@ const safeParseISO = (s: string | null | undefined): Date | null => {
 export default function Turnos() {
   const [fecha, setFecha] = useState<Date>(new Date());
   const [search, setSearch] = useState("");
+  const [listadoOpen, setListadoOpen] = useState(false);
 
   useEffect(() => {
     document.title = "Turnos | Consultorio";
@@ -36,6 +38,10 @@ export default function Turnos() {
           <p className="text-sm text-muted-foreground">Agenda semanal por profesional</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setListadoOpen(true)}>
+            <Users className="h-4 w-4 mr-2" />
+            Listar por paciente
+          </Button>
           <Input
             placeholder="Buscar profesional..."
             value={search}
@@ -72,6 +78,8 @@ export default function Turnos() {
           <AgendaSemanalMatriz semanaInicio={inicio} search={search} />
         </CardContent>
       </Card>
+
+      <ListadoPorPacienteDialog open={listadoOpen} onOpenChange={setListadoOpen} fechaInicial={inicio} />
     </div>
   );
 }
