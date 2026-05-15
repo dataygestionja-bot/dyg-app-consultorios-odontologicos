@@ -12,7 +12,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import CuentaCorriente from "@/components/paciente/CuentaCorriente";
 import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
@@ -38,6 +40,7 @@ const empty = {
   antecedentes_medicos: "",
   observaciones: "",
   activo: true,
+  pendiente_validacion: false,
 };
 
 export default function PacienteForm() {
@@ -120,6 +123,17 @@ export default function PacienteForm() {
     navigate("/pacientes");
   }
 
+  async function marcarValidado() {
+    if (!isEdit) return;
+    const { error } = await supabase
+      .from("pacientes")
+      .update({ pendiente_validacion: false })
+      .eq("id", id!);
+    if (error) return toast.error("No se pudo validar", { description: error.message });
+    set("pendiente_validacion", false);
+    toast.success("Paciente marcado como validado");
+  }
+
   if (loading) return <div className="text-muted-foreground">Cargando...</div>;
 
   return (
@@ -137,9 +151,26 @@ export default function PacienteForm() {
               ? "Consulta de la ficha del paciente"
               : "Completá los datos del paciente y su ficha clínica"}
           </p>
+          {form.pendiente_validacion && (
+            <Badge className="bg-yellow-400 text-yellow-950 hover:bg-yellow-400/80 border-transparent">Datos incompletos</Badge>
+          )}
         </div>
       </div>
 
+      {isEdit && form.pendiente_validacion && (
+        <Alert className="border-yellow-400 bg-yellow-50 text-yellow-950 dark:bg-yellow-950/20 dark:text-yellow-100">
+          <AlertTriangle className="h-4 w-4 !text-yellow-600" />
+          <AlertTitle>Paciente pendiente de validación</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span>Este paciente fue registrado por WhatsApp. Por favor completá los datos faltantes y marcá como validado.</span>
+            {can("pacientes", "update") && (
+              <Button type="button" size="sm" onClick={marcarValidado} disabled={submitting}>
+                <CheckCircle2 className="h-4 w-4" /> Marcar como validado
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
       <form onSubmit={guardar}>
         <Tabs defaultValue="datos">
           <TabsList>
