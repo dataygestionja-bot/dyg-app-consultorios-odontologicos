@@ -1,35 +1,32 @@
-# Colores de la matriz por carga de turnos
+## Problema
 
-## Nueva lógica de color
+En el diálogo "Agendar turno" hay un `Input` de búsqueda y un `Select` de paciente separados. La búsqueda filtra la lista interna pero el desplegable no se abre solo, así que parece que "no funciona" — el usuario escribe y no ve resultados.
 
-El color de fondo de cada celda dejará de depender del turno (mañana/tarde/noche) y pasará a reflejar la **carga del día**:
+Además, el `Select` de Radix sólo se filtra programáticamente; no soporta búsqueda nativa.
 
-| Estado / cantidad de turnos | Color |
-|---|---|
-| Día libre (sin agenda) | Verde claro |
-| Ausencia | Gris (se mantiene) |
-| Feriado | Rojo claro (se mantiene) |
-| 1 a 3 turnos | Azul claro |
-| 4 a 6 turnos | Violeta claro |
-| 7 o más turnos | Amarillo claro |
-| 0 turnos pero con agenda activa | Verde claro (igual que libre) |
+## Solución
 
-Prioridad: Feriado > Ausencia > conteo de turnos / libre.
+Reemplazar ambos controles por **un único combobox** (Popover + Command de cmdk, ya disponibles en el proyecto en `src/components/ui/popover.tsx` y `src/components/ui/command.tsx`).
 
-## Cambios técnicos
+### Comportamiento
 
-1. **`src/index.css`** — agregar/ajustar tokens HSL en `:root` y `.dark`:
-   - `--agenda-libre` → verde claro
-   - `--agenda-pocos` → azul claro (1–3)
-   - `--agenda-medio` → violeta claro (4–6)
-   - `--agenda-lleno` → amarillo claro (7+)
-   - Mantener `--agenda-ausencia` y `--agenda-festivo`.
-   - Eliminar (o dejar sin uso) `--agenda-manana/tarde/noche`.
+- Botón con el paciente seleccionado (o placeholder "Buscar paciente...").
+- Al hacer click se abre un popover con:
+  - Campo de búsqueda al tope (focus automático).
+  - Lista filtrada en vivo por **apellido, nombre o DNI**.
+  - Mensaje "Sin resultados" si no hay coincidencias.
+- Al elegir un paciente, se cierra el popover y queda visible "Apellido, Nombre — DNI".
+- Limpieza con un botón "x" o re-abriendo y eligiendo otro.
 
-2. **`src/components/turnos/AgendaSemanalMatriz.tsx`**:
-   - Reemplazar el tipo `CellKind` por `"festivo" | "ausencia" | "libre" | "pocos" | "medio" | "lleno"`.
-   - Función de clasificación: si feriado → festivo; si ausencia → ausencia; si no hay turnos → libre; si `count <= 3` → pocos; `<= 6` → medio; resto → lleno.
-   - Actualizar `KIND_CLASSES` con los nuevos tokens.
-   - Actualizar la leyenda inferior para reflejar los nuevos rangos.
+### Cambios
 
-Sin cambios en BD ni en otras vistas. La estructura de la celda (badge con conteo, primeros pacientes, click para abrir detalle) se mantiene.
+1. `src/components/turnos/NuevoTurnoDialog.tsx`:
+   - Quitar el `Input` de búsqueda y el `Select` de paciente.
+   - Agregar un `PacienteCombobox` inline (o componente local) basado en `Popover` + `Command` (`CommandInput`, `CommandList`, `CommandEmpty`, `CommandItem`).
+   - Mantener `pacientes`, `pacienteId` y la carga inicial.
+   - El filtrado lo maneja `cmdk` automáticamente, pero le pasamos un `value` rico (`"apellido nombre dni"`) a cada `CommandItem` para que matchee por los tres campos.
+
+### Sin cambios
+
+- BD, RLS, lógica de slots, sobreturno, motivo, guardado, toasts, refresh.
+- Resto del flujo de la matriz.

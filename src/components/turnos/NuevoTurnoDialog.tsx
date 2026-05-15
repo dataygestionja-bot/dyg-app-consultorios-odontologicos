@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +26,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 interface PacienteOpt {
   id: string;
@@ -93,7 +104,7 @@ export default function NuevoTurnoDialog({
 }: Props) {
   const [pacientes, setPacientes] = useState<PacienteOpt[]>([]);
   const [pacienteId, setPacienteId] = useState("");
-  const [busqueda, setBusqueda] = useState("");
+  const [pacientePopoverOpen, setPacientePopoverOpen] = useState(false);
   const [slot, setSlot] = useState("");
   const [motivo, setMotivo] = useState("");
   const [sobreturno, setSobreturno] = useState(false);
@@ -104,7 +115,7 @@ export default function NuevoTurnoDialog({
   useEffect(() => {
     if (!open) return;
     setPacienteId("");
-    setBusqueda("");
+    setPacientePopoverOpen(false);
     setSlot("");
     setMotivo("");
     setSobreturno(false);
@@ -115,7 +126,7 @@ export default function NuevoTurnoDialog({
       .select("id,nombre,apellido,dni")
       .eq("activo", true)
       .order("apellido")
-      .limit(500)
+      .limit(2000)
       .then(({ data }) => setPacientes((data ?? []) as PacienteOpt[]));
   }, [open]);
 
@@ -149,18 +160,10 @@ export default function NuevoTurnoDialog({
     return slots;
   }, [horariosDia, turnosOcupados, bloqueosDia]);
 
-  const pacientesFiltrados = useMemo(() => {
-    if (!busqueda) return pacientes.slice(0, 50);
-    const s = busqueda.toLowerCase();
-    return pacientes
-      .filter(
-        (p) =>
-          p.apellido.toLowerCase().includes(s) ||
-          p.nombre.toLowerCase().includes(s) ||
-          p.dni.toLowerCase().includes(s),
-      )
-      .slice(0, 50);
-  }, [pacientes, busqueda]);
+  const pacienteSeleccionado = useMemo(
+    () => pacientes.find((p) => p.id === pacienteId) ?? null,
+    [pacientes, pacienteId],
+  );
 
   async function guardar() {
     if (!pacienteId) return toast.error("Seleccioná un paciente");
@@ -220,29 +223,59 @@ export default function NuevoTurnoDialog({
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label>Paciente</Label>
-            <Input
-              placeholder="Buscar por nombre, apellido o DNI..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-            />
-            <Select value={pacienteId} onValueChange={setPacienteId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar paciente..." />
-              </SelectTrigger>
-              <SelectContent>
-                {pacientesFiltrados.length === 0 ? (
-                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                    Sin resultados
-                  </div>
-                ) : (
-                  pacientesFiltrados.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.apellido}, {p.nombre} — {p.dni}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+            <Popover open={pacientePopoverOpen} onOpenChange={setPacientePopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={pacientePopoverOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  <span className={cn("truncate", !pacienteSeleccionado && "text-muted-foreground")}>
+                    {pacienteSeleccionado
+                      ? `${pacienteSeleccionado.apellido}, ${pacienteSeleccionado.nombre} — ${pacienteSeleccionado.dni}`
+                      : "Buscar paciente por nombre, apellido o DNI..."}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command
+                  filter={(value, search) => {
+                    if (!search) return 1;
+                    return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                  }}
+                >
+                  <CommandInput placeholder="Escribí nombre, apellido o DNI..." />
+                  <CommandList>
+                    <CommandEmpty>Sin resultados.</CommandEmpty>
+                    <CommandGroup>
+                      {pacientes.map((p) => {
+                        const label = `${p.apellido}, ${p.nombre} — ${p.dni}`;
+                        return (
+                          <CommandItem
+                            key={p.id}
+                            value={`${p.apellido} ${p.nombre} ${p.dni}`}
+                            onSelect={() => {
+                              setPacienteId(p.id);
+                              setPacientePopoverOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                pacienteId === p.id ? "opacity-100" : "opacity-0",
+                              )}
+                            />
+                            {label}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="flex items-center gap-2">
