@@ -47,7 +47,7 @@ interface TurnoLite {
   paciente?: { nombre: string; apellido: string } | null;
 }
 
-type CellKind = "festivo" | "ausencia" | "libre" | "manana" | "tarde" | "noche";
+type CellKind = "festivo" | "ausencia" | "libre" | "pocos" | "medio" | "lleno";
 
 interface CellInfo {
   kind: CellKind;
@@ -61,16 +61,16 @@ const KIND_CLASSES: Record<CellKind, string> = {
   festivo: "bg-[hsl(var(--agenda-festivo))] text-[hsl(var(--agenda-festivo-fg))]",
   ausencia: "bg-[hsl(var(--agenda-ausencia))] text-[hsl(var(--agenda-ausencia-fg))]",
   libre: "bg-[hsl(var(--agenda-libre))] text-[hsl(var(--agenda-libre-fg))]",
-  manana: "bg-[hsl(var(--agenda-manana))] text-[hsl(var(--agenda-manana-fg))]",
-  tarde: "bg-[hsl(var(--agenda-tarde))] text-[hsl(var(--agenda-tarde-fg))]",
-  noche: "bg-[hsl(var(--agenda-noche))] text-[hsl(var(--agenda-noche-fg))]",
+  pocos: "bg-[hsl(var(--agenda-pocos))] text-[hsl(var(--agenda-pocos-fg))]",
+  medio: "bg-[hsl(var(--agenda-medio))] text-[hsl(var(--agenda-medio-fg))]",
+  lleno: "bg-[hsl(var(--agenda-lleno))] text-[hsl(var(--agenda-lleno-fg))]",
 };
 
-function clasificarTurno(horaInicio: string): "manana" | "tarde" | "noche" {
-  const h = parseInt(horaInicio.slice(0, 2), 10);
-  if (h < 13) return "manana";
-  if (h < 19) return "tarde";
-  return "noche";
+function clasificarCarga(count: number): "libre" | "pocos" | "medio" | "lleno" {
+  if (count === 0) return "libre";
+  if (count <= 3) return "pocos";
+  if (count <= 6) return "medio";
+  return "lleno";
 }
 
 function MOTIVO_LABEL(m: string): string {
