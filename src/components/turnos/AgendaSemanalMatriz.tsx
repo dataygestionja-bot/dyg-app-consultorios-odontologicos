@@ -416,31 +416,59 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                   {turnosDetalle.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Sin turnos registrados este día.</p>
                   ) : (
-                    turnosDetalle.map((t) => (
-                      <div
-                        key={t.id}
-                        className="flex items-start justify-between gap-3 rounded-md border bg-card p-3"
-                      >
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium">
-                            {t.hora_inicio.slice(0, 5)} - {t.hora_fin.slice(0, 5)}
-                          </div>
-                          <div className="truncate text-sm text-muted-foreground">
-                            {t.paciente
-                              ? `${t.paciente.apellido}, ${t.paciente.nombre}`
-                              : "Sin paciente"}
-                          </div>
-                          {t.motivo_consulta && (
-                            <div className="mt-1 truncate text-xs text-muted-foreground">
-                              {t.motivo_consulta}
+                    turnosDetalle.map((t) => {
+                      const estadoFinal = ["cancelado", "ausente", "atendido", "pendiente_cierre", "rechazado"].includes(t.estado);
+                      return (
+                        <div
+                          key={t.id}
+                          className="flex items-start justify-between gap-3 rounded-md border bg-card p-3"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium">
+                              {t.hora_inicio.slice(0, 5)} - {t.hora_fin.slice(0, 5)}
                             </div>
-                          )}
+                            <div className="truncate text-sm text-muted-foreground">
+                              {t.paciente
+                                ? `${t.paciente.apellido}, ${t.paciente.nombre}`
+                                : "Sin paciente"}
+                            </div>
+                            {t.motivo_consulta && (
+                              <div className="mt-1 truncate text-xs text-muted-foreground">
+                                {t.motivo_consulta}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Badge className={TURNO_ESTADO_CLASSES[t.estado] ?? ""}>
+                              {TURNO_ESTADO_LABELS[t.estado] ?? t.estado}
+                            </Badge>
+                            {!estadoFinal && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                                    <MoreVertical className="h-4 w-4" />
+                                    <span className="sr-only">Acciones</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setTurnoReprogramar(t)}>
+                                    <CalendarClock className="mr-2 h-4 w-4" />
+                                    Reprogramar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => setTurnoCancelar(t)}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <XCircle className="mr-2 h-4 w-4" />
+                                    Cancelar turno
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
                         </div>
-                        <Badge className={TURNO_ESTADO_CLASSES[t.estado] ?? ""}>
-                          {TURNO_ESTADO_LABELS[t.estado] ?? t.estado}
-                        </Badge>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </>
