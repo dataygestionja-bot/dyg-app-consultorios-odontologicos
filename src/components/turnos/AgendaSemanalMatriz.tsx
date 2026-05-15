@@ -322,12 +322,12 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
         <span className="font-medium">Referencias:</span>
         {(
           [
-            ["manana", "Mañana"],
-            ["tarde", "Tarde"],
-            ["noche", "Noche"],
-            ["libre", "Día libre"],
+            ["libre", "Día libre / sin turnos"],
+            ["pocos", "1 a 3 turnos"],
+            ["medio", "4 a 6 turnos"],
+            ["lleno", "7 o más turnos"],
             ["ausencia", "Ausencia"],
-            ["festivo", "Festivo"],
+            ["festivo", "Feriado"],
           ] as [CellKind, string][]
         ).map(([k, l]) => (
           <span key={k} className="inline-flex items-center gap-1.5">
