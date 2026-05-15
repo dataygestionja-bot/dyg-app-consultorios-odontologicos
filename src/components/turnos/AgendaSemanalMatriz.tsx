@@ -5,12 +5,30 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { addDays, format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Check, Clock, Plus } from "lucide-react";
+import { CalendarClock, Check, Clock, MoreVertical, Plus, XCircle } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TURNO_ESTADO_LABELS, TURNO_ESTADO_CLASSES, type TurnoEstado } from "@/lib/constants";
 import NuevoTurnoDialog from "./NuevoTurnoDialog";
+import { ReprogramarDialog } from "./ReprogramarDialog";
 
 interface Profesional {
   id: string;
@@ -47,7 +65,7 @@ interface TurnoLite {
   hora_fin: string;
   estado: TurnoEstado;
   motivo_consulta: string | null;
-  paciente?: { nombre: string; apellido: string } | null;
+  paciente?: { nombre: string; apellido: string; telefono: string | null } | null;
 }
 
 type CellKind = "festivo" | "ausencia" | "libre" | "sinturnos" | "pocos" | "medio" | "lleno";
@@ -104,6 +122,9 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
   const [turnos, setTurnos] = useState<TurnoLite[]>([]);
   const [detalle, setDetalle] = useState<{ prof: Profesional; fecha: Date } | null>(null);
   const [nuevoTurnoOpen, setNuevoTurnoOpen] = useState(false);
+  const [turnoReprogramar, setTurnoReprogramar] = useState<TurnoLite | null>(null);
+  const [turnoCancelar, setTurnoCancelar] = useState<TurnoLite | null>(null);
+  const [cancelando, setCancelando] = useState(false);
 
   const dias = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(semanaInicio, i)),
@@ -130,7 +151,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
         .gte("fecha_hasta", desde),
       supabase
         .from("turnos")
-        .select("id, profesional_id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido)")
+        .select("id, profesional_id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido, telefono)")
         .gte("fecha", desde)
         .lte("fecha", hasta),
     ]);
@@ -139,6 +160,23 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
     setBloqueos((bl.data ?? []) as Bloqueo[]);
     setTurnos((tu.data ?? []) as unknown as TurnoLite[]);
     setLoading(false);
+  }
+
+  async function confirmarCancelacion() {
+    if (!turnoCancelar) return;
+    setCancelando(true);
+    const { error } = await supabase
+      .from("turnos")
+      .update({ estado: "cancelado" })
+      .eq("id", turnoCancelar.id);
+    setCancelando(false);
+    if (error) {
+      toast.error("No se pudo cancelar el turno", { description: error.message });
+      return;
+    }
+    toast.success("Turno cancelado");
+    setTurnoCancelar(null);
+    cargarDatos();
   }
 
   useEffect(() => {
@@ -395,31 +433,59 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                   {turnosDetalle.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Sin turnos registrados este día.</p>
                   ) : (
-                    turnosDetalle.map((t) => (
-                      <div
-                        key={t.id}
-                        className="flex items-start justify-between gap-3 rounded-md border bg-card p-3"
-                      >
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium">
-                            {t.hora_inicio.slice(0, 5)} - {t.hora_fin.slice(0, 5)}
-                          </div>
-                          <div className="truncate text-sm text-muted-foreground">
-                            {t.paciente
-                              ? `${t.paciente.apellido}, ${t.paciente.nombre}`
-                              : "Sin paciente"}
-                          </div>
-                          {t.motivo_consulta && (
-                            <div className="mt-1 truncate text-xs text-muted-foreground">
-                              {t.motivo_consulta}
+                    turnosDetalle.map((t) => {
+                      const estadoFinal = ["cancelado", "ausente", "atendido", "pendiente_cierre", "rechazado"].includes(t.estado);
+                      return (
+                        <div
+                          key={t.id}
+                          className="flex items-start justify-between gap-3 rounded-md border bg-card p-3"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium">
+                              {t.hora_inicio.slice(0, 5)} - {t.hora_fin.slice(0, 5)}
                             </div>
-                          )}
+                            <div className="truncate text-sm text-muted-foreground">
+                              {t.paciente
+                                ? `${t.paciente.apellido}, ${t.paciente.nombre}`
+                                : "Sin paciente"}
+                            </div>
+                            {t.motivo_consulta && (
+                              <div className="mt-1 truncate text-xs text-muted-foreground">
+                                {t.motivo_consulta}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Badge className={TURNO_ESTADO_CLASSES[t.estado] ?? ""}>
+                              {TURNO_ESTADO_LABELS[t.estado] ?? t.estado}
+                            </Badge>
+                            {!estadoFinal && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                                    <MoreVertical className="h-4 w-4" />
+                                    <span className="sr-only">Acciones</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setTurnoReprogramar(t)}>
+                                    <CalendarClock className="mr-2 h-4 w-4" />
+                                    Reprogramar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => setTurnoCancelar(t)}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <XCircle className="mr-2 h-4 w-4" />
+                                    Cancelar turno
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
                         </div>
-                        <Badge className={TURNO_ESTADO_CLASSES[t.estado] ?? ""}>
-                          {TURNO_ESTADO_LABELS[t.estado] ?? t.estado}
-                        </Badge>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </>
@@ -469,6 +535,65 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
           }}
         />
       )}
+
+      {turnoReprogramar && (() => {
+        const prof = profesionales.find((p) => p.id === turnoReprogramar.profesional_id);
+        return (
+          <ReprogramarDialog
+            turno={{
+              id: turnoReprogramar.id,
+              profesional_id: turnoReprogramar.profesional_id,
+              fecha: turnoReprogramar.fecha,
+              hora_inicio: turnoReprogramar.hora_inicio,
+              paciente_nombre: turnoReprogramar.paciente
+                ? `${turnoReprogramar.paciente.nombre} ${turnoReprogramar.paciente.apellido}`.trim()
+                : "Paciente",
+              paciente_telefono: turnoReprogramar.paciente?.telefono ?? null,
+              profesional_nombre: prof ? `${prof.nombre} ${prof.apellido}` : "",
+            }}
+            onClose={() => setTurnoReprogramar(null)}
+            onDone={() => {
+              setTurnoReprogramar(null);
+              cargarDatos();
+            }}
+          />
+        );
+      })()}
+
+      <AlertDialog open={!!turnoCancelar} onOpenChange={(v) => { if (!v && !cancelando) setTurnoCancelar(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cancelar este turno?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {turnoCancelar && (
+                <>
+                  Se cancelará el turno de{" "}
+                  <span className="font-medium text-foreground">
+                    {turnoCancelar.paciente
+                      ? `${turnoCancelar.paciente.apellido}, ${turnoCancelar.paciente.nombre}`
+                      : "el paciente"}
+                  </span>{" "}
+                  a las{" "}
+                  <span className="font-medium text-foreground">
+                    {turnoCancelar.hora_inicio.slice(0, 5)}
+                  </span>
+                  . Esta acción no se puede deshacer.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelando}>Volver</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmarCancelacion(); }}
+              disabled={cancelando}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelando ? "Cancelando..." : "Sí, cancelar turno"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
