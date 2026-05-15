@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { addDays, format, startOfWeek, isValid, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { AgendaSemanalMatriz } from "@/components/turnos/AgendaSemanalMatriz";
+import ListadoPorPacienteDialog from "@/components/turnos/ListadoPorPacienteDialog";
 
 const safeFormat = (d: Date | null | undefined, fmt: string, opts?: Parameters<typeof format>[2]) => {
   if (!d || !isValid(d)) return "";
