@@ -12,7 +12,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import CuentaCorriente from "@/components/paciente/CuentaCorriente";
 import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
@@ -38,6 +40,7 @@ const empty = {
   antecedentes_medicos: "",
   observaciones: "",
   activo: true,
+  pendiente_validacion: false,
 };
 
 export default function PacienteForm() {
