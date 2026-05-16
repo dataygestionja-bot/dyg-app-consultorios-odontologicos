@@ -522,7 +522,7 @@ export default function AtencionForm() {
         .maybeSingle();
 
       // Validar superposición con otros turnos del profesional ese día
-      const ESTADOS_BLOQ = ["reservado", "confirmado", "en_atencion", "pendiente_cierre", "atendido"];
+      const ESTADOS_BLOQ = ["reservado", "confirmado", "en_atencion", "pendiente_cierre", "atendido"] as const;
       const { data: conflictos } = await supabase
         .from("turnos")
         .select("id, hora_inicio, hora_fin")
