@@ -379,6 +379,42 @@ export type Database = {
           },
         ]
       }
+      integraciones_externas: {
+        Row: {
+          abrir_nueva_pestana: boolean
+          activa: boolean
+          codigo: string
+          created_at: string
+          id: string
+          logo_url: string | null
+          nombre: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          abrir_nueva_pestana?: boolean
+          activa?: boolean
+          codigo: string
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          nombre: string
+          updated_at?: string
+          url?: string
+        }
+        Update: {
+          abrir_nueva_pestana?: boolean
+          activa?: boolean
+          codigo?: string
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          nombre?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       login_attempts: {
         Row: {
           created_at: string
@@ -779,6 +815,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      recetas_externas: {
+        Row: {
+          archivo_url: string | null
+          atencion_id: string
+          created_at: string
+          created_by: string | null
+          fecha: string
+          id: string
+          integracion_codigo: string
+          link: string | null
+          numero_receta: string | null
+          observaciones: string | null
+          paciente_id: string
+          profesional_id: string
+          updated_at: string
+        }
+        Insert: {
+          archivo_url?: string | null
+          atencion_id: string
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          id?: string
+          integracion_codigo?: string
+          link?: string | null
+          numero_receta?: string | null
+          observaciones?: string | null
+          paciente_id: string
+          profesional_id: string
+          updated_at?: string
+        }
+        Update: {
+          archivo_url?: string | null
+          atencion_id?: string
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          id?: string
+          integracion_codigo?: string
+          link?: string | null
+          numero_receta?: string | null
+          observaciones?: string | null
+          paciente_id?: string
+          profesional_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recetas_externas_atencion_id_fkey"
+            columns: ["atencion_id"]
+            isOneToOne: false
+            referencedRelation: "atenciones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       role_permissions: {
         Row: {
