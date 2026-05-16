@@ -235,27 +235,14 @@ export default function Odontograma({
 
               if (mode === "inline") {
                 return (
-                  <Popover key={n}>
-                    <PopoverTrigger asChild>{btn}</PopoverTrigger>
-                    <PopoverContent className="w-56 p-2" align="start">
-                      <div className="mb-2 px-1 text-xs font-medium">
-                        Pieza {n} — elegir estado
-                      </div>
-                      <div className="flex flex-col">
-                        {DIENTE_ESTADOS.map((e) => (
-                          <button
-                            key={e}
-                            type="button"
-                            onClick={() => registrarEstadoInline(n, e)}
-                            className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
-                          >
-                            <span className={`h-3 w-3 rounded-sm ${DIENTE_ESTADO_DOT[e]}`} />
-                            <span>{DIENTE_ESTADO_LABELS[e]}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                  <ToothPopover
+                    key={n}
+                    diente={n}
+                    trigger={btn}
+                    onSelect={async (e) => {
+                      await registrarEstadoInline(n, e);
+                    }}
+                  />
                 );
               }
               return btn;
@@ -335,6 +322,44 @@ export default function Odontograma({
         onSaved={cargar}
       />
     </div>
+  );
+}
+
+function ToothPopover({
+  diente,
+  trigger,
+  onSelect,
+}: {
+  diente: number;
+  trigger: React.ReactNode;
+  onSelect: (estado: DienteEstado) => Promise<void> | void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent className="w-56 p-2" align="start">
+        <div className="mb-2 px-1 text-xs font-medium">
+          Pieza {diente} — elegir estado
+        </div>
+        <div className="flex flex-col">
+          {DIENTE_ESTADOS.map((e) => (
+            <button
+              key={e}
+              type="button"
+              onClick={async () => {
+                setOpen(false);
+                await onSelect(e);
+              }}
+              className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+            >
+              <span className={`h-3 w-3 rounded-sm ${DIENTE_ESTADO_DOT[e]}`} />
+              <span>{DIENTE_ESTADO_LABELS[e]}</span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
