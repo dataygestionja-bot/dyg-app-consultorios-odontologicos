@@ -130,6 +130,34 @@ export default function Odontograma({
 
   const puedeAgregar = can("odontograma", "create");
 
+  async function registrarEstadoInline(diente: number, estado: DienteEstado) {
+    if (!profesionalId) {
+      toast.error("Falta el profesional", { description: "Seleccioná un profesional antes de registrar." });
+      return;
+    }
+    if (!puedeAgregar) {
+      toast.error("Sin permiso para registrar en el odontograma");
+      return;
+    }
+    const fechaIso = fechaAtencion
+      ? new Date(`${fechaAtencion}T${format(new Date(), "HH:mm:ss")}`).toISOString()
+      : new Date().toISOString();
+    const { error } = await supabase.from("odontograma_registros").insert({
+      paciente_id: pacienteId,
+      diente,
+      estado,
+      fecha: fechaIso,
+      profesional_id: profesionalId,
+      observaciones: null,
+    });
+    if (error) {
+      toast.error("No se pudo registrar", { description: error.message });
+      return;
+    }
+    toast.success(`Pieza ${diente}: ${DIENTE_ESTADO_LABELS[estado]}`);
+    cargar();
+  }
+
   return (
     <div className="space-y-4">
       {/* Encabezado + botón */}
