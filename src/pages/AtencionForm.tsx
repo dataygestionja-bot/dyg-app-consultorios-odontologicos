@@ -656,11 +656,13 @@ export default function AtencionForm() {
             <Card>
               <CardContent className="py-3">
                 <Tabs defaultValue="ficha">
-                  <TabsList className="flex flex-wrap h-auto w-full justify-start gap-1">
-                    <TabsTrigger value="ficha">Ficha clínica</TabsTrigger>
-                    <TabsTrigger value="odontograma">Historial odontograma</TabsTrigger>
-                    <TabsTrigger value="atenciones">Historial de atenciones</TabsTrigger>
-                  </TabsList>
+                  <div className="-mx-1 overflow-x-auto">
+                    <TabsList className="inline-flex w-max min-w-full justify-start gap-1">
+                      <TabsTrigger value="ficha" className="whitespace-nowrap">Ficha clínica</TabsTrigger>
+                      <TabsTrigger value="odontograma" className="whitespace-nowrap">Historial odontograma</TabsTrigger>
+                      <TabsTrigger value="atenciones" className="whitespace-nowrap">Historial de atenciones</TabsTrigger>
+                    </TabsList>
+                  </div>
                   <TabsContent value="ficha" className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 pt-3">
                     <div>
                       <Label className="text-xs text-muted-foreground">Alergias</Label>
