@@ -44,6 +44,7 @@ export default function ListadoPorPacienteDialog({ open, onOpenChange, fechaInic
         .select("id, fecha, hora_inicio, estado, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido)")
         .gte("fecha", desde)
         .lte("fecha", hasta)
+        .eq("estado", "confirmado")
         .order("fecha", { ascending: true });
       if (cancel) return;
       if (!error && data) setRows(data as any);
