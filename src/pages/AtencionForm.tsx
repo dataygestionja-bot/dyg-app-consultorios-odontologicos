@@ -99,6 +99,63 @@ export default function AtencionForm() {
 
   const [turnosDisponibles, setTurnosDisponibles] = useState<TurnoOpcion[]>([]);
 
+  // Slots para próxima visita
+  const [horariosProx, setHorariosProx] = useState<{ hora_inicio: string; hora_fin: string; duracion_slot_min: number }[]>([]);
+  const [turnosOcupadosProx, setTurnosOcupadosProx] = useState<{ hora_inicio: string; hora_fin: string; estado: string }[]>([]);
+  const [slotProx, setSlotProx] = useState<string>("");
+  const [agendarProximo, setAgendarProximo] = useState<boolean>(true);
+  const [cargandoSlotsProx, setCargandoSlotsProx] = useState(false);
+
+  useEffect(() => {
+    let cancel = false;
+    async function load() {
+      setSlotProx("");
+      if (!form.proxima_visita_sugerida || !form.profesional_id) {
+        setHorariosProx([]); setTurnosOcupadosProx([]); return;
+      }
+      setCargandoSlotsProx(true);
+      const fecha = form.proxima_visita_sugerida;
+      const dia = new Date(fecha + "T00:00:00").getDay();
+      const [{ data: hs }, { data: ts }] = await Promise.all([
+        supabase.from("horarios_profesional")
+          .select("hora_inicio,hora_fin,duracion_slot_min")
+          .eq("profesional_id", form.profesional_id)
+          .eq("dia_semana", dia)
+          .eq("activo", true),
+        supabase.from("turnos")
+          .select("hora_inicio,hora_fin,estado")
+          .eq("profesional_id", form.profesional_id)
+          .eq("fecha", fecha),
+      ]);
+      if (cancel) return;
+      setHorariosProx((hs ?? []) as any);
+      setTurnosOcupadosProx((ts ?? []) as any);
+      setCargandoSlotsProx(false);
+    }
+    load();
+    return () => { cancel = true; };
+  }, [form.proxima_visita_sugerida, form.profesional_id]);
+
+  const slotsLibresProx = useMemo(() => {
+    const slots: { inicio: string; fin: string; key: string }[] = [];
+    const ocupados = turnosOcupadosProx
+      .filter((t) => ESTADOS_OCUPAN.has(t.estado))
+      .map((t) => ({ from: toMin(t.hora_inicio.slice(0, 5)), to: toMin(t.hora_fin.slice(0, 5)) }));
+    for (const h of horariosProx) {
+      const start = toMin(h.hora_inicio.slice(0, 5));
+      const end = toMin(h.hora_fin.slice(0, 5));
+      const dur = h.duracion_slot_min || 30;
+      for (let t = start; t + dur <= end; t += dur) {
+        const tEnd = t + dur;
+        if (ocupados.some((o) => t < o.to && tEnd > o.from)) continue;
+        const inicio = fromMin(t);
+        const fin = fromMin(tEnd);
+        slots.push({ inicio, fin, key: `${inicio}-${fin}` });
+      }
+    }
+    return slots;
+  }, [horariosProx, turnosOcupadosProx]);
+
   // Helpers para mergear (sin duplicar) un registro a una lista
   function mergeUnique<T extends { id: string }>(list: T[], item: T | null | undefined): T[] {
     if (!item) return list;
