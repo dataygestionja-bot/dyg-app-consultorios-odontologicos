@@ -711,10 +711,44 @@ export default function AtencionForm() {
               <Label>Indicaciones</Label>
               <Textarea value={form.indicaciones} onChange={(e) => set("indicaciones", e.target.value)} rows={2} />
             </div>
-            <div className="space-y-1 max-w-xs">
-              <Label>Próxima visita sugerida</Label>
-              <Input type="date" value={form.proxima_visita_sugerida}
-                onChange={(e) => set("proxima_visita_sugerida", e.target.value)} disabled={camposGeneralesBloqueados} />
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1">
+                  <Label>Próxima visita sugerida</Label>
+                  <Input type="date" className="max-w-xs" value={form.proxima_visita_sugerida}
+                    onChange={(e) => set("proxima_visita_sugerida", e.target.value)} disabled={camposGeneralesBloqueados} />
+                </div>
+                {form.proxima_visita_sugerida && (
+                  <label className="flex items-center gap-2 text-sm pb-1.5">
+                    <input type="checkbox" checked={agendarProximo}
+                      onChange={(e) => setAgendarProximo(e.target.checked)} />
+                    Agendar turno
+                  </label>
+                )}
+              </div>
+
+              {form.proxima_visita_sugerida && agendarProximo && (
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Horarios disponibles</Label>
+                  {!form.profesional_id ? (
+                    <p className="text-xs text-muted-foreground">Seleccioná un profesional.</p>
+                  ) : cargandoSlotsProx ? (
+                    <p className="text-xs text-muted-foreground">Cargando disponibilidad...</p>
+                  ) : slotsLibresProx.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Sin disponibilidad ese día.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {slotsLibresProx.map((s) => (
+                        <Button key={s.key} type="button" size="sm"
+                          variant={slotProx === s.key ? "default" : "outline"}
+                          onClick={() => setSlotProx(s.key)}>
+                          {s.inicio}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
