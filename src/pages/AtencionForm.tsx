@@ -588,33 +588,6 @@ export default function AtencionForm() {
           </CardContent>
         </Card>
 
-        {/* Ficha clínica del paciente */}
-        {form.paciente_id && (() => {
-          const p = pacientes.find((x) => x.id === form.paciente_id);
-          if (!p) return null;
-          return (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Ficha clínica del paciente</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-3 md:grid-cols-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Alergias</Label>
-                  <p className="text-sm whitespace-pre-wrap">{p.alergias?.trim() || "—"}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Medicación actual</Label>
-                  <p className="text-sm whitespace-pre-wrap">{p.medicacion_actual?.trim() || "—"}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Antecedentes médicos</Label>
-                  <p className="text-sm whitespace-pre-wrap">{p.antecedentes_medicos?.trim() || "—"}</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })()}
-
         {/* Odontograma inline */}
         {form.paciente_id && (
           <Card>
@@ -632,25 +605,16 @@ export default function AtencionForm() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Prácticas realizadas</CardTitle>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => openQuickPrestacion(-1)}>
-                <Plus className="h-4 w-4" /> Crear nueva práctica
-              </Button>
-              <Button type="button" size="sm" onClick={addPractica}>
-                <Plus className="h-4 w-4" /> Agregar fila
-              </Button>
-            </div>
+            <Button type="button" size="sm" onClick={addPractica}>
+              <Plus className="h-4 w-4" /> Agregar fila
+            </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[40%]">Prestación</TableHead>
-                    <TableHead className="w-[100px]">Pieza</TableHead>
-                    <TableHead className="w-[100px]">Cara</TableHead>
-                    <TableHead className="w-[90px]">Cantidad</TableHead>
-                    <TableHead>Observación</TableHead>
+                    <TableHead>Prestación</TableHead>
                     <TableHead className="w-[60px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -674,19 +638,6 @@ export default function AtencionForm() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Input value={p.pieza_dental} onChange={(e) => updatePractica(idx, { pieza_dental: e.target.value })} />
-                      </TableCell>
-                      <TableCell>
-                        <Input value={p.cara_dental} onChange={(e) => updatePractica(idx, { cara_dental: e.target.value })} />
-                      </TableCell>
-                      <TableCell>
-                        <Input type="number" min={1} value={p.cantidad}
-                          onChange={(e) => updatePractica(idx, { cantidad: parseInt(e.target.value) || 1 })} />
-                      </TableCell>
-                      <TableCell>
-                        <Input value={p.observacion} onChange={(e) => updatePractica(idx, { observacion: e.target.value })} />
-                      </TableCell>
-                      <TableCell>
                         <Button type="button" variant="ghost" size="icon" onClick={() => removePractica(idx)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -696,14 +647,7 @@ export default function AtencionForm() {
                 </TableBody>
               </Table>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Notas clínicas</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Diagnóstico</Label>
               <Textarea value={form.diagnostico} onChange={(e) => set("diagnostico", e.target.value)} rows={2} />
@@ -711,10 +655,6 @@ export default function AtencionForm() {
             <div className="space-y-2">
               <Label>Indicaciones</Label>
               <Textarea value={form.indicaciones} onChange={(e) => set("indicaciones", e.target.value)} rows={2} />
-            </div>
-            <div className="space-y-2">
-              <Label>Observaciones</Label>
-              <Textarea value={form.observaciones} onChange={(e) => set("observaciones", e.target.value)} rows={2} />
             </div>
             <div className="space-y-2 max-w-xs">
               <Label>Próxima visita sugerida</Label>
@@ -724,10 +664,43 @@ export default function AtencionForm() {
           </CardContent>
         </Card>
 
-        {/* Historial de atenciones del paciente */}
-        {form.paciente_id && (
-          <HistorialAtenciones pacienteId={form.paciente_id} />
-        )}
+        {/* Solapas: ficha clínica, historial odontograma, historial atenciones */}
+        {form.paciente_id && (() => {
+          const p = pacientes.find((x) => x.id === form.paciente_id);
+          return (
+            <Card>
+              <CardContent className="py-4">
+                <Tabs defaultValue="ficha">
+                  <TabsList>
+                    <TabsTrigger value="ficha">Ficha clínica</TabsTrigger>
+                    <TabsTrigger value="odontograma">Historial odontograma</TabsTrigger>
+                    <TabsTrigger value="atenciones">Historial de atenciones</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="ficha" className="grid gap-3 md:grid-cols-3 pt-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Alergias</Label>
+                      <p className="text-sm whitespace-pre-wrap">{p?.alergias?.trim() || "—"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Medicación actual</Label>
+                      <p className="text-sm whitespace-pre-wrap">{p?.medicacion_actual?.trim() || "—"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Antecedentes médicos</Label>
+                      <p className="text-sm whitespace-pre-wrap">{p?.antecedentes_medicos?.trim() || "—"}</p>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="odontograma" className="pt-4">
+                    <HistorialOdontograma pacienteId={form.paciente_id} />
+                  </TabsContent>
+                  <TabsContent value="atenciones" className="pt-4">
+                    <HistorialAtenciones pacienteId={form.paciente_id} />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => navigate("/atenciones")}>Cancelar</Button>
