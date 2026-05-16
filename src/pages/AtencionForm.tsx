@@ -506,6 +506,8 @@ export default function AtencionForm() {
     let mensajeTurno = "";
     if (agendarProximo && form.proxima_visita_sugerida && slotProx && form.profesional_id && form.paciente_id) {
       const [hi, hf] = slotProx.split("-");
+      const horaInicio = `${hi}:00`;
+      const horaFin = `${hf}:00`;
       const fechaTxt = format(new Date(form.proxima_visita_sugerida + "T00:00:00"), "dd/MM/yyyy");
 
       const { data: existente } = await supabase
@@ -519,15 +521,34 @@ export default function AtencionForm() {
         .limit(1)
         .maybeSingle();
 
-      if (existente?.id) {
+      // Validar superposición con otros turnos del profesional ese día
+      const ESTADOS_BLOQ = ["reservado", "confirmado", "en_atencion", "pendiente_cierre", "atendido"];
+      const { data: conflictos } = await supabase
+        .from("turnos")
+        .select("id, hora_inicio, hora_fin")
+        .eq("profesional_id", form.profesional_id)
+        .eq("fecha", form.proxima_visita_sugerida)
+        .eq("es_sobreturno", false)
+        .in("estado", ESTADOS_BLOQ)
+        .lt("hora_inicio", horaFin)
+        .gt("hora_fin", horaInicio);
+
+      const haySolape = (conflictos ?? []).some((c) => c.id !== existente?.id);
+
+      if (haySolape) {
+        toast.warning("Atención guardada. El horario de la próxima visita se superpone con otro turno; no se reservó.", { description: `${fechaTxt} ${hi}` });
+      } else if (existente?.id) {
         const { error: errUpd } = await supabase.from("turnos").update({
           profesional_id: form.profesional_id,
-          hora_inicio: `${hi}:00`,
-          hora_fin: `${hf}:00`,
+          hora_inicio: horaInicio,
+          hora_fin: horaFin,
           estado: "reservado",
         }).eq("id", existente.id);
         if (errUpd) {
-          toast.warning("Atención guardada, pero no se pudo actualizar el turno", { description: errUpd.message });
+          const msg = /23505|sobreturno|solapamiento|horario/i.test(errUpd.message)
+            ? "El horario ya está ocupado para el profesional."
+            : errUpd.message;
+          toast.warning("Atención guardada, pero no se pudo actualizar el turno", { description: msg });
         } else {
           mensajeTurno = ` Próximo turno actualizado al ${fechaTxt} ${hi}.`;
         }
@@ -536,14 +557,17 @@ export default function AtencionForm() {
           paciente_id: form.paciente_id,
           profesional_id: form.profesional_id,
           fecha: form.proxima_visita_sugerida,
-          hora_inicio: `${hi}:00`,
-          hora_fin: `${hf}:00`,
+          hora_inicio: horaInicio,
+          hora_fin: horaFin,
           motivo_consulta: "Control / Próxima visita",
           estado: "reservado",
           origen: "interno",
         });
         if (errTurno) {
-          toast.warning("Atención guardada, pero no se pudo agendar el turno", { description: errTurno.message });
+          const msg = /23505|sobreturno|solapamiento|horario/i.test(errTurno.message)
+            ? "El horario ya está ocupado para el profesional."
+            : errTurno.message;
+          toast.warning("Atención guardada, pero no se pudo agendar el turno", { description: msg });
         } else {
           mensajeTurno = ` Próximo turno reservado el ${fechaTxt} a las ${hi}.`;
         }
