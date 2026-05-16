@@ -1,45 +1,30 @@
-## Auto-agendar próxima visita con selección de slot
+## Evitar turnos duplicados al agendar próxima visita
 
-Convertir "Próxima visita sugerida" en un selector de fecha + horarios libres del profesional, y crear el turno automáticamente al guardar la atención.
+Cuando se guarda (o edita) una atención con "Próxima visita sugerida" + slot, en lugar de insertar siempre, primero buscar un turno existente y actualizarlo si corresponde.
 
-### UX en `AtencionForm.tsx`
+### Cambios en `AtencionForm.tsx` → `guardar()`
 
-Reemplazar el bloque actual (solo `<input type="date">`) por:
+Reemplazar el bloque actual que sólo se ejecuta cuando `!isEdit`. El nuevo flujo se ejecuta siempre que haya fecha + slot + paciente + profesional + `agendarProximo`:
 
-1. **Fecha** (igual que hoy).
-2. Al elegir fecha, debajo aparece una grilla de botones con los **slots libres** del profesional asignado a la atención, para ese día.
-   - Si no hay horarios cargados o no hay slots libres → mensaje "Sin disponibilidad ese día".
-   - Botón seleccionado se resalta (variante primary).
-3. Checkbox opcional **"No agendar turno"** por si el profesional solo quiere dejar la fecha sugerida sin reservar.
+1. Consultar:
+   ```ts
+   supabase.from("turnos")
+     .select("id, hora_inicio, hora_fin, estado")
+     .eq("paciente_id", form.paciente_id)
+     .eq("fecha", form.proxima_visita_sugerida)
+     .eq("motivo_consulta", "Control / Próxima visita")
+     .not("estado", "in", "(cancelado,rechazado)")
+     .order("created_at", { ascending: false })
+     .limit(1)
+   ```
+2. Si existe → `update` de `profesional_id`, `hora_inicio`, `hora_fin`, `estado='reservado'` sobre ese id. Toast: "Próximo turno actualizado…".
+3. Si no existe → `insert` como hoy. Toast: "Próximo turno reservado…".
 
-### Lógica de slots (cliente)
+### Notas
 
-Reutilizar la misma fórmula que `NuevoTurnoDialog`:
-
-- Cargar `horarios_profesional` del `form.profesional_id` filtrados por `dia_semana` de la fecha elegida y `activo=true`.
-- Cargar `turnos` del profesional ese día (estados no cancelados) para descontar ocupados.
-- Generar slots `[hora_inicio, hora_fin]` cada `duracion_slot_min` y filtrar los que se solapan con turnos existentes.
-
-Se reactiva cada vez que cambien `proxima_visita_sugerida` o `profesional_id`.
-
-### Guardado
-
-En `guardar()`, después de insertar la atención:
-
-- Si hay `proxima_visita_sugerida` + slot elegido + no marcaron "No agendar":
-  - Insertar en `turnos`:
-    - `paciente_id`, `profesional_id` (los de la atención)
-    - `fecha` = próxima visita
-    - `hora_inicio` / `hora_fin` = slot elegido
-    - `motivo_consulta` = "Control / Próxima visita"
-    - `estado` = `reservado`
-    - `origen` = `interno`
-  - Toast: "Atención guardada y próximo turno reservado el dd/mm/yyyy a las HH:mm".
-
-Si falla la creación del turno, mostrar warning pero no revertir la atención.
-
-### Cambios de archivos
-
-- `src/pages/AtencionForm.tsx`: nueva UI, estados `slotsProximos`, `slotElegido`, `agendarProximo`, queries a `horarios_profesional` + `turnos`, e insert de turno tras guardar.
+- Se restringe el match a `motivo_consulta = "Control / Próxima visita"` para no pisar turnos creados manualmente por recepción.
+- Se excluyen estados `cancelado` y `rechazado` para permitir reagendar después de una cancelación creando uno nuevo.
+- Si la query falla, fallback al insert actual con warning.
+- Habilitar el bloque también en edición (quitar el `!isEdit` actual).
 
 Sin cambios de schema.
