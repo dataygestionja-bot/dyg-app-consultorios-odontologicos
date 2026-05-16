@@ -502,8 +502,29 @@ export default function AtencionForm() {
       }
     }
 
+    // Agendar próximo turno si corresponde
+    let mensajeTurno = "";
+    if (!isEdit && agendarProximo && form.proxima_visita_sugerida && slotProx && form.profesional_id && form.paciente_id) {
+      const [hi, hf] = slotProx.split("-");
+      const { error: errTurno } = await supabase.from("turnos").insert({
+        paciente_id: form.paciente_id,
+        profesional_id: form.profesional_id,
+        fecha: form.proxima_visita_sugerida,
+        hora_inicio: `${hi}:00`,
+        hora_fin: `${hf}:00`,
+        motivo_consulta: "Control / Próxima visita",
+        estado: "reservado",
+        origen: "interno",
+      });
+      if (errTurno) {
+        toast.warning("Atención guardada, pero no se pudo agendar el turno", { description: errTurno.message });
+      } else {
+        mensajeTurno = ` Próximo turno reservado el ${format(new Date(form.proxima_visita_sugerida + "T00:00:00"), "dd/MM/yyyy")} a las ${hi}.`;
+      }
+    }
+
     setSubmitting(false);
-    toast.success(isEdit ? "Atención actualizada" : "Atención registrada");
+    toast.success((isEdit ? "Atención actualizada" : "Atención registrada") + mensajeTurno);
     navigate("/atenciones");
   }
 
