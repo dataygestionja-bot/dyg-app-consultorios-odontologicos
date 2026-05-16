@@ -47,6 +47,7 @@ import {
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Profesional {
   id: string;
