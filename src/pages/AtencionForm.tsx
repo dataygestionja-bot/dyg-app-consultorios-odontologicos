@@ -176,11 +176,11 @@ export default function AtencionForm() {
         profesionalVinculadoRes,
         turnoVinculadoRes,
       ] = await Promise.all([
-        supabase.from("pacientes").select("id, nombre, apellido, dni").eq("activo", true).order("apellido"),
+        supabase.from("pacientes").select("id, nombre, apellido, dni, alergias, medicacion_actual, antecedentes_medicos").eq("activo", true).order("apellido"),
         supabase.from("profesionales").select("id, nombre, apellido").eq("activo", true).order("apellido"),
         supabase.from("prestaciones").select("id, codigo, descripcion, precio_base").eq("activo", true).order("codigo"),
         pacienteIdActual
-          ? supabase.from("pacientes").select("id, nombre, apellido, dni").eq("id", pacienteIdActual).maybeSingle()
+          ? supabase.from("pacientes").select("id, nombre, apellido, dni, alergias, medicacion_actual, antecedentes_medicos").eq("id", pacienteIdActual).maybeSingle()
           : Promise.resolve({ data: null } as any),
         profesionalIdActual
           ? supabase.from("profesionales").select("id, nombre, apellido").eq("id", profesionalIdActual).maybeSingle()
