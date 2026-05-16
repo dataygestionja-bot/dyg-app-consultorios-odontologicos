@@ -140,7 +140,7 @@ export default function Odontograma({
             Historial odontológico por pieza dental
           </p>
         </div>
-        {puedeAgregar && (
+        {puedeAgregar && mode === "full" && (
           <Button type="button" onClick={() => setOpenDialog(true)}>
             <Plus className="h-4 w-4" />
             Agregar registro
