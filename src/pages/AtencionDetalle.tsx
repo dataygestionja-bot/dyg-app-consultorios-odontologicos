@@ -8,6 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowLeft, Pencil } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import { IntegracionRctaCard } from "@/components/integraciones/IntegracionRctaCard";
+import { RecetasExternasSection } from "@/components/integraciones/RecetasExternasSection";
 
 type TipoAtencion = "con_turno" | "urgencia" | "espontanea";
 
@@ -43,6 +45,8 @@ interface Atencion {
   observaciones: string | null;
   tratamiento_realizado: string | null;
   proxima_visita_sugerida: string | null;
+  paciente_id: string;
+  profesional_id: string;
   paciente: { id: string; nombre: string; apellido: string; dni: string } | null;
   profesional: { nombre: string; apellido: string; especialidad: string | null } | null;
   turno: { fecha: string; hora_inicio: string; motivo_consulta: string } | null;
@@ -269,6 +273,27 @@ export default function AtencionDetalle() {
         <TextBlock label="Indicaciones" value={atencion.indicaciones} />
         <TextBlock label="Observaciones" value={atencion.observaciones} />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Receta electrónica externa</CardTitle>
+          <CardDescription>Plataformas externas para emitir recetas</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <IntegracionRctaCard
+            atencionId={atencion.id}
+            pacienteNombre={
+              atencion.paciente ? `${atencion.paciente.apellido}, ${atencion.paciente.nombre}` : undefined
+            }
+          />
+        </CardContent>
+      </Card>
+
+      <RecetasExternasSection
+        atencionId={atencion.id}
+        pacienteId={atencion.paciente_id}
+        profesionalId={atencion.profesional_id}
+      />
     </div>
   );
 }

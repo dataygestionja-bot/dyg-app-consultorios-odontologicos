@@ -34,6 +34,7 @@ import Perfiles from "./pages/seguridad/Perfiles";
 import MiPerfil from "./pages/seguridad/MiPerfil";
 import Reportes from "./pages/seguridad/Reportes";
 import Auditoria from "./pages/seguridad/Auditoria";
+import Integraciones from "./pages/seguridad/Integraciones";
 import TwilioTest from "./pages/TwilioTest";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -142,6 +143,7 @@ const App = () => (
             <Route path="/seguridad/mi-perfil" element={<Private><MiPerfil /></Private>} />
             <Route path="/seguridad/reportes" element={<AdminOnly><Reportes /></AdminOnly>} />
             <Route path="/seguridad/auditoria" element={<AdminOnly><Auditoria /></AdminOnly>} />
+            <Route path="/seguridad/integraciones" element={<AdminOnly><Integraciones /></AdminOnly>} />
             <Route path="/seguridad/twilio-test" element={<AdminOnly><TwilioTest /></AdminOnly>} />
 
             {/* Compatibilidad ruta vieja */}
