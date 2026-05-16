@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { registrarEvento } from "@/lib/audit";
+import { toast } from "@/hooks/use-toast";
 import rctaLogoFallback from "@/assets/rcta-logo.jpg";
 
 interface Integracion {
