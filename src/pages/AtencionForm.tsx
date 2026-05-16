@@ -20,6 +20,7 @@ import Odontograma from "@/components/paciente/Odontograma";
 import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
 import HistorialOdontograma from "@/components/paciente/HistorialOdontograma";
 import { Badge } from "@/components/ui/badge";
+import { IntegracionRctaInline } from "@/components/integraciones/IntegracionRctaInline";
 
 interface Paciente { id: string; nombre: string; apellido: string; dni: string; alergias?: string | null; medicacion_actual?: string | null; antecedentes_medicos?: string | null; }
 interface Profesional { id: string; nombre: string; apellido: string; }
@@ -747,9 +748,18 @@ export default function AtencionForm() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between py-3">
             <CardTitle className="text-base">Prácticas realizadas</CardTitle>
-            <Button type="button" size="sm" onClick={addPractica}>
-              <Plus className="h-4 w-4" /> Agregar fila
-            </Button>
+            <div className="flex items-center gap-2">
+              <IntegracionRctaInline
+                atencionId={id && id !== "nuevo" ? id : null}
+                pacienteNombre={(() => {
+                  const p = pacientes.find((x) => x.id === form.paciente_id);
+                  return p ? `${p.apellido}, ${p.nombre}` : undefined;
+                })()}
+              />
+              <Button type="button" size="sm" onClick={addPractica}>
+                <Plus className="h-4 w-4" /> Agregar fila
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-3 pt-0">
             <div className="space-y-1">

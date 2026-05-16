@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowLeft, Pencil } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { IntegracionRctaCard } from "@/components/integraciones/IntegracionRctaCard";
+import { IntegracionRctaInline } from "@/components/integraciones/IntegracionRctaInline";
 import { RecetasExternasSection } from "@/components/integraciones/RecetasExternasSection";
 
 type TipoAtencion = "con_turno" | "urgencia" | "espontanea";
@@ -220,9 +220,17 @@ export default function AtencionDetalle() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Prácticas realizadas</CardTitle>
-          <CardDescription>Prestaciones asociadas a esta atención</CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-2">
+          <div>
+            <CardTitle className="text-base">Prácticas realizadas</CardTitle>
+            <CardDescription>Prestaciones asociadas a esta atención</CardDescription>
+          </div>
+          <IntegracionRctaInline
+            atencionId={atencion.id}
+            pacienteNombre={
+              atencion.paciente ? `${atencion.paciente.apellido}, ${atencion.paciente.nombre}` : undefined
+            }
+          />
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -273,21 +281,6 @@ export default function AtencionDetalle() {
         <TextBlock label="Indicaciones" value={atencion.indicaciones} />
         <TextBlock label="Observaciones" value={atencion.observaciones} />
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Receta electrónica externa</CardTitle>
-          <CardDescription>Plataformas externas para emitir recetas</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <IntegracionRctaCard
-            atencionId={atencion.id}
-            pacienteNombre={
-              atencion.paciente ? `${atencion.paciente.apellido}, ${atencion.paciente.nombre}` : undefined
-            }
-          />
-        </CardContent>
-      </Card>
 
       <RecetasExternasSection
         atencionId={atencion.id}
