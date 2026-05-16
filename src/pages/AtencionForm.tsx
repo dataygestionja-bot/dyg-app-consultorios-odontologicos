@@ -15,8 +15,11 @@ import {
 import { format } from "date-fns";
 import { PrestacionQuickDialog } from "@/components/prestaciones/PrestacionQuickDialog";
 import { useAuth } from "@/hooks/useAuth";
+import Odontograma from "@/components/paciente/Odontograma";
+import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
+import { Badge } from "@/components/ui/badge";
 
-interface Paciente { id: string; nombre: string; apellido: string; dni: string; }
+interface Paciente { id: string; nombre: string; apellido: string; dni: string; alergias?: string | null; medicacion_actual?: string | null; antecedentes_medicos?: string | null; }
 interface Profesional { id: string; nombre: string; apellido: string; }
 interface Prestacion { id: string; codigo: string; descripcion: string; precio_base: number; }
 interface TurnoOpcion { id: string; fecha: string; hora_inicio: string; motivo_consulta: string; paciente_id: string; profesional_id: string; }
@@ -173,11 +176,11 @@ export default function AtencionForm() {
         profesionalVinculadoRes,
         turnoVinculadoRes,
       ] = await Promise.all([
-        supabase.from("pacientes").select("id, nombre, apellido, dni").eq("activo", true).order("apellido"),
+        supabase.from("pacientes").select("id, nombre, apellido, dni, alergias, medicacion_actual, antecedentes_medicos").eq("activo", true).order("apellido"),
         supabase.from("profesionales").select("id, nombre, apellido").eq("activo", true).order("apellido"),
         supabase.from("prestaciones").select("id, codigo, descripcion, precio_base").eq("activo", true).order("codigo"),
         pacienteIdActual
-          ? supabase.from("pacientes").select("id, nombre, apellido, dni").eq("id", pacienteIdActual).maybeSingle()
+          ? supabase.from("pacientes").select("id, nombre, apellido, dni, alergias, medicacion_actual, antecedentes_medicos").eq("id", pacienteIdActual).maybeSingle()
           : Promise.resolve({ data: null } as any),
         profesionalIdActual
           ? supabase.from("profesionales").select("id, nombre, apellido").eq("id", profesionalIdActual).maybeSingle()
@@ -466,132 +469,163 @@ export default function AtencionForm() {
       </div>
 
       <form onSubmit={guardar} className="space-y-6">
+        {/* Cabecera compacta */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Datos generales</CardTitle>
-            {camposGeneralesBloqueados && (
-              <p className="text-xs text-muted-foreground">
-                Solo se pueden modificar las prácticas y las notas clínicas.
-              </p>
+          <CardContent className="py-4">
+            {turnoIdParam ? (
+              <div className="grid gap-3 md:grid-cols-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Fecha</Label>
+                  <div className="text-sm font-medium">
+                    {form.fecha ? format(new Date(form.fecha + "T00:00:00"), "dd/MM/yyyy") : "—"}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Paciente</Label>
+                  <div className="text-sm font-medium">
+                    {(() => {
+                      const p = pacientes.find((x) => x.id === form.paciente_id);
+                      return p ? `${p.apellido}, ${p.nombre} · ${p.dni}` : "—";
+                    })()}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Profesional</Label>
+                  <Select
+                    value={form.profesional_id}
+                    onValueChange={(v) => set("profesional_id", v)}
+                    disabled={camposGeneralesBloqueados}
+                  >
+                    <SelectTrigger className="h-8"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                    <SelectContent>
+                      {profesionales.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Tipo de atención</Label>
+                  <div><Badge variant="secondary">{TIPO_ATENCION_LABELS[form.tipo_atencion]}</Badge></div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label>Fecha *</Label>
+                    <Input type="date" value={form.fecha} onChange={(e) => set("fecha", e.target.value)} required disabled={camposGeneralesBloqueados} />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Paciente *</Label>
+                    <Select value={form.paciente_id} onValueChange={(v) => set("paciente_id", v)} required disabled={camposGeneralesBloqueados}>
+                      <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                      <SelectContent>
+                        {pacientes.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre} · {p.dni}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Profesional *</Label>
+                    <Select value={form.profesional_id} onValueChange={(v) => set("profesional_id", v)} required disabled={camposGeneralesBloqueados}>
+                      <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                      <SelectContent>
+                        {profesionales.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tipo de atención *</Label>
+                    <Select value={form.tipo_atencion} onValueChange={(v) => setTipoAtencion(v as TipoAtencion)} disabled={camposGeneralesBloqueados}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(TIPO_ATENCION_LABELS) as TipoAtencion[]).map((t) => (
+                          <SelectItem key={t} value={t}>{TIPO_ATENCION_LABELS[t]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {form.tipo_atencion === "con_turno" && (
+                  <div className="space-y-2">
+                    <Label>Turno asociado *</Label>
+                    <Select
+                      value={form.turno_id ?? ""}
+                      onValueChange={(v) => {
+                        const turnoId = v || null;
+                        const turno = turnoId ? turnosDisponibles.find((t) => t.id === turnoId) : null;
+                        setForm((f) => ({
+                          ...f,
+                          turno_id: turnoId,
+                          profesional_id: turno?.profesional_id ?? f.profesional_id,
+                        }));
+                      }}
+                      disabled={!form.paciente_id || camposGeneralesBloqueados}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={!form.paciente_id ? "Primero seleccioná un paciente" : turnosDisponibles.length === 0 ? "Sin turnos disponibles" : "Seleccionar turno..."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {turnosDisponibles.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {format(new Date(t.fecha + "T00:00:00"), "dd/MM/yyyy")} · {t.hora_inicio?.slice(0, 5)} · {t.motivo_consulta}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
             )}
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label>Fecha *</Label>
-                <Input type="date" value={form.fecha} onChange={(e) => set("fecha", e.target.value)} required disabled={camposGeneralesBloqueados} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Paciente *</Label>
-                <Select
-                  value={form.paciente_id}
-                  onValueChange={(v) => set("paciente_id", v)}
-                  required
-                  disabled={!!turnoIdParam || camposGeneralesBloqueados}
-                >
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>
-                    {pacientes.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre} · {p.dni}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {turnoIdParam && (
-                  <p className="text-xs text-muted-foreground">
-                    Datos tomados del turno (no editables).
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Profesional *</Label>
-                <Select
-                  value={form.profesional_id}
-                  onValueChange={(v) => set("profesional_id", v)}
-                  required
-                  disabled={!!turnoIdParam || camposGeneralesBloqueados}
-                >
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>
-                    {profesionales.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Próxima visita sugerida</Label>
-                <Input type="date" value={form.proxima_visita_sugerida}
-                  onChange={(e) => set("proxima_visita_sugerida", e.target.value)} disabled={camposGeneralesBloqueados} />
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Tipo de atención *</Label>
-                <Select
-                  value={form.tipo_atencion}
-                  onValueChange={(v) => setTipoAtencion(v as TipoAtencion)}
-                  disabled={!!turnoIdParam || camposGeneralesBloqueados}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(TIPO_ATENCION_LABELS) as TipoAtencion[]).map((t) => (
-                      <SelectItem key={t} value={t}>{TIPO_ATENCION_LABELS[t]}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {turnoIdParam && (
-                  <p className="text-xs text-muted-foreground">
-                    Atención iniciada desde un turno: el tipo queda fijo en "Con turno".
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label>
-                  Turno asociado {form.tipo_atencion === "con_turno" ? "*" : ""}
-                </Label>
-                <Select
-                  value={form.turno_id ?? ""}
-                  onValueChange={(v) => {
-                    const turnoId = v || null;
-                    const turno = turnoId ? turnosDisponibles.find((t) => t.id === turnoId) : null;
-                    setForm((f) => ({
-                      ...f,
-                      turno_id: turnoId,
-                      profesional_id: turno?.profesional_id ?? f.profesional_id,
-                    }));
-                  }}
-                  disabled={form.tipo_atencion !== "con_turno" || !form.paciente_id || !!turnoIdParam || camposGeneralesBloqueados}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={
-                      form.tipo_atencion !== "con_turno"
-                        ? "No aplica para urgencia/espontánea"
-                        : !form.paciente_id
-                          ? "Primero seleccioná un paciente"
-                          : turnosDisponibles.length === 0
-                            ? "Sin turnos disponibles"
-                            : "Seleccionar turno..."
-                    } />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {turnosDisponibles.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {format(new Date(t.fecha + "T00:00:00"), "dd/MM/yyyy")} · {t.hora_inicio?.slice(0, 5)} · {t.motivo_consulta}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {form.turno_id && turnosDisponibles.find((t) => t.id === form.turno_id) && (
-                  <p className="text-xs text-muted-foreground">
-                    Motivo del turno: {turnosDisponibles.find((t) => t.id === form.turno_id)?.motivo_consulta}
-                  </p>
-                )}
-              </div>
-            </div>
           </CardContent>
         </Card>
+
+        {/* Ficha clínica del paciente */}
+        {form.paciente_id && (() => {
+          const p = pacientes.find((x) => x.id === form.paciente_id);
+          if (!p) return null;
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Ficha clínica del paciente</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3 md:grid-cols-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Alergias</Label>
+                  <p className="text-sm whitespace-pre-wrap">{p.alergias?.trim() || "—"}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Medicación actual</Label>
+                  <p className="text-sm whitespace-pre-wrap">{p.medicacion_actual?.trim() || "—"}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Antecedentes médicos</Label>
+                  <p className="text-sm whitespace-pre-wrap">{p.antecedentes_medicos?.trim() || "—"}</p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
+        {/* Odontograma inline */}
+        {form.paciente_id && (
+          <Card>
+            <CardContent className="py-4">
+              <Odontograma
+                pacienteId={form.paciente_id}
+                mode="inline"
+                profesionalId={form.profesional_id}
+                fechaAtencion={form.fecha}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -680,8 +714,18 @@ export default function AtencionForm() {
               <Label>Observaciones</Label>
               <Textarea value={form.observaciones} onChange={(e) => set("observaciones", e.target.value)} rows={2} />
             </div>
+            <div className="space-y-2 max-w-xs">
+              <Label>Próxima visita sugerida</Label>
+              <Input type="date" value={form.proxima_visita_sugerida}
+                onChange={(e) => set("proxima_visita_sugerida", e.target.value)} disabled={camposGeneralesBloqueados} />
+            </div>
           </CardContent>
         </Card>
+
+        {/* Historial de atenciones del paciente */}
+        {form.paciente_id && (
+          <HistorialAtenciones pacienteId={form.paciente_id} />
+        )}
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => navigate("/atenciones")}>Cancelar</Button>

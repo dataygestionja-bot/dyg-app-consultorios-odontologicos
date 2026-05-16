@@ -47,6 +47,7 @@ import {
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Profesional {
   id: string;
@@ -68,7 +69,17 @@ interface Registro {
 
 const TODOS_DIENTES = Array.from({ length: 32 }, (_, i) => i + 1);
 
-export default function Odontograma({ pacienteId }: { pacienteId: string }) {
+export default function Odontograma({
+  pacienteId,
+  mode = "full",
+  profesionalId,
+  fechaAtencion,
+}: {
+  pacienteId: string;
+  mode?: "full" | "inline";
+  profesionalId?: string;
+  fechaAtencion?: string;
+}) {
   const { user } = useAuth();
   const { can } = usePermissions();
   const [registros, setRegistros] = useState<Registro[]>([]);
@@ -119,6 +130,34 @@ export default function Odontograma({ pacienteId }: { pacienteId: string }) {
 
   const puedeAgregar = can("odontograma", "create");
 
+  async function registrarEstadoInline(diente: number, estado: DienteEstado) {
+    if (!profesionalId) {
+      toast.error("Falta el profesional", { description: "Seleccioná un profesional antes de registrar." });
+      return;
+    }
+    if (!puedeAgregar) {
+      toast.error("Sin permiso para registrar en el odontograma");
+      return;
+    }
+    const fechaIso = fechaAtencion
+      ? new Date(`${fechaAtencion}T${format(new Date(), "HH:mm:ss")}`).toISOString()
+      : new Date().toISOString();
+    const { error } = await supabase.from("odontograma_registros").insert({
+      paciente_id: pacienteId,
+      diente,
+      estado,
+      fecha: fechaIso,
+      profesional_id: profesionalId,
+      observaciones: null,
+    });
+    if (error) {
+      toast.error("No se pudo registrar", { description: error.message });
+      return;
+    }
+    toast.success(`Pieza ${diente}: ${DIENTE_ESTADO_LABELS[estado]}`);
+    cargar();
+  }
+
   return (
     <div className="space-y-4">
       {/* Encabezado + botón */}
@@ -129,7 +168,7 @@ export default function Odontograma({ pacienteId }: { pacienteId: string }) {
             Historial odontológico por pieza dental
           </p>
         </div>
-        {puedeAgregar && (
+        {puedeAgregar && mode === "full" && (
           <Button type="button" onClick={() => setOpenDialog(true)}>
             <Plus className="h-4 w-4" />
             Agregar registro
@@ -156,15 +195,23 @@ export default function Odontograma({ pacienteId }: { pacienteId: string }) {
           <CardDescription>Estado actual (último registro) de las piezas 1 a 32</CardDescription>
         </CardHeader>
         <CardContent>
+          {mode === "inline" && (
+            <p className="mb-3 text-xs text-muted-foreground">
+              {profesionalId
+                ? "Hacé clic sobre una pieza para registrar su estado."
+                : "Seleccioná un profesional para poder registrar estados."}
+            </p>
+          )}
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
             {TODOS_DIENTES.map((n) => {
               const ult = estadoActualPorDiente.get(n);
-              return (
+              const btn = (
                 <button
                   key={n}
                   type="button"
-                  onClick={() => setDienteFiltro(String(n))}
-                  className={`flex flex-col items-center gap-1 rounded-md border p-2 text-xs transition hover:border-primary ${
+                  onClick={mode === "inline" ? undefined : () => setDienteFiltro(String(n))}
+                  disabled={mode === "inline" && !profesionalId}
+                  className={`flex w-full flex-col items-center gap-1 rounded-md border p-2 text-xs transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-60 ${
                     dienteFiltro === String(n) ? "border-primary ring-1 ring-primary" : ""
                   }`}
                   title={ult ? `${DIENTE_ESTADO_LABELS[ult.estado]} • ${format(new Date(ult.fecha), "dd/MM/yy")}` : "Sin registros"}
@@ -185,6 +232,33 @@ export default function Odontograma({ pacienteId }: { pacienteId: string }) {
                   )}
                 </button>
               );
+
+              if (mode === "inline") {
+                return (
+                  <Popover key={n}>
+                    <PopoverTrigger asChild>{btn}</PopoverTrigger>
+                    <PopoverContent className="w-56 p-2" align="start">
+                      <div className="mb-2 px-1 text-xs font-medium">
+                        Pieza {n} — elegir estado
+                      </div>
+                      <div className="flex flex-col">
+                        {DIENTE_ESTADOS.map((e) => (
+                          <button
+                            key={e}
+                            type="button"
+                            onClick={() => registrarEstadoInline(n, e)}
+                            className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                          >
+                            <span className={`h-3 w-3 rounded-sm ${DIENTE_ESTADO_DOT[e]}`} />
+                            <span>{DIENTE_ESTADO_LABELS[e]}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                );
+              }
+              return btn;
             })}
           </div>
         </CardContent>
