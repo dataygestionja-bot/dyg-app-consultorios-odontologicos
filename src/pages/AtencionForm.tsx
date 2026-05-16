@@ -18,6 +18,7 @@ import { PrestacionQuickDialog } from "@/components/prestaciones/PrestacionQuick
 import { useAuth } from "@/hooks/useAuth";
 import Odontograma from "@/components/paciente/Odontograma";
 import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
+import HistorialOdontograma from "@/components/paciente/HistorialOdontograma";
 import { Badge } from "@/components/ui/badge";
 
 interface Paciente { id: string; nombre: string; apellido: string; dni: string; alergias?: string | null; medicacion_actual?: string | null; antecedentes_medicos?: string | null; }
