@@ -251,68 +251,6 @@ export default function Odontograma({
         </CardContent>
       </Card>
 
-      {/* Historial detallado */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <div>
-            <CardTitle className="text-base">Historial detallado</CardTitle>
-            <CardDescription>Cronología de registros (más reciente primero)</CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <Label className="text-xs">Diente</Label>
-            <Select value={dienteFiltro} onValueChange={setDienteFiltro}>
-              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-              <SelectContent className="max-h-72">
-                <SelectItem value="todos">Todos</SelectItem>
-                {TODOS_DIENTES.map((n) => (
-                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p className="text-sm text-muted-foreground">Cargando...</p>
-          ) : historialFiltrado.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sin registros para mostrar.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Diente</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Profesional</TableHead>
-                  <TableHead>Observaciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {historialFiltrado.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell>{format(new Date(r.fecha), "dd/MM/yyyy HH:mm")}</TableCell>
-                    <TableCell className="font-medium">{r.diente}</TableCell>
-                    <TableCell>
-                      <Badge className={DIENTE_ESTADO_CLASSES[r.estado]}>
-                        {DIENTE_ESTADO_LABELS[r.estado]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {r.profesionales
-                        ? `${r.profesionales.apellido}, ${r.profesionales.nombre}`
-                        : "—"}
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate" title={r.observaciones ?? ""}>
-                      {r.observaciones ?? "—"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
       <AgregarRegistroDialog
         open={openDialog}
         onOpenChange={setOpenDialog}
