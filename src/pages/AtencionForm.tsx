@@ -475,7 +475,7 @@ export default function AtencionForm() {
         <Card>
           <CardContent className="py-3">
             {turnoIdParam ? (
-              <div className="grid gap-3 md:grid-cols-4">
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <Label className="text-xs text-muted-foreground">Fecha</Label>
                   <div className="text-sm font-medium">
@@ -661,7 +661,12 @@ export default function AtencionForm() {
                     <TabsTrigger value="odontograma">Historial odontograma</TabsTrigger>
                     <TabsTrigger value="atenciones">Historial de atenciones</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="ficha" className="grid gap-3 md:grid-cols-3 pt-3">
+                  <TabsList className="flex flex-wrap h-auto w-full justify-start gap-1">
+                    <TabsTrigger value="ficha">Ficha clínica</TabsTrigger>
+                    <TabsTrigger value="odontograma">Historial odontograma</TabsTrigger>
+                    <TabsTrigger value="atenciones">Historial de atenciones</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="ficha" className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 pt-3">
                     <div>
                       <Label className="text-xs text-muted-foreground">Alergias</Label>
                       <p className="text-sm whitespace-pre-wrap">{p?.alergias?.trim() || "—"}</p>
