@@ -65,32 +65,16 @@ export function IntegracionRctaInline({ atencionId, pacienteNombre }: Props) {
     }
   };
 
-  const boton = (
-    <button
-      type="button"
-      onClick={() => !deshabilitado && setOpen(true)}
-      disabled={deshabilitado}
-      aria-label={`Abrir ${nombre}`}
-      className="inline-flex items-center justify-center rounded-md border border-border bg-background px-2 py-1 transition-all hover:border-primary/40 hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      <img src={logo} alt={nombre} className="h-6 object-contain" />
-    </button>
-  );
-
   return (
     <>
-      {deshabilitado ? (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>{boton}</span>
-            </TooltipTrigger>
-            <TooltipContent>Guardá la atención primero para abrir {nombre}</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      ) : (
-        boton
-      )}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={`Abrir ${nombre}`}
+        className="inline-flex items-center justify-center rounded-md border border-border bg-background px-2 py-1 transition-all hover:border-primary/40 hover:shadow-sm"
+      >
+        <img src={logo} alt={nombre} className="h-6 object-contain" />
+      </button>
 
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
