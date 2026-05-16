@@ -69,7 +69,17 @@ interface Registro {
 
 const TODOS_DIENTES = Array.from({ length: 32 }, (_, i) => i + 1);
 
-export default function Odontograma({ pacienteId }: { pacienteId: string }) {
+export default function Odontograma({
+  pacienteId,
+  mode = "full",
+  profesionalId,
+  fechaAtencion,
+}: {
+  pacienteId: string;
+  mode?: "full" | "inline";
+  profesionalId?: string;
+  fechaAtencion?: string;
+}) {
   const { user } = useAuth();
   const { can } = usePermissions();
   const [registros, setRegistros] = useState<Registro[]>([]);
