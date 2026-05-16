@@ -458,7 +458,7 @@ export default function AtencionForm() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-4 max-w-5xl">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/atenciones")}>
           <ArrowLeft className="h-4 w-4" />
@@ -470,10 +470,10 @@ export default function AtencionForm() {
         </div>
       </div>
 
-      <form onSubmit={guardar} className="space-y-6">
+      <form onSubmit={guardar} className="space-y-3">
         {/* Cabecera compacta */}
         <Card>
-          <CardContent className="py-4">
+          <CardContent className="py-3">
             {turnoIdParam ? (
               <div className="grid gap-3 md:grid-cols-4">
                 <div>
@@ -591,7 +591,7 @@ export default function AtencionForm() {
         {/* Odontograma inline */}
         {form.paciente_id && (
           <Card>
-            <CardContent className="py-4">
+            <CardContent className="py-3">
               <Odontograma
                 pacienteId={form.paciente_id}
                 mode="inline"
@@ -654,14 +654,14 @@ export default function AtencionForm() {
           const p = pacientes.find((x) => x.id === form.paciente_id);
           return (
             <Card>
-              <CardContent className="py-4">
+              <CardContent className="py-3">
                 <Tabs defaultValue="ficha">
                   <TabsList>
                     <TabsTrigger value="ficha">Ficha clínica</TabsTrigger>
                     <TabsTrigger value="odontograma">Historial odontograma</TabsTrigger>
                     <TabsTrigger value="atenciones">Historial de atenciones</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="ficha" className="grid gap-3 md:grid-cols-3 pt-4">
+                  <TabsContent value="ficha" className="grid gap-3 md:grid-cols-3 pt-3">
                     <div>
                       <Label className="text-xs text-muted-foreground">Alergias</Label>
                       <p className="text-sm whitespace-pre-wrap">{p?.alergias?.trim() || "—"}</p>
@@ -675,10 +675,10 @@ export default function AtencionForm() {
                       <p className="text-sm whitespace-pre-wrap">{p?.antecedentes_medicos?.trim() || "—"}</p>
                     </div>
                   </TabsContent>
-                  <TabsContent value="odontograma" className="pt-4">
+                  <TabsContent value="odontograma" className="pt-3">
                     <HistorialOdontograma pacienteId={form.paciente_id} />
                   </TabsContent>
-                  <TabsContent value="atenciones" className="pt-4">
+                  <TabsContent value="atenciones" className="pt-3">
                     <HistorialAtenciones pacienteId={form.paciente_id} />
                   </TabsContent>
                 </Tabs>
