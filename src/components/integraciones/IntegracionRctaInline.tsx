@@ -89,9 +89,10 @@ export function IntegracionRctaInline({ atencionId, pacienteNombre }: Props) {
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={handleClick}
         aria-label={`Abrir ${nombre}`}
-        className="inline-flex items-center justify-center rounded-md border border-border bg-background px-2 py-1 transition-all hover:border-primary/40 hover:shadow-sm"
+        title={motivoError ?? `Abrir ${nombre}`}
+        className={`inline-flex items-center justify-center rounded-md border border-border bg-background px-2 py-1 transition-all hover:border-primary/40 hover:shadow-sm ${motivoError ? "opacity-60 grayscale" : ""}`}
       >
         <img src={logo} alt={nombre} className="h-6 object-contain" />
       </button>
