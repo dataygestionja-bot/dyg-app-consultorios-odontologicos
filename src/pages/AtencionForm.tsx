@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,19 @@ const newPractica = (orden: number): PracticaRow => ({
   orden,
 });
 
+const ESTADOS_OCUPAN = new Set([
+  "reservado", "confirmado", "en_atencion", "pendiente_cierre", "atendido",
+]);
+function toMin(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + (m || 0);
+}
+function fromMin(mins: number): string {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 export default function AtencionForm() {
   const { id } = useParams();
   const [params] = useSearchParams();
@@ -85,6 +98,63 @@ export default function AtencionForm() {
   const [loading, setLoading] = useState(true);
 
   const [turnosDisponibles, setTurnosDisponibles] = useState<TurnoOpcion[]>([]);
+
+  // Slots para próxima visita
+  const [horariosProx, setHorariosProx] = useState<{ hora_inicio: string; hora_fin: string; duracion_slot_min: number }[]>([]);
+  const [turnosOcupadosProx, setTurnosOcupadosProx] = useState<{ hora_inicio: string; hora_fin: string; estado: string }[]>([]);
+  const [slotProx, setSlotProx] = useState<string>("");
+  const [agendarProximo, setAgendarProximo] = useState<boolean>(true);
+  const [cargandoSlotsProx, setCargandoSlotsProx] = useState(false);
+
+  useEffect(() => {
+    let cancel = false;
+    async function load() {
+      setSlotProx("");
+      if (!form.proxima_visita_sugerida || !form.profesional_id) {
+        setHorariosProx([]); setTurnosOcupadosProx([]); return;
+      }
+      setCargandoSlotsProx(true);
+      const fecha = form.proxima_visita_sugerida;
+      const dia = new Date(fecha + "T00:00:00").getDay();
+      const [{ data: hs }, { data: ts }] = await Promise.all([
+        supabase.from("horarios_profesional")
+          .select("hora_inicio,hora_fin,duracion_slot_min")
+          .eq("profesional_id", form.profesional_id)
+          .eq("dia_semana", dia)
+          .eq("activo", true),
+        supabase.from("turnos")
+          .select("hora_inicio,hora_fin,estado")
+          .eq("profesional_id", form.profesional_id)
+          .eq("fecha", fecha),
+      ]);
+      if (cancel) return;
+      setHorariosProx((hs ?? []) as any);
+      setTurnosOcupadosProx((ts ?? []) as any);
+      setCargandoSlotsProx(false);
+    }
+    load();
+    return () => { cancel = true; };
+  }, [form.proxima_visita_sugerida, form.profesional_id]);
+
+  const slotsLibresProx = useMemo(() => {
+    const slots: { inicio: string; fin: string; key: string }[] = [];
+    const ocupados = turnosOcupadosProx
+      .filter((t) => ESTADOS_OCUPAN.has(t.estado))
+      .map((t) => ({ from: toMin(t.hora_inicio.slice(0, 5)), to: toMin(t.hora_fin.slice(0, 5)) }));
+    for (const h of horariosProx) {
+      const start = toMin(h.hora_inicio.slice(0, 5));
+      const end = toMin(h.hora_fin.slice(0, 5));
+      const dur = h.duracion_slot_min || 30;
+      for (let t = start; t + dur <= end; t += dur) {
+        const tEnd = t + dur;
+        if (ocupados.some((o) => t < o.to && tEnd > o.from)) continue;
+        const inicio = fromMin(t);
+        const fin = fromMin(tEnd);
+        slots.push({ inicio, fin, key: `${inicio}-${fin}` });
+      }
+    }
+    return slots;
+  }, [horariosProx, turnosOcupadosProx]);
 
   // Helpers para mergear (sin duplicar) un registro a una lista
   function mergeUnique<T extends { id: string }>(list: T[], item: T | null | undefined): T[] {
@@ -432,8 +502,29 @@ export default function AtencionForm() {
       }
     }
 
+    // Agendar próximo turno si corresponde
+    let mensajeTurno = "";
+    if (!isEdit && agendarProximo && form.proxima_visita_sugerida && slotProx && form.profesional_id && form.paciente_id) {
+      const [hi, hf] = slotProx.split("-");
+      const { error: errTurno } = await supabase.from("turnos").insert({
+        paciente_id: form.paciente_id,
+        profesional_id: form.profesional_id,
+        fecha: form.proxima_visita_sugerida,
+        hora_inicio: `${hi}:00`,
+        hora_fin: `${hf}:00`,
+        motivo_consulta: "Control / Próxima visita",
+        estado: "reservado",
+        origen: "interno",
+      });
+      if (errTurno) {
+        toast.warning("Atención guardada, pero no se pudo agendar el turno", { description: errTurno.message });
+      } else {
+        mensajeTurno = ` Próximo turno reservado el ${format(new Date(form.proxima_visita_sugerida + "T00:00:00"), "dd/MM/yyyy")} a las ${hi}.`;
+      }
+    }
+
     setSubmitting(false);
-    toast.success(isEdit ? "Atención actualizada" : "Atención registrada");
+    toast.success((isEdit ? "Atención actualizada" : "Atención registrada") + mensajeTurno);
     navigate("/atenciones");
   }
 
@@ -641,10 +732,44 @@ export default function AtencionForm() {
               <Label>Indicaciones</Label>
               <Textarea value={form.indicaciones} onChange={(e) => set("indicaciones", e.target.value)} rows={2} />
             </div>
-            <div className="space-y-1 max-w-xs">
-              <Label>Próxima visita sugerida</Label>
-              <Input type="date" value={form.proxima_visita_sugerida}
-                onChange={(e) => set("proxima_visita_sugerida", e.target.value)} disabled={camposGeneralesBloqueados} />
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1">
+                  <Label>Próxima visita sugerida</Label>
+                  <Input type="date" className="max-w-xs" value={form.proxima_visita_sugerida}
+                    onChange={(e) => set("proxima_visita_sugerida", e.target.value)} disabled={camposGeneralesBloqueados} />
+                </div>
+                {form.proxima_visita_sugerida && (
+                  <label className="flex items-center gap-2 text-sm pb-1.5">
+                    <input type="checkbox" checked={agendarProximo}
+                      onChange={(e) => setAgendarProximo(e.target.checked)} />
+                    Agendar turno
+                  </label>
+                )}
+              </div>
+
+              {form.proxima_visita_sugerida && agendarProximo && (
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Horarios disponibles</Label>
+                  {!form.profesional_id ? (
+                    <p className="text-xs text-muted-foreground">Seleccioná un profesional.</p>
+                  ) : cargandoSlotsProx ? (
+                    <p className="text-xs text-muted-foreground">Cargando disponibilidad...</p>
+                  ) : slotsLibresProx.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Sin disponibilidad ese día.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {slotsLibresProx.map((s) => (
+                        <Button key={s.key} type="button" size="sm"
+                          variant={slotProx === s.key ? "default" : "outline"}
+                          onClick={() => setSlotProx(s.key)}>
+                          {s.inicio}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
