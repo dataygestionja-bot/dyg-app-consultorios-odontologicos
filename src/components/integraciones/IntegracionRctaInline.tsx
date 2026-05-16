@@ -48,7 +48,7 @@ export function IntegracionRctaInline({ atencionId, pacienteNombre }: Props) {
 
   const logo = integracion.logo_url || rctaLogoFallback;
   const nombre = integracion.nombre || "RCTA";
-  const deshabilitado = !atencionId;
+  
 
   const handleConfirm = async () => {
     setOpen(false);
