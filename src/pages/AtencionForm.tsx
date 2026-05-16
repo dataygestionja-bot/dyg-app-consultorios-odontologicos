@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,19 @@ const newPractica = (orden: number): PracticaRow => ({
   observacion: "",
   orden,
 });
+
+const ESTADOS_OCUPAN = new Set([
+  "reservado", "confirmado", "en_atencion", "pendiente_cierre", "atendido",
+]);
+function toMin(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + (m || 0);
+}
+function fromMin(mins: number): string {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
 
 export default function AtencionForm() {
   const { id } = useParams();
