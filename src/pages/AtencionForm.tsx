@@ -714,8 +714,18 @@ export default function AtencionForm() {
               <Label>Observaciones</Label>
               <Textarea value={form.observaciones} onChange={(e) => set("observaciones", e.target.value)} rows={2} />
             </div>
+            <div className="space-y-2 max-w-xs">
+              <Label>Próxima visita sugerida</Label>
+              <Input type="date" value={form.proxima_visita_sugerida}
+                onChange={(e) => set("proxima_visita_sugerida", e.target.value)} disabled={camposGeneralesBloqueados} />
+            </div>
           </CardContent>
         </Card>
+
+        {/* Historial de atenciones del paciente */}
+        {form.paciente_id && (
+          <HistorialAtenciones pacienteId={form.paciente_id} />
+        )}
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => navigate("/atenciones")}>Cancelar</Button>
