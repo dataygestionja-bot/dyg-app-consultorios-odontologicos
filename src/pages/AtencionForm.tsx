@@ -603,60 +603,45 @@ export default function AtencionForm() {
         )}
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between py-3">
             <CardTitle className="text-base">Prácticas realizadas</CardTitle>
             <Button type="button" size="sm" onClick={addPractica}>
               <Plus className="h-4 w-4" /> Agregar fila
             </Button>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Prestación</TableHead>
-                    <TableHead className="w-[60px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {practicas.map((p, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Select value={p.prestacion_id} onValueChange={(v) => updatePractica(idx, { prestacion_id: v })}>
-                            <SelectTrigger><SelectValue placeholder="Seleccionar prestación..." /></SelectTrigger>
-                            <SelectContent>
-                              {prestaciones.map((pr) => (
-                                <SelectItem key={pr.id} value={pr.id}>{pr.codigo} · {pr.descripcion}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button type="button" variant="ghost" size="icon" title="Crear nueva"
-                            onClick={() => openQuickPrestacion(idx)}>
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removePractica(idx)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+          <CardContent className="space-y-3 pt-0">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Prestación</Label>
+              {practicas.map((p, idx) => (
+                <div key={idx} className="flex gap-2 items-center">
+                  <Select value={p.prestacion_id} onValueChange={(v) => updatePractica(idx, { prestacion_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar prestación..." /></SelectTrigger>
+                    <SelectContent>
+                      {prestaciones.map((pr) => (
+                        <SelectItem key={pr.id} value={pr.id}>{pr.codigo} · {pr.descripcion}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button type="button" variant="ghost" size="icon" title="Crear nueva"
+                    onClick={() => openQuickPrestacion(idx)}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => removePractica(idx)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label>Diagnóstico</Label>
               <Textarea value={form.diagnostico} onChange={(e) => set("diagnostico", e.target.value)} rows={2} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label>Indicaciones</Label>
               <Textarea value={form.indicaciones} onChange={(e) => set("indicaciones", e.target.value)} rows={2} />
             </div>
-            <div className="space-y-2 max-w-xs">
+            <div className="space-y-1 max-w-xs">
               <Label>Próxima visita sugerida</Label>
               <Input type="date" value={form.proxima_visita_sugerida}
                 onChange={(e) => set("proxima_visita_sugerida", e.target.value)} disabled={camposGeneralesBloqueados} />
