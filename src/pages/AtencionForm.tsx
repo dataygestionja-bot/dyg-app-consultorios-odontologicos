@@ -15,8 +15,11 @@ import {
 import { format } from "date-fns";
 import { PrestacionQuickDialog } from "@/components/prestaciones/PrestacionQuickDialog";
 import { useAuth } from "@/hooks/useAuth";
+import Odontograma from "@/components/paciente/Odontograma";
+import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
+import { Badge } from "@/components/ui/badge";
 
-interface Paciente { id: string; nombre: string; apellido: string; dni: string; }
+interface Paciente { id: string; nombre: string; apellido: string; dni: string; alergias?: string | null; medicacion_actual?: string | null; antecedentes_medicos?: string | null; }
 interface Profesional { id: string; nombre: string; apellido: string; }
 interface Prestacion { id: string; codigo: string; descripcion: string; precio_base: number; }
 interface TurnoOpcion { id: string; fecha: string; hora_inicio: string; motivo_consulta: string; paciente_id: string; profesional_id: string; }
