@@ -502,24 +502,51 @@ export default function AtencionForm() {
       }
     }
 
-    // Agendar próximo turno si corresponde
+    // Agendar / actualizar próximo turno si corresponde
     let mensajeTurno = "";
-    if (!isEdit && agendarProximo && form.proxima_visita_sugerida && slotProx && form.profesional_id && form.paciente_id) {
+    if (agendarProximo && form.proxima_visita_sugerida && slotProx && form.profesional_id && form.paciente_id) {
       const [hi, hf] = slotProx.split("-");
-      const { error: errTurno } = await supabase.from("turnos").insert({
-        paciente_id: form.paciente_id,
-        profesional_id: form.profesional_id,
-        fecha: form.proxima_visita_sugerida,
-        hora_inicio: `${hi}:00`,
-        hora_fin: `${hf}:00`,
-        motivo_consulta: "Control / Próxima visita",
-        estado: "reservado",
-        origen: "interno",
-      });
-      if (errTurno) {
-        toast.warning("Atención guardada, pero no se pudo agendar el turno", { description: errTurno.message });
+      const fechaTxt = format(new Date(form.proxima_visita_sugerida + "T00:00:00"), "dd/MM/yyyy");
+
+      const { data: existente } = await supabase
+        .from("turnos")
+        .select("id, estado")
+        .eq("paciente_id", form.paciente_id)
+        .eq("fecha", form.proxima_visita_sugerida)
+        .eq("motivo_consulta", "Control / Próxima visita")
+        .not("estado", "in", "(cancelado,rechazado)")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existente?.id) {
+        const { error: errUpd } = await supabase.from("turnos").update({
+          profesional_id: form.profesional_id,
+          hora_inicio: `${hi}:00`,
+          hora_fin: `${hf}:00`,
+          estado: "reservado",
+        }).eq("id", existente.id);
+        if (errUpd) {
+          toast.warning("Atención guardada, pero no se pudo actualizar el turno", { description: errUpd.message });
+        } else {
+          mensajeTurno = ` Próximo turno actualizado al ${fechaTxt} ${hi}.`;
+        }
       } else {
-        mensajeTurno = ` Próximo turno reservado el ${format(new Date(form.proxima_visita_sugerida + "T00:00:00"), "dd/MM/yyyy")} a las ${hi}.`;
+        const { error: errTurno } = await supabase.from("turnos").insert({
+          paciente_id: form.paciente_id,
+          profesional_id: form.profesional_id,
+          fecha: form.proxima_visita_sugerida,
+          hora_inicio: `${hi}:00`,
+          hora_fin: `${hf}:00`,
+          motivo_consulta: "Control / Próxima visita",
+          estado: "reservado",
+          origen: "interno",
+        });
+        if (errTurno) {
+          toast.warning("Atención guardada, pero no se pudo agendar el turno", { description: errTurno.message });
+        } else {
+          mensajeTurno = ` Próximo turno reservado el ${fechaTxt} a las ${hi}.`;
+        }
       }
     }
 
