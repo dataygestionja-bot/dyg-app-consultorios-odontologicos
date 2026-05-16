@@ -663,24 +663,24 @@ export default function AtencionForm() {
                       <TabsTrigger value="atenciones" className="whitespace-nowrap">Historial de atenciones</TabsTrigger>
                     </TabsList>
                   </div>
-                  <TabsContent value="ficha" className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 pt-3">
-                    <div>
+                  <TabsContent value="ficha" className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 pt-2 mt-0">
+                    <div className="space-y-0.5">
                       <Label className="text-xs text-muted-foreground">Alergias</Label>
-                      <p className="text-sm whitespace-pre-wrap">{p?.alergias?.trim() || "—"}</p>
+                      <p className="text-sm whitespace-pre-wrap leading-snug">{p?.alergias?.trim() || "—"}</p>
                     </div>
-                    <div>
+                    <div className="space-y-0.5">
                       <Label className="text-xs text-muted-foreground">Medicación actual</Label>
-                      <p className="text-sm whitespace-pre-wrap">{p?.medicacion_actual?.trim() || "—"}</p>
+                      <p className="text-sm whitespace-pre-wrap leading-snug">{p?.medicacion_actual?.trim() || "—"}</p>
                     </div>
-                    <div>
+                    <div className="space-y-0.5">
                       <Label className="text-xs text-muted-foreground">Antecedentes médicos</Label>
-                      <p className="text-sm whitespace-pre-wrap">{p?.antecedentes_medicos?.trim() || "—"}</p>
+                      <p className="text-sm whitespace-pre-wrap leading-snug">{p?.antecedentes_medicos?.trim() || "—"}</p>
                     </div>
                   </TabsContent>
-                  <TabsContent value="odontograma" className="pt-3">
+                  <TabsContent value="odontograma" className="pt-2 mt-0">
                     <HistorialOdontograma pacienteId={form.paciente_id} />
                   </TabsContent>
-                  <TabsContent value="atenciones" className="pt-3">
+                  <TabsContent value="atenciones" className="pt-2 mt-0">
                     <HistorialAtenciones pacienteId={form.paciente_id} />
                   </TabsContent>
                 </Tabs>
