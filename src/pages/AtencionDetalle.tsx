@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowLeft, Pencil } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { IntegracionRctaCard } from "@/components/integraciones/IntegracionRctaCard";
+import { IntegracionRctaInline } from "@/components/integraciones/IntegracionRctaInline";
 import { RecetasExternasSection } from "@/components/integraciones/RecetasExternasSection";
 
 type TipoAtencion = "con_turno" | "urgencia" | "espontanea";
