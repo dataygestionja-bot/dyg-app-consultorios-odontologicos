@@ -1,30 +1,55 @@
-## Evitar turnos duplicados al agendar próxima visita
+## Problema
 
-Cuando se guarda (o edita) una atención con "Próxima visita sugerida" + slot, en lugar de insertar siempre, primero buscar un turno existente y actualizarlo si corresponde.
+Al guardar una atención (alta) el backend rechaza con:
 
-### Cambios en `AtencionForm.tsx` → `guardar()`
+> new row violates row-level security policy for table "atenciones"
 
-Reemplazar el bloque actual que sólo se ejecuta cuando `!isEdit`. El nuevo flujo se ejecuta siempre que haya fecha + slot + paciente + profesional + `agendarProximo`:
+La política de INSERT (`Atenciones: alta por permiso`) requiere:
 
-1. Consultar:
-   ```ts
-   supabase.from("turnos")
-     .select("id, hora_inicio, hora_fin, estado")
-     .eq("paciente_id", form.paciente_id)
-     .eq("fecha", form.proxima_visita_sugerida)
-     .eq("motivo_consulta", "Control / Próxima visita")
-     .not("estado", "in", "(cancelado,rechazado)")
-     .order("created_at", { ascending: false })
-     .limit(1)
-   ```
-2. Si existe → `update` de `profesional_id`, `hora_inicio`, `hora_fin`, `estado='reservado'` sobre ese id. Toast: "Próximo turno actualizado…".
-3. Si no existe → `insert` como hoy. Toast: "Próximo turno reservado…".
+```
+has_permission(auth.uid(), 'atenciones', 'create') AND (
+  NOT has_role(auth.uid(), 'profesional')
+  OR has_role(auth.uid(), 'admin')
+  OR profesional_id IN (select id from profesionales where user_id = auth.uid())
+)
+```
 
-### Notas
+Pero en `role_permissions`, para el módulo `atenciones`, **todos los roles** tienen `create = false`:
 
-- Se restringe el match a `motivo_consulta = "Control / Próxima visita"` para no pisar turnos creados manualmente por recepción.
-- Se excluyen estados `cancelado` y `rechazado` para permitir reagendar después de una cancelación creando uno nuevo.
-- Si la query falla, fallback al insert actual con warning.
-- Habilitar el bloque también en edición (quitar el `!isEdit` actual).
+| role        | read | create | update | delete |
+|-------------|------|--------|--------|--------|
+| admin       | ✅   | ❌     | ❌     | ❌     |
+| profesional | ✅   | ❌     | ✅     | ❌     |
+| recepcion   | ✅   | ❌     | ❌     | ❌     |
 
-Sin cambios de schema.
+Por eso ningún usuario puede crear una atención (ni siquiera admin). El mismo problema afectará a `update` y `delete` para admin/recepcion.
+
+## Solución
+
+Migración SQL que actualice `role_permissions` para alinear los permisos del módulo `atenciones` con quienes realmente operan el módulo:
+
+```sql
+UPDATE public.role_permissions SET allowed = true
+ WHERE module = 'atenciones'
+   AND (
+        (role = 'admin'       AND action IN ('create','update','delete'))
+     OR (role = 'profesional' AND action = 'create')
+   );
+```
+
+Resultado esperado:
+
+| role        | read | create | update | delete |
+|-------------|------|--------|--------|--------|
+| admin       | ✅   | ✅     | ✅     | ✅     |
+| profesional | ✅   | ✅     | ✅     | ❌     |
+| recepcion   | ✅   | ❌     | ❌     | ❌     |
+
+`recepcion` sigue sin poder crear/editar/eliminar atenciones (sólo lectura), que es el comportamiento típico. Si querés que recepción también pueda dar de alta atenciones, lo agregamos.
+
+No se tocan políticas RLS, schema, ni código frontend. La política ya está bien diseñada: el problema es sólo de configuración de permisos.
+
+## Preguntas antes de implementar
+
+1. ¿Confirmás otorgar `create/update/delete` a **admin** y `create` a **profesional**?
+2. ¿`recepcion` debe poder crear atenciones también (ej. atenciones espontáneas / urgencias)?
