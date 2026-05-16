@@ -45,14 +45,34 @@ export function IntegracionRctaInline({ atencionId, pacienteNombre }: Props) {
     })();
   }, []);
 
-  if (loading || !integracion || !integracion.activa) return null;
+  if (loading) return null;
 
-  const logo = integracion.logo_url || rctaLogoFallback;
-  const nombre = integracion.nombre || "RCTA";
-  
+  const nombre = integracion?.nombre || "RCTA";
+  const logo = integracion?.logo_url || rctaLogoFallback;
+  const urlValida = !!integracion?.url && /^https?:\/\//i.test(integracion.url);
+  const inactiva = !integracion || !integracion.activa;
+  const sinUrl = !inactiva && !urlValida;
+  const motivoError = inactiva
+    ? `La integración con ${nombre} está inactiva. Activala desde Seguridad › Integraciones.`
+    : sinUrl
+      ? `Falta configurar la URL de ${nombre}. Completala desde Seguridad › Integraciones.`
+      : null;
+
+  const handleClick = () => {
+    if (motivoError) {
+      toast({
+        title: `No se puede abrir ${nombre}`,
+        description: motivoError,
+        variant: "destructive",
+      });
+      return;
+    }
+    setOpen(true);
+  };
 
   const handleConfirm = async () => {
     setOpen(false);
+    if (!integracion || !urlValida) return;
     const target = integracion.abrir_nueva_pestana ? "_blank" : "_self";
     window.open(integracion.url, target, "noopener,noreferrer");
     if (atencionId) {
