@@ -19,6 +19,7 @@ import {
   ListTodo,
   MessageSquare,
   Inbox,
+  Plug,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -77,6 +78,7 @@ const itemsSeguridad: Item[] = [
   { title: "Mi perfil", url: "/seguridad/mi-perfil", icon: UserCog },
   { title: "Reportes de seguridad", url: "/seguridad/reportes", icon: FileBarChart, roles: ["admin"] },
   { title: "Auditoría de seguridad", url: "/seguridad/auditoria", icon: ScrollText, roles: ["admin"] },
+  { title: "Integraciones externas", url: "/seguridad/integraciones", icon: Plug, roles: ["admin"] },
 ];
 
 export function AppSidebar() {

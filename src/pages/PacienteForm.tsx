@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import CuentaCorriente from "@/components/paciente/CuentaCorriente";
 import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
+import HistorialRecetasExternas from "@/components/paciente/HistorialRecetasExternas";
 import Odontograma from "@/components/paciente/Odontograma";
 
 interface ObraSocial { id: string; nombre: string; }
@@ -257,8 +258,9 @@ export default function PacienteForm() {
           </TabsContent>
 
           {isEdit && (
-            <TabsContent value="atenciones">
+            <TabsContent value="atenciones" className="space-y-4">
               <HistorialAtenciones pacienteId={id!} />
+              <HistorialRecetasExternas pacienteId={id!} />
             </TabsContent>
           )}
 
