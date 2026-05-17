@@ -757,7 +757,7 @@ export default function AtencionForm() {
                 })()}
               />
               <Button type="button" size="sm" onClick={addPractica}>
-                <Plus className="h-4 w-4" /> Agregar fila
+                <Plus className="h-4 w-4" /> Agregar práctica
               </Button>
             </div>
           </CardHeader>
