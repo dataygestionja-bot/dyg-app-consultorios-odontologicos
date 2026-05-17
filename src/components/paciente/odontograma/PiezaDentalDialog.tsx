@@ -10,17 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -65,6 +54,8 @@ export default function PiezaDentalDialog({
   userId,
   onSaved,
   canCreate,
+  profesionalId,
+  fechaAtencion,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -75,13 +66,13 @@ export default function PiezaDentalDialog({
   userId: string | null;
   onSaved: () => void;
   canCreate: boolean;
+  /** Profesional del turno/atención actual (prioritario). */
+  profesionalId?: string | null;
+  /** Fecha de la atención (YYYY-MM-DD). Si no viene, se usa ahora. */
+  fechaAtencion?: string | null;
 }) {
-  const [estado, setEstado] = useState<DienteEstado | "">("");
-  const [profesionalId, setProfesionalId] = useState<string>("");
-  const [fecha, setFecha] = useState<string>(() => format(new Date(), "yyyy-MM-dd'T'HH:mm"));
-  const [observaciones, setObservaciones] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [tab, setTab] = useState<"nuevo" | "historial">("nuevo");
+  const [submitting, setSubmitting] = useState<DienteEstado | null>(null);
+  const [verHistorial, setVerHistorial] = useState(false);
 
   const historialPieza = useMemo(
     () => (dienteInterno ? registros.filter((r) => r.diente === dienteInterno) : []),
@@ -90,147 +81,128 @@ export default function PiezaDentalDialog({
   const ultimo = historialPieza[0] ?? null;
   const fdi = dienteInterno ? internoToFdi(dienteInterno) : null;
 
+  // Profesional efectivo: el del turno > el del usuario logueado
+  const profEfectivoId = useMemo(() => {
+    if (profesionalId) return profesionalId;
+    const propio = profesionales.find((p) => p.user_id === userId);
+    return propio?.id ?? null;
+  }, [profesionalId, profesionales, userId]);
+
+  const profEfectivo = useMemo(
+    () => profesionales.find((p) => p.id === profEfectivoId) ?? null,
+    [profesionales, profEfectivoId],
+  );
+
   useEffect(() => {
     if (open) {
-      const propio = profesionales.find((p) => p.user_id === userId);
-      setProfesionalId(propio?.id ?? "");
-      setEstado("");
-      setObservaciones("");
-      setFecha(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
-      setTab("nuevo");
+      setSubmitting(null);
+      setVerHistorial(false);
     }
-  }, [open, profesionales, userId, dienteInterno]);
+  }, [open, dienteInterno]);
 
-  async function guardar() {
+  async function registrar(estado: DienteEstado) {
     if (!dienteInterno) return;
-    if (!estado) return toast.error("Seleccioná una acción / diagnóstico");
-    if (!profesionalId) return toast.error("El profesional es obligatorio");
-
-    setSubmitting(true);
+    if (!profEfectivoId) {
+      toast.error("Falta el profesional", {
+        description: "No se pudo determinar el profesional del turno.",
+      });
+      return;
+    }
+    setSubmitting(estado);
+    const fechaIso = fechaAtencion
+      ? new Date(`${fechaAtencion}T${format(new Date(), "HH:mm:ss")}`).toISOString()
+      : new Date().toISOString();
     const { error } = await supabase.from("odontograma_registros").insert({
       paciente_id: pacienteId,
       diente: dienteInterno,
       estado,
-      fecha: new Date(fecha).toISOString(),
-      profesional_id: profesionalId,
-      observaciones: observaciones.trim() || null,
+      fecha: fechaIso,
+      profesional_id: profEfectivoId,
+      observaciones: null,
     });
-    setSubmitting(false);
-    if (error) return toast.error("No se pudo guardar", { description: error.message });
+    setSubmitting(null);
+    if (error) {
+      toast.error("No se pudo registrar", { description: error.message });
+      return;
+    }
     toast.success(`Pieza ${fdi}: ${DIENTE_ESTADO_LABELS[estado]}`);
-    onOpenChange(false);
     onSaved();
+    onOpenChange(false);
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            Pieza {fdi ?? "—"}{" "}
-            <span className="text-sm font-normal text-muted-foreground">
-              (interno {dienteInterno})
-            </span>
-          </DialogTitle>
-          <DialogDescription>
-            {ultimo ? (
-              <span className="flex flex-wrap items-center gap-2">
-                Estado actual:
-                <Badge variant="secondary" className="gap-1.5">
-                  <span className={`h-2 w-2 rounded-full ${DIENTE_ESTADO_DOT[ultimo.estado]}`} />
-                  {DIENTE_ESTADO_LABELS[ultimo.estado]}
-                </Badge>
-                <span className="text-xs">
-                  {format(new Date(ultimo.fecha), "dd/MM/yyyy HH:mm")}
-                  {ultimo.profesionales
-                    ? ` · ${ultimo.profesionales.apellido}, ${ultimo.profesionales.nombre}`
-                    : ""}
-                </span>
-              </span>
-            ) : (
-              "Sin registros previos para esta pieza."
-            )}
+          <DialogTitle>Pieza {fdi ?? "—"}</DialogTitle>
+          <DialogDescription asChild>
+            <div className="space-y-1">
+              {ultimo ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Estado actual:</span>
+                  <Badge variant="secondary" className="gap-1.5">
+                    <span className={`h-2 w-2 rounded-full ${DIENTE_ESTADO_DOT[ultimo.estado]}`} />
+                    {DIENTE_ESTADO_LABELS[ultimo.estado]}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(ultimo.fecha), "dd/MM/yyyy")}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-xs text-muted-foreground">Sin registros previos.</span>
+              )}
+              {profEfectivo && canCreate && (
+                <div className="text-xs text-muted-foreground">
+                  Se registrará a nombre de{" "}
+                  <span className="font-medium text-foreground">
+                    {profEfectivo.apellido}, {profEfectivo.nombre}
+                  </span>
+                </div>
+              )}
+              {!profEfectivoId && canCreate && (
+                <div className="text-xs text-destructive">
+                  No hay profesional asociado. Seleccioná un profesional en el turno antes de registrar.
+                </div>
+              )}
+            </div>
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="nuevo" disabled={!canCreate}>
-              Nueva acción
-            </TabsTrigger>
-            <TabsTrigger value="historial">
-              Historial ({historialPieza.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="nuevo" className="space-y-4 pt-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Acción / diagnóstico *</Label>
-                <Select value={estado} onValueChange={(v) => setEstado(v as DienteEstado)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DIENTE_ESTADOS_SELECCIONABLES.map((e) => (
-                      <SelectItem key={e} value={e}>
-                        <span className="flex items-center gap-2">
-                          <span className={`h-2.5 w-2.5 rounded-sm ${DIENTE_ESTADO_DOT[e]}`} />
-                          {DIENTE_ESTADO_LABELS[e]}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Fecha y hora</Label>
-                <Input
-                  type="datetime-local"
-                  value={fecha}
-                  onChange={(e) => setFecha(e.target.value)}
-                />
-              </div>
+        {!verHistorial ? (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              {DIENTE_ESTADOS_SELECCIONABLES.map((e) => (
+                <Button
+                  key={e}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="justify-start gap-2"
+                  disabled={!canCreate || !profEfectivoId || submitting !== null}
+                  onClick={() => registrar(e)}
+                >
+                  <span className={`h-3 w-3 shrink-0 rounded-sm ${DIENTE_ESTADO_DOT[e]}`} />
+                  <span className="truncate text-sm">{DIENTE_ESTADO_LABELS[e]}</span>
+                </Button>
+              ))}
             </div>
 
-            <div className="space-y-2">
-              <Label>Profesional *</Label>
-              <Select value={profesionalId} onValueChange={setProfesionalId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {profesionales.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.apellido}, {p.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Observaciones</Label>
-              <Textarea
-                value={observaciones}
-                onChange={(e) => setObservaciones(e.target.value)}
-                rows={3}
-                maxLength={1000}
-                placeholder="Notas opcionales..."
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancelar
+            <div className="flex items-center justify-between pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setVerHistorial(true)}
+              >
+                Ver historial ({historialPieza.length})
               </Button>
-              <Button type="button" onClick={guardar} disabled={submitting || !canCreate}>
-                {submitting ? "Guardando..." : "Guardar"}
+              <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                Cerrar
               </Button>
             </div>
-          </TabsContent>
-
-          <TabsContent value="historial" className="pt-3">
+          </>
+        ) : (
+          <>
             {historialPieza.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 Sin registros para esta pieza.
@@ -243,30 +215,26 @@ export default function PiezaDentalDialog({
                       <TableHead>Fecha</TableHead>
                       <TableHead>Estado</TableHead>
                       <TableHead>Profesional</TableHead>
-                      <TableHead>Observaciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {historialPieza.map((r) => (
                       <TableRow key={r.id}>
-                        <TableCell className="whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap text-xs">
                           {format(new Date(r.fecha), "dd/MM/yyyy HH:mm")}
                         </TableCell>
                         <TableCell>
-                          <span className="inline-flex items-center gap-2">
+                          <span className="inline-flex items-center gap-2 text-xs">
                             <span
                               className={`h-2.5 w-2.5 rounded-sm ${DIENTE_ESTADO_DOT[r.estado]}`}
                             />
                             {DIENTE_ESTADO_LABELS[r.estado]}
                           </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-xs">
                           {r.profesionales
                             ? `${r.profesionales.apellido}, ${r.profesionales.nombre}`
                             : "—"}
-                        </TableCell>
-                        <TableCell className="whitespace-pre-wrap text-xs">
-                          {r.observaciones || "—"}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -274,8 +242,16 @@ export default function PiezaDentalDialog({
                 </Table>
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+            <div className="flex justify-between pt-2">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setVerHistorial(false)}>
+                ← Volver
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                Cerrar
+              </Button>
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
