@@ -180,18 +180,6 @@ export default function Odontograma({
         )}
       </div>
 
-      {/* Leyenda */}
-      <Card>
-        <CardContent className="flex flex-wrap gap-3 py-4">
-          {DIENTE_ESTADOS_SELECCIONABLES.map((e) => (
-            <div key={e} className="flex items-center gap-2 text-sm">
-              <span className={`inline-block h-3 w-3 rounded-sm ${DIENTE_ESTADO_DOT[e]}`} />
-              <span>{DIENTE_ESTADO_LABELS[e]}</span>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
       {/* Odontograma anatómico */}
       <Card>
         <CardHeader>
@@ -211,6 +199,15 @@ export default function Odontograma({
               setPiezaSeleccionada(interno);
             }}
           />
+          {/* Leyenda compacta debajo del odontograma */}
+          <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 px-3 text-[11px] text-muted-foreground">
+            {DIENTE_ESTADOS_SELECCIONABLES.map((e) => (
+              <div key={e} className="flex items-center gap-1.5">
+                <span className={`inline-block h-2 w-2 rounded-sm ${DIENTE_ESTADO_DOT[e]}`} />
+                <span>{DIENTE_ESTADO_LABELS[e]}</span>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
@@ -225,6 +222,8 @@ export default function Odontograma({
         profesionales={profesionales}
         userId={user?.id ?? null}
         canCreate={puedeAgregar && (mode !== "inline" || !!profesionalId)}
+        profesionalId={profesionalId ?? null}
+        fechaAtencion={fechaAtencion ?? null}
         onSaved={cargar}
       />
 
