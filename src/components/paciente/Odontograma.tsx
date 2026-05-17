@@ -183,7 +183,7 @@ export default function Odontograma({
       {/* Leyenda */}
       <Card>
         <CardContent className="flex flex-wrap gap-3 py-4">
-          {DIENTE_ESTADOS.map((e) => (
+          {DIENTE_ESTADOS_SELECCIONABLES.map((e) => (
             <div key={e} className="flex items-center gap-2 text-sm">
               <span className={`inline-block h-3 w-3 rounded-sm ${DIENTE_ESTADO_DOT[e]}`} />
               <span>{DIENTE_ESTADO_LABELS[e]}</span>
