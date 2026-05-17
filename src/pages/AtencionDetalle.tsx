@@ -238,16 +238,13 @@ export default function AtencionDetalle() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Prestación</TableHead>
-                  <TableHead className="hidden sm:table-cell">Pieza</TableHead>
-                  <TableHead className="hidden sm:table-cell">Cara</TableHead>
-                  <TableHead className="text-right">Cantidad</TableHead>
-                  <TableHead className="hidden md:table-cell">Observación</TableHead>
+                  <TableHead>Pieza</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {atencion.atencion_practicas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    <TableCell colSpan={2} className="text-center text-muted-foreground">
                       Sin prácticas registradas
                     </TableCell>
                   </TableRow>
@@ -258,14 +255,7 @@ export default function AtencionDetalle() {
                         <div className="font-medium">{p.prestacion?.codigo ?? "—"}</div>
                         <div className="text-xs text-muted-foreground">{p.prestacion?.descripcion ?? ""}</div>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell">{p.pieza_dental ?? "—"}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{p.cara_dental ?? "—"}</TableCell>
-                      <TableCell className="text-right">{p.cantidad}</TableCell>
-                      <TableCell className="hidden md:table-cell max-w-[260px]">
-                        <div className="truncate" title={p.observacion ?? ""}>
-                          {p.observacion ?? "—"}
-                        </div>
-                      </TableCell>
+                      <TableCell>{p.pieza_dental ?? "—"}</TableCell>
                     </TableRow>
                   ))
                 )}
