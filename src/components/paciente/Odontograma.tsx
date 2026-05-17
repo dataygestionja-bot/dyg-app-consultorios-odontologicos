@@ -316,7 +316,9 @@ function AgregarRegistroDialog({
                 <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                 <SelectContent className="max-h-72">
                   {TODOS_DIENTES.map((n) => (
-                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                    <SelectItem key={n} value={String(n)}>
+                      FDI {internoToFdi(n)} (interno {n})
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -326,7 +328,7 @@ function AgregarRegistroDialog({
               <Select value={estado} onValueChange={(v) => setEstado(v as DienteEstado)}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                 <SelectContent>
-                  {DIENTE_ESTADOS.map((e) => (
+                  {DIENTE_ESTADOS_SELECCIONABLES.map((e) => (
                     <SelectItem key={e} value={e}>
                       <span className="flex items-center gap-2">
                         <span className={`h-2 w-2 rounded-sm ${DIENTE_ESTADO_DOT[e]}`} />
