@@ -7,6 +7,7 @@ import {
   DIENTE_ESTADO_LABELS,
   DIENTE_ESTADO_CLASSES,
   DIENTE_ESTADO_DOT,
+  DIENTE_ESTADOS_SELECCIONABLES,
   type DienteEstado,
 } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,9 @@ import {
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import OdontogramaAnatomico from "./OdontogramaAnatomico";
+import PiezaDentalDialog from "./odontograma/PiezaDentalDialog";
+import { internoToFdi } from "@/lib/odontograma";
 
 interface Profesional {
   id: string;
@@ -87,6 +90,7 @@ export default function Odontograma({
   const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [dienteFiltro, setDienteFiltro] = useState<string>("todos");
+  const [piezaSeleccionada, setPiezaSeleccionada] = useState<number | null>(null);
 
   async function cargar() {
     setLoading(true);
