@@ -238,10 +238,7 @@ export default function AtencionDetalle() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Prestación</TableHead>
-                  <TableHead className="hidden sm:table-cell">Pieza</TableHead>
-                  <TableHead className="hidden sm:table-cell">Cara</TableHead>
-                  <TableHead className="text-right">Cantidad</TableHead>
-                  <TableHead className="hidden md:table-cell">Observación</TableHead>
+                  <TableHead>Pieza</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
