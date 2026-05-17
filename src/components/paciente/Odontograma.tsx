@@ -192,68 +192,41 @@ export default function Odontograma({
         </CardContent>
       </Card>
 
-      {/* Resumen por diente */}
+      {/* Odontograma anatómico */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Resumen por diente</CardTitle>
-          <CardDescription>Estado actual (último registro) de las piezas 1 a 32</CardDescription>
+          <CardTitle className="text-base">Odontograma</CardTitle>
+          <CardDescription>
+            {mode === "inline" && !profesionalId
+              ? "Seleccioná un profesional para poder registrar acciones."
+              : "Hacé clic sobre una pieza para registrar una acción o ver su historial."}
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          {mode === "inline" && (
-            <p className="mb-3 text-xs text-muted-foreground">
-              {profesionalId
-                ? "Hacé clic sobre una pieza para registrar su estado."
-                : "Seleccioná un profesional para poder registrar estados."}
-            </p>
-          )}
-          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
-            {TODOS_DIENTES.map((n) => {
-              const ult = estadoActualPorDiente.get(n);
-              const btn = (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={mode === "inline" ? undefined : () => setDienteFiltro(String(n))}
-                  disabled={mode === "inline" && !profesionalId}
-                  className={`flex w-full flex-col items-center gap-1 rounded-md border p-2 text-xs transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-60 ${
-                    dienteFiltro === String(n) ? "border-primary ring-1 ring-primary" : ""
-                  }`}
-                  title={ult ? `${DIENTE_ESTADO_LABELS[ult.estado]} • ${format(new Date(ult.fecha), "dd/MM/yy")}` : "Sin registros"}
-                >
-                  <span className="font-semibold">{n}</span>
-                  {ult ? (
-                    <>
-                      <span className={`h-2 w-full rounded-sm ${DIENTE_ESTADO_DOT[ult.estado]}`} />
-                      <span className="truncate text-[10px] text-muted-foreground">
-                        {format(new Date(ult.fecha), "dd/MM/yy")}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="h-2 w-full rounded-sm bg-muted" />
-                      <span className="text-[10px] text-muted-foreground">—</span>
-                    </>
-                  )}
-                </button>
-              );
-
-              if (mode === "inline") {
-                return (
-                  <ToothPopover
-                    key={n}
-                    diente={n}
-                    trigger={btn}
-                    onSelect={async (e) => {
-                      await registrarEstadoInline(n, e);
-                    }}
-                  />
-                );
-              }
-              return btn;
-            })}
-          </div>
+        <CardContent className="px-0 sm:px-2">
+          <OdontogramaAnatomico
+            registros={registros}
+            disabled={mode === "inline" && !profesionalId}
+            piezaResaltada={piezaSeleccionada}
+            onPiezaClick={(interno) => {
+              setPiezaSeleccionada(interno);
+            }}
+          />
         </CardContent>
       </Card>
+
+      <PiezaDentalDialog
+        open={piezaSeleccionada !== null}
+        onOpenChange={(v) => {
+          if (!v) setPiezaSeleccionada(null);
+        }}
+        dienteInterno={piezaSeleccionada}
+        pacienteId={pacienteId}
+        registros={registros}
+        profesionales={profesionales}
+        userId={user?.id ?? null}
+        canCreate={puedeAgregar && (mode !== "inline" || !!profesionalId)}
+        onSaved={cargar}
+      />
 
       <AgregarRegistroDialog
         open={openDialog}
@@ -264,44 +237,6 @@ export default function Odontograma({
         onSaved={cargar}
       />
     </div>
-  );
-}
-
-function ToothPopover({
-  diente,
-  trigger,
-  onSelect,
-}: {
-  diente: number;
-  trigger: React.ReactNode;
-  onSelect: (estado: DienteEstado) => Promise<void> | void;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent className="w-56 p-2" align="start">
-        <div className="mb-2 px-1 text-xs font-medium">
-          Pieza {diente} — elegir estado
-        </div>
-        <div className="flex flex-col">
-          {DIENTE_ESTADOS.map((e) => (
-            <button
-              key={e}
-              type="button"
-              onClick={async () => {
-                setOpen(false);
-                await onSelect(e);
-              }}
-              className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
-            >
-              <span className={`h-3 w-3 rounded-sm ${DIENTE_ESTADO_DOT[e]}`} />
-              <span>{DIENTE_ESTADO_LABELS[e]}</span>
-            </button>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
   );
 }
 
