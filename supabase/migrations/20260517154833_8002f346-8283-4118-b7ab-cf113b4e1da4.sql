@@ -1,0 +1,9 @@
+ALTER TYPE public.diente_estado ADD VALUE IF NOT EXISTS 'obturacion';
+ALTER TYPE public.diente_estado ADD VALUE IF NOT EXISTS 'endodoncia';
+ALTER TYPE public.diente_estado ADD VALUE IF NOT EXISTS 'corona';
+ALTER TYPE public.diente_estado ADD VALUE IF NOT EXISTS 'extraccion_indicada';
+ALTER TYPE public.diente_estado ADD VALUE IF NOT EXISTS 'implante';
+ALTER TYPE public.diente_estado ADD VALUE IF NOT EXISTS 'protesis';
+ALTER TYPE public.diente_estado ADD VALUE IF NOT EXISTS 'fractura';
+ALTER TYPE public.diente_estado ADD VALUE IF NOT EXISTS 'tratamiento_en_curso';
+ALTER TYPE public.diente_estado ADD VALUE IF NOT EXISTS 'otro';

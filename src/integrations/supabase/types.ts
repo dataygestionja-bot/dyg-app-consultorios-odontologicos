@@ -1085,6 +1085,15 @@ export type Database = {
         | "restauracion"
         | "ausente"
         | "observacion"
+        | "obturacion"
+        | "endodoncia"
+        | "corona"
+        | "extraccion_indicada"
+        | "implante"
+        | "protesis"
+        | "fractura"
+        | "tratamiento_en_curso"
+        | "otro"
       medio_pago:
         | "efectivo"
         | "transferencia"
@@ -1255,6 +1264,15 @@ export const Constants = {
         "restauracion",
         "ausente",
         "observacion",
+        "obturacion",
+        "endodoncia",
+        "corona",
+        "extraccion_indicada",
+        "implante",
+        "protesis",
+        "fractura",
+        "tratamiento_en_curso",
+        "otro",
       ],
       medio_pago: [
         "efectivo",
