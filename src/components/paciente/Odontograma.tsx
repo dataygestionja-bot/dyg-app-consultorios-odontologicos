@@ -265,6 +265,16 @@ export default function Odontograma({
         profesionalId={profesionalId ?? null}
         fechaAtencion={fechaAtencion ?? null}
         onSaved={cargar}
+        onRegistrarPendiente={
+          modoDiferido && piezaSeleccionada !== null
+            ? (estado) => onAgregarPendiente!(piezaSeleccionada, estado)
+            : undefined
+        }
+        pendingEstado={
+          modoDiferido && piezaSeleccionada !== null
+            ? pendientes?.get(piezaSeleccionada) ?? null
+            : null
+        }
       />
 
       <AgregarRegistroDialog
