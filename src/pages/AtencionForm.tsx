@@ -759,6 +759,20 @@ export default function AtencionForm() {
                   return p ? `${p.apellido}, ${p.nombre}` : undefined;
                 })()}
               />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (!id || id === "nuevo") {
+                    toast.error("Primero guardá la atención para poder adjuntar documentación.");
+                    return;
+                  }
+                  setDocDialogOpen(true);
+                }}
+              >
+                <FileUp className="h-4 w-4" /> Agregar documentación
+              </Button>
               <Button type="button" size="sm" onClick={addPractica}>
                 <Plus className="h-4 w-4" /> Agregar práctica
               </Button>
