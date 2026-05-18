@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { PrestacionQuickDialog } from "@/components/prestaciones/PrestacionQuickDialog";
 import { useAuth } from "@/hooks/useAuth";
 import Odontograma from "@/components/paciente/Odontograma";
+import type { DienteEstado } from "@/lib/constants";
 import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
 import HistorialOdontograma from "@/components/paciente/HistorialOdontograma";
 import { Badge } from "@/components/ui/badge";
@@ -109,6 +110,7 @@ export default function AtencionForm() {
   const [agendarProximo, setAgendarProximo] = useState<boolean>(true);
   const [cargandoSlotsProx, setCargandoSlotsProx] = useState(false);
   const [docDialogOpen, setDocDialogOpen] = useState(false);
+  const [odontoPendientes, setOdontoPendientes] = useState<Map<number, DienteEstado>>(new Map());
 
   useEffect(() => {
     let cancel = false;
@@ -506,6 +508,30 @@ export default function AtencionForm() {
       }
     }
 
+    // Persistir registros del odontograma pendientes (cargados en este formulario)
+    if (atencionId && odontoPendientes.size > 0) {
+      const fechaIso = new Date(
+        `${form.fecha}T${format(new Date(), "HH:mm:ss")}`,
+      ).toISOString();
+      const rowsOdo = Array.from(odontoPendientes.entries()).map(([diente, estado]) => ({
+        paciente_id: form.paciente_id,
+        diente,
+        estado,
+        fecha: fechaIso,
+        profesional_id: form.profesional_id,
+        observaciones: null,
+      }));
+      const { error: errOdo } = await supabase.from("odontograma_registros").insert(rowsOdo);
+      if (errOdo) {
+        setSubmitting(false);
+        toast.error("Atención guardada, pero falló el odontograma", {
+          description: errOdo.message,
+        });
+        return;
+      }
+      setOdontoPendientes(new Map());
+    }
+
     // Agendar / actualizar próximo turno si corresponde
     let mensajeTurno = "";
     if (agendarProximo && form.proxima_visita_sugerida && slotProx && form.profesional_id && form.paciente_id) {
@@ -743,6 +769,15 @@ export default function AtencionForm() {
                 mode="inline"
                 profesionalId={form.profesional_id}
                 fechaAtencion={form.fecha}
+                pendientes={odontoPendientes}
+                onAgregarPendiente={(diente, estado) => {
+                  setOdontoPendientes((prev) => {
+                    const next = new Map(prev);
+                    next.set(diente, estado);
+                    return next;
+                  });
+                }}
+                onLimpiarPendientes={() => setOdontoPendientes(new Map())}
               />
             </CardContent>
           </Card>

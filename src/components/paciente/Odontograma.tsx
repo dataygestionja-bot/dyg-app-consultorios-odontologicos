@@ -77,11 +77,18 @@ export default function Odontograma({
   mode = "full",
   profesionalId,
   fechaAtencion,
+  pendientes,
+  onAgregarPendiente,
+  onLimpiarPendientes,
 }: {
   pacienteId: string;
   mode?: "full" | "inline";
   profesionalId?: string;
   fechaAtencion?: string;
+  /** Si se proveen, el componente trabaja en modo "diferido": los clics no persisten en la base. */
+  pendientes?: Map<number, DienteEstado>;
+  onAgregarPendiente?: (diente: number, estado: DienteEstado) => void;
+  onLimpiarPendientes?: () => void;
 }) {
   const { user } = useAuth();
   const { can } = usePermissions();
@@ -133,6 +140,27 @@ export default function Odontograma({
   }, [registros, dienteFiltro]);
 
   const puedeAgregar = can("odontograma", "create");
+  const modoDiferido = !!onAgregarPendiente;
+
+  // Mezcla pendientes locales como "último estado" sintético (no toca la base).
+  const registrosConPendientes = useMemo(() => {
+    if (!pendientes || pendientes.size === 0) return registros;
+    const fechaSint = new Date().toISOString();
+    const sintetics: Registro[] = [];
+    pendientes.forEach((estado, diente) => {
+      sintetics.push({
+        id: `pending-${diente}`,
+        paciente_id: pacienteId,
+        diente,
+        estado,
+        fecha: fechaSint,
+        profesional_id: profesionalId ?? "",
+        observaciones: "(pendiente)",
+        profesionales: null,
+      });
+    });
+    return [...sintetics, ...registros];
+  }, [registros, pendientes, pacienteId, profesionalId]);
 
   async function registrarEstadoInline(diente: number, estado: DienteEstado) {
     if (!profesionalId) {
@@ -172,12 +200,24 @@ export default function Odontograma({
             Historial odontológico por pieza dental
           </p>
         </div>
-        {puedeAgregar && mode === "full" && (
-          <Button type="button" onClick={() => setOpenDialog(true)}>
-            <Plus className="h-4 w-4" />
-            Agregar registro
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {modoDiferido && pendientes && pendientes.size > 0 && (
+            <>
+              <Badge variant="outline" className="border-amber-500 text-amber-700">
+                {pendientes.size} {pendientes.size === 1 ? "cambio sin guardar" : "cambios sin guardar"}
+              </Badge>
+              <Button type="button" variant="ghost" size="sm" onClick={onLimpiarPendientes}>
+                Descartar
+              </Button>
+            </>
+          )}
+          {puedeAgregar && mode === "full" && (
+            <Button type="button" onClick={() => setOpenDialog(true)}>
+              <Plus className="h-4 w-4" />
+              Agregar registro
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Odontograma anatómico */}
@@ -192,7 +232,7 @@ export default function Odontograma({
         </CardHeader>
         <CardContent className="px-0 sm:px-2">
           <OdontogramaAnatomico
-            registros={registros}
+            registros={registrosConPendientes}
             disabled={mode === "inline" && !profesionalId}
             piezaResaltada={piezaSeleccionada}
             onPiezaClick={(interno) => {
@@ -225,6 +265,16 @@ export default function Odontograma({
         profesionalId={profesionalId ?? null}
         fechaAtencion={fechaAtencion ?? null}
         onSaved={cargar}
+        onRegistrarPendiente={
+          modoDiferido && piezaSeleccionada !== null
+            ? (estado) => onAgregarPendiente!(piezaSeleccionada, estado)
+            : undefined
+        }
+        pendingEstado={
+          modoDiferido && piezaSeleccionada !== null
+            ? pendientes?.get(piezaSeleccionada) ?? null
+            : null
+        }
       />
 
       <AgregarRegistroDialog

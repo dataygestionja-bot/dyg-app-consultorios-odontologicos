@@ -56,6 +56,8 @@ export default function PiezaDentalDialog({
   canCreate,
   profesionalId,
   fechaAtencion,
+  onRegistrarPendiente,
+  pendingEstado,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -70,6 +72,10 @@ export default function PiezaDentalDialog({
   profesionalId?: string | null;
   /** Fecha de la atención (YYYY-MM-DD). Si no viene, se usa ahora. */
   fechaAtencion?: string | null;
+  /** Si se provee, no se persiste en la base — se delega el cambio al padre como pendiente. */
+  onRegistrarPendiente?: (estado: DienteEstado) => void;
+  /** Estado pendiente local para esta pieza (si existe). */
+  pendingEstado?: DienteEstado | null;
 }) {
   const [submitting, setSubmitting] = useState<DienteEstado | null>(null);
   const [verHistorial, setVerHistorial] = useState(false);
@@ -102,6 +108,14 @@ export default function PiezaDentalDialog({
 
   async function registrar(estado: DienteEstado) {
     if (!dienteInterno) return;
+    if (onRegistrarPendiente) {
+      onRegistrarPendiente(estado);
+      toast.success(`Pieza ${fdi}: ${DIENTE_ESTADO_LABELS[estado]} (pendiente)`, {
+        description: "Se guardará al guardar la atención.",
+      });
+      onOpenChange(false);
+      return;
+    }
     if (!profEfectivoId) {
       toast.error("Falta el profesional", {
         description: "No se pudo determinar el profesional del turno.",
@@ -151,6 +165,15 @@ export default function PiezaDentalDialog({
               ) : (
                 <span className="text-xs text-muted-foreground">Sin registros previos.</span>
               )}
+              {pendingEstado && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-amber-600">Pendiente de guardar:</span>
+                  <Badge variant="outline" className="gap-1.5 border-amber-500 text-amber-700">
+                    <span className={`h-2 w-2 rounded-full ${DIENTE_ESTADO_DOT[pendingEstado]}`} />
+                    {DIENTE_ESTADO_LABELS[pendingEstado]}
+                  </Badge>
+                </div>
+              )}
               {profEfectivo && canCreate && (
                 <div className="text-xs text-muted-foreground">
                   Se registrará a nombre de{" "}
@@ -178,7 +201,7 @@ export default function PiezaDentalDialog({
                   variant="outline"
                   size="sm"
                   className="justify-start gap-2"
-                  disabled={!canCreate || !profEfectivoId || submitting !== null}
+                  disabled={!canCreate || (!onRegistrarPendiente && !profEfectivoId) || submitting !== null}
                   onClick={() => registrar(e)}
                 >
                   <span className={`h-3 w-3 shrink-0 rounded-sm ${DIENTE_ESTADO_DOT[e]}`} />
