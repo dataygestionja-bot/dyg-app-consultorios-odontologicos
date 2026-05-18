@@ -96,26 +96,9 @@ export default function Dashboard() {
   async function cargar() {
     setLoading(true);
     const today = format(new Date(), "yyyy-MM-dd");
-    const in7 = format(new Date(Date.now() + 7 * 86400000), "yyyy-MM-dd");
 
-    const select = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido, color_agenda)";
-    const selectSolic = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, origen, created_at, paciente:pacientes(nombre, apellido, telefono), profesional:profesionales(nombre, apellido, color_agenda)";
-
-    const aplicarFiltro = (q: any): any =>
-      (soloMisTurnos && miProfesionalId) ? q.eq("profesional_id", miProfesionalId) : q;
-
-    // Si es profesional pero no se pudo resolver su profesional_id, no mostrar nada
-    if (soloMisTurnos && !miProfesionalId) {
-      setHoy([]); setProximos([]); setAtendidosHoy(0);
-      setSolicitudes([]); setSolicitudesCount(0);
-      setPendientesCierre([]); setPendientesCierreCount(0);
-      setLoading(false);
-      return;
-    }
-
-    const [hoyRes, proxRes, atRes, solicRes, solicCountRes, pcRes, pcCountRes] = await Promise.all([
+    const [hoyRes, atRes, solicRes, solicCountRes, pcRes, pcCountRes] = await Promise.all([
       aplicarFiltro(supabase.from("turnos").select(select).eq("fecha", today)).order("hora_inicio"),
-      aplicarFiltro(supabase.from("turnos").select(select).gt("fecha", today).lte("fecha", in7)).order("fecha").order("hora_inicio").limit(10),
       aplicarFiltro(supabase.from("turnos").select("id", { count: "exact", head: true }).eq("fecha", today).eq("estado", "atendido")),
       aplicarFiltro(supabase.from("turnos").select(selectSolic).eq("estado", "solicitado")).order("created_at", { ascending: false }).limit(5),
       aplicarFiltro(supabase.from("turnos").select("id", { count: "exact", head: true }).eq("estado", "solicitado")),
@@ -124,7 +107,6 @@ export default function Dashboard() {
     ]);
 
     setHoy((hoyRes.data ?? []) as unknown as TurnoRow[]);
-    setProximos((proxRes.data ?? []) as unknown as TurnoRow[]);
     setAtendidosHoy(atRes.count ?? 0);
     setSolicitudes((solicRes.data ?? []) as unknown as TurnoRow[]);
     setSolicitudesCount(solicCountRes.count ?? 0);
