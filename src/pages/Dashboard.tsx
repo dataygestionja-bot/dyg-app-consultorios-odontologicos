@@ -129,7 +129,12 @@ export default function Dashboard() {
   }
 
   async function marcarAusente(id: string) {
-    if (!confirm("¿Marcar este turno como ausente?")) return;
+    const ok = await confirm({
+      title: "Marcar como ausente",
+      description: "¿Marcar este turno como ausente?",
+      confirmText: "Marcar ausente",
+    });
+    if (!ok) return;
     const { error } = await supabase.from("turnos").update({ estado: "ausente" }).eq("id", id);
     if (error) {
       toast.error("No se pudo actualizar: " + error.message);
@@ -140,7 +145,14 @@ export default function Dashboard() {
   }
 
   async function cancelarTurno(id: string) {
-    if (!confirm("¿Cancelar este turno?")) return;
+    const ok = await confirm({
+      title: "Cancelar turno",
+      description: "¿Cancelar este turno?",
+      confirmText: "Cancelar turno",
+      cancelText: "Volver",
+      destructive: true,
+    });
+    if (!ok) return;
     const { error } = await supabase.from("turnos").update({ estado: "cancelado" }).eq("id", id);
     if (error) {
       toast.error("No se pudo cancelar: " + error.message);
