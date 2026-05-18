@@ -228,8 +228,7 @@ export default function Bloqueos() {
     if (saving) return;
     setSaving(true);
     try {
-      const payload = {
-        profesional_id: fProf,
+      const basePayload = {
         fecha_desde: fDesde,
         fecha_hasta: fHasta,
         todo_el_dia: fTodoDia,
@@ -237,15 +236,36 @@ export default function Bloqueos() {
         hora_hasta: fTodoDia ? null : fHoraHasta,
         motivo: fMotivo,
         observaciones: fObs.trim() || null,
-        ...(editing ? {} : { created_by: user?.id ?? null, estado: "activo" as BloqueoEstado }),
       };
-      const res = editing
-        ? await supabase.from("bloqueos_agenda").update(payload).eq("id", editing.id)
-        : await supabase.from("bloqueos_agenda").insert(payload);
-      if (res.error) {
-        return toast.error("No se pudo guardar", { description: res.error.message });
+
+      // Si se seleccionó "Todos los profesionales", insertar uno por cada profesional
+      if (!editing && fProf === "TODOS") {
+        const payloads = profesionales.map((p) => ({
+          ...basePayload,
+          profesional_id: p.id,
+          created_by: user?.id ?? null,
+          estado: "activo" as BloqueoEstado,
+        }));
+        const res = await supabase.from("bloqueos_agenda").insert(payloads);
+        if (res.error) {
+          return toast.error("No se pudo guardar", { description: res.error.message });
+        }
+        toast.success(`Bloqueo creado para ${profesionales.length} profesionales`);
+      } else {
+        const payload = {
+          ...basePayload,
+          profesional_id: fProf,
+          ...(editing ? {} : { created_by: user?.id ?? null, estado: "activo" as BloqueoEstado }),
+        };
+        const res = editing
+          ? await supabase.from("bloqueos_agenda").update(payload).eq("id", editing.id)
+          : await supabase.from("bloqueos_agenda").insert(payload);
+        if (res.error) {
+          return toast.error("No se pudo guardar", { description: res.error.message });
+        }
+        toast.success(editing ? "Bloqueo actualizado" : "Bloqueo creado");
       }
-      toast.success(editing ? "Bloqueo actualizado" : "Bloqueo creado");
+
       setOpen(false);
       setConfirmAfectados(false);
       setTurnosAfectados([]);
@@ -458,6 +478,7 @@ export default function Bloqueos() {
                 <Select value={fProf} onValueChange={setFProf}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar profesional" /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="TODOS">⭐ Todos los profesionales</SelectItem>
                     {profesionales.map((p) => (
                       <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre}</SelectItem>
                     ))}
