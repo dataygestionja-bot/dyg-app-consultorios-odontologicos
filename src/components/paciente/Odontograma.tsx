@@ -200,12 +200,24 @@ export default function Odontograma({
             Historial odontológico por pieza dental
           </p>
         </div>
-        {puedeAgregar && mode === "full" && (
-          <Button type="button" onClick={() => setOpenDialog(true)}>
-            <Plus className="h-4 w-4" />
-            Agregar registro
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {modoDiferido && pendientes && pendientes.size > 0 && (
+            <>
+              <Badge variant="outline" className="border-amber-500 text-amber-700">
+                {pendientes.size} {pendientes.size === 1 ? "cambio sin guardar" : "cambios sin guardar"}
+              </Badge>
+              <Button type="button" variant="ghost" size="sm" onClick={onLimpiarPendientes}>
+                Descartar
+              </Button>
+            </>
+          )}
+          {puedeAgregar && mode === "full" && (
+            <Button type="button" onClick={() => setOpenDialog(true)}>
+              <Plus className="h-4 w-4" />
+              Agregar registro
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Odontograma anatómico */}
