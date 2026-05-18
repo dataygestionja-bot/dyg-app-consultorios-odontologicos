@@ -899,6 +899,11 @@ export default function AtencionForm() {
       </form>
 
       <PrestacionQuickDialog open={quickOpen} onOpenChange={setQuickOpen} onCreated={onPrestacionCreada} />
+      <AgregarDocumentacionDialog
+        open={docDialogOpen}
+        onOpenChange={setDocDialogOpen}
+        atencionId={id && id !== "nuevo" ? id : null}
+      />
     </div>
   );
 }
