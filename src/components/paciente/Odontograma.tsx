@@ -140,6 +140,27 @@ export default function Odontograma({
   }, [registros, dienteFiltro]);
 
   const puedeAgregar = can("odontograma", "create");
+  const modoDiferido = !!onAgregarPendiente;
+
+  // Mezcla pendientes locales como "último estado" sintético (no toca la base).
+  const registrosConPendientes = useMemo(() => {
+    if (!pendientes || pendientes.size === 0) return registros;
+    const fechaSint = new Date().toISOString();
+    const sintetics: Registro[] = [];
+    pendientes.forEach((estado, diente) => {
+      sintetics.push({
+        id: `pending-${diente}`,
+        paciente_id: pacienteId,
+        diente,
+        estado,
+        fecha: fechaSint,
+        profesional_id: profesionalId ?? "",
+        observaciones: "(pendiente)",
+        profesionales: null,
+      });
+    });
+    return [...sintetics, ...registros];
+  }, [registros, pendientes, pacienteId, profesionalId]);
 
   async function registrarEstadoInline(diente: number, estado: DienteEstado) {
     if (!profesionalId) {
