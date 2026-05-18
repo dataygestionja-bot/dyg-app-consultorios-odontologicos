@@ -74,6 +74,19 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profIdReady, miProfesionalId]);
 
+    const select = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido, color_agenda)";
+    const selectSolic = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, origen, created_at, paciente:pacientes(nombre, apellido, telefono), profesional:profesionales(nombre, apellido, color_agenda)";
+
+    const aplicarFiltro = (q: any): any =>
+      (soloMisTurnos && miProfesionalId) ? q.eq("profesional_id", miProfesionalId) : q;
+
+    if (soloMisTurnos && !miProfesionalId) {
+      setHoy([]); setAtendidosHoy(0);
+      setSolicitudes([]); setSolicitudesCount(0);
+      setPendientesCierre([]); setPendientesCierreCount(0);
+      setLoading(false);
+      return;
+    }
 
   useEffect(() => {
     const id = setInterval(() => setAhora(new Date()), 60000);
