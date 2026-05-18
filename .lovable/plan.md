@@ -1,25 +1,23 @@
-## Cambio
+## Eliminar el módulo "Recetas registradas"
 
-En el tablero (Dashboard), cuando el usuario logueado tiene rol `profesional` (y no es además `admin` ni `recepcion`), filtrar todas las consultas para que solo vea sus propios turnos.
+El módulo aparece en la pantalla de **Ver atención** (`/atenciones/:id/ver`) como tarjeta "Recetas registradas / Recetas emitidas en plataformas externas".
 
-## Detalles técnicos
+### Cambios
 
-Archivo: `src/pages/Dashboard.tsx`
+1. **`src/pages/AtencionDetalle.tsx`**
+   - Quitar el import de `RecetasExternasSection`.
+   - Quitar el bloque `<RecetasExternasSection ... />` (línea ~275).
 
-1. Obtener el `profesional_id` del usuario logueado:
-   - Usar `useAuth()` para obtener `user` y `hasRole`.
-   - Calcular `soloMisTurnos = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion")`.
-   - Si `soloMisTurnos`, consultar `profesionales` por `user_id = user.id` para obtener el `id` del profesional. Guardarlo en estado (`miProfesionalId`).
+2. **Archivos a eliminar** (ya no se usan en ningún lado):
+   - `src/components/integraciones/RecetasExternasSection.tsx`
+   - `src/components/integraciones/RecetaExternaDialog.tsx`
 
-2. En `cargar()`, aplicar `.eq("profesional_id", miProfesionalId)` a las 7 queries cuando `soloMisTurnos` esté activo:
-   - turnos de hoy
-   - próximos 7 días
-   - atendidos hoy (count)
-   - solicitudes (lista y count)
-   - pendientes de cierre (lista y count)
+### Lo que NO se toca
 
-3. Disparar `cargar()` recién cuando se haya resuelto `miProfesionalId` (o se haya determinado que el usuario no es profesional puro), para evitar mostrar datos de todos por una fracción de segundo.
+- La tabla `recetas_externas` y el bucket `recetas-externas` en el backend se mantienen (no se borran datos).
+- El permiso `recetas_externas` en `src/lib/permissions.ts` se mantiene por compatibilidad.
+- El **Historial de recetas externas** en la ficha del paciente (`PacienteForm` → `HistorialRecetasExternas`) **se mantiene**, ya que es una vista de solo lectura distinta.
 
-4. Ajuste menor de UX: para el profesional, ocultar la tarjeta "Pendientes de cierre" del header solo si se mantiene el gate por `canManagePendientes` (ya está condicionado a admin/recepción, queda igual). El bloque de "Solicitudes" se mantiene visible solo si tiene solicitudes propias.
+### A confirmar
 
-No requiere cambios de base de datos ni RLS — las políticas actuales ya permiten al profesional leer todos los turnos; este es un filtro de presentación en el cliente.
+¿Querés que también elimine el **Historial de recetas externas** dentro de la ficha del paciente, o lo dejamos como vista de consulta?
