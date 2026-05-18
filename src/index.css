@@ -76,8 +76,8 @@
    --agenda-sinturnos-fg: 145 60% 22%;
    --agenda-pocos: 217 90% 85%;
    --agenda-pocos-fg: 217 70% 25%;
-   --agenda-medio: 270 75% 88%;
-   --agenda-medio-fg: 270 50% 30%;
+   --agenda-medio: 0 0% 82%;
+   --agenda-medio-fg: 0 0% 20%;
    --agenda-lleno: 48 95% 78%;
    --agenda-lleno-fg: 35 80% 25%;
    --agenda-ausencia: 25 70% 80%;
@@ -141,8 +141,8 @@
    --agenda-sinturnos-fg: 142 70% 88%;
    --agenda-pocos: 217 50% 35%;
    --agenda-pocos-fg: 217 80% 92%;
-   --agenda-medio: 270 45% 40%;
-   --agenda-medio-fg: 270 70% 92%;
+    --agenda-medio: 0 0% 82%;
+    --agenda-medio-fg: 0 0% 20%;
    --agenda-lleno: 45 60% 38%;
    --agenda-lleno-fg: 45 90% 90%;
    --agenda-ausencia: 25 50% 38%;
