@@ -28,6 +28,7 @@ interface TurnoRow {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, hasRole, hasAnyRole } = useAuth();
+  const confirm = useConfirm();
   const canManagePendientes = hasAnyRole(["admin", "recepcion"]);
   const soloMisTurnos = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
 
