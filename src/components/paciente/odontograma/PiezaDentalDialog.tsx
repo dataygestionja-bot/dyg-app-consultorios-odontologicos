@@ -201,7 +201,7 @@ export default function PiezaDentalDialog({
                   variant="outline"
                   size="sm"
                   className="justify-start gap-2"
-                  disabled={!canCreate || !profEfectivoId || submitting !== null}
+                  disabled={!canCreate || (!onRegistrarPendiente && !profEfectivoId) || submitting !== null}
                   onClick={() => registrar(e)}
                 >
                   <span className={`h-3 w-3 shrink-0 rounded-sm ${DIENTE_ESTADO_DOT[e]}`} />
