@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Users, Plus, Clock, AlertCircle, Inbox, Globe, ArrowRight, Phone, UserX, Ban, Stethoscope } from "lucide-react";
+import { CalendarDays, Users, Plus, AlertCircle, Inbox, Globe, ArrowRight, Phone, UserX, Ban, Stethoscope } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TURNO_ESTADO_CLASSES, TURNO_ESTADO_LABELS, type TurnoEstado } from "@/lib/constants";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,7 +33,7 @@ export default function Dashboard() {
   const [miProfesionalId, setMiProfesionalId] = useState<string | null>(null);
   const [profIdReady, setProfIdReady] = useState(false);
   const [hoy, setHoy] = useState<TurnoRow[]>([]);
-  const [proximos, setProximos] = useState<TurnoRow[]>([]);
+  
   const [solicitudes, setSolicitudes] = useState<TurnoRow[]>([]);
   const [solicitudesCount, setSolicitudesCount] = useState<number>(0);
   const [pendientesCierre, setPendientesCierre] = useState<TurnoRow[]>([]);
@@ -74,7 +74,6 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profIdReady, miProfesionalId]);
 
-
   useEffect(() => {
     const id = setInterval(() => setAhora(new Date()), 60000);
     return () => clearInterval(id);
@@ -96,7 +95,6 @@ export default function Dashboard() {
   async function cargar() {
     setLoading(true);
     const today = format(new Date(), "yyyy-MM-dd");
-    const in7 = format(new Date(Date.now() + 7 * 86400000), "yyyy-MM-dd");
 
     const select = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido, color_agenda)";
     const selectSolic = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, origen, created_at, paciente:pacientes(nombre, apellido, telefono), profesional:profesionales(nombre, apellido, color_agenda)";
@@ -104,18 +102,16 @@ export default function Dashboard() {
     const aplicarFiltro = (q: any): any =>
       (soloMisTurnos && miProfesionalId) ? q.eq("profesional_id", miProfesionalId) : q;
 
-    // Si es profesional pero no se pudo resolver su profesional_id, no mostrar nada
     if (soloMisTurnos && !miProfesionalId) {
-      setHoy([]); setProximos([]); setAtendidosHoy(0);
+      setHoy([]); setAtendidosHoy(0);
       setSolicitudes([]); setSolicitudesCount(0);
       setPendientesCierre([]); setPendientesCierreCount(0);
       setLoading(false);
       return;
     }
 
-    const [hoyRes, proxRes, atRes, solicRes, solicCountRes, pcRes, pcCountRes] = await Promise.all([
+    const [hoyRes, atRes, solicRes, solicCountRes, pcRes, pcCountRes] = await Promise.all([
       aplicarFiltro(supabase.from("turnos").select(select).eq("fecha", today)).order("hora_inicio"),
-      aplicarFiltro(supabase.from("turnos").select(select).gt("fecha", today).lte("fecha", in7)).order("fecha").order("hora_inicio").limit(10),
       aplicarFiltro(supabase.from("turnos").select("id", { count: "exact", head: true }).eq("fecha", today).eq("estado", "atendido")),
       aplicarFiltro(supabase.from("turnos").select(selectSolic).eq("estado", "solicitado")).order("created_at", { ascending: false }).limit(5),
       aplicarFiltro(supabase.from("turnos").select("id", { count: "exact", head: true }).eq("estado", "solicitado")),
@@ -124,7 +120,6 @@ export default function Dashboard() {
     ]);
 
     setHoy((hoyRes.data ?? []) as unknown as TurnoRow[]);
-    setProximos((proxRes.data ?? []) as unknown as TurnoRow[]);
     setAtendidosHoy(atRes.count ?? 0);
     setSolicitudes((solicRes.data ?? []) as unknown as TurnoRow[]);
     setSolicitudesCount(solicCountRes.count ?? 0);
@@ -193,16 +188,6 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-3xl font-bold">{atendidosHoy}</div>
             <p className="text-xs text-muted-foreground">Pacientes atendidos</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Próximos 7 días</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{proximos.length}</div>
-            <p className="text-xs text-muted-foreground">Turnos próximos</p>
           </CardContent>
         </Card>
         <Link to="/turnos/solicitudes" className="block">
@@ -314,87 +299,55 @@ export default function Dashboard() {
         </Card>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Turnos de hoy</CardTitle>
-            <CardDescription>Agenda completa del día</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p className="text-sm text-muted-foreground">Cargando...</p>
-            ) : hoy.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No hay turnos programados para hoy.</p>
-            ) : (
-              <ul className="divide-y">
-                {hoy.map((t) => {
-                  const horario = getHorarioInfo(t);
-                  return (
-                  <li key={t.id} className="py-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className="h-9 w-1.5 rounded-full shrink-0"
-                        style={{ backgroundColor: t.profesional?.color_agenda ?? "hsl(var(--primary))" }}
-                      />
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">
-                          {t.paciente ? `${t.paciente.apellido}, ${t.paciente.nombre}` : "—"}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {t.hora_inicio.slice(0, 5)} · Dr. {t.profesional?.apellido ?? "—"}
-                          {t.motivo_consulta ? ` · ${t.motivo_consulta}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                      <Badge className={TURNO_ESTADO_CLASSES[t.estado]}>
-                        {TURNO_ESTADO_LABELS[t.estado]}
-                      </Badge>
-                      {horario && (
-                        <Badge variant="outline" className={`gap-1 ${horario.className}`}>
-                          {horario.icon && <AlertCircle className="h-3 w-3" />}
-                          {horario.label}
-                        </Badge>
-                      )}
-                    </div>
-                  </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Próximos turnos</CardTitle>
-            <CardDescription>Siguientes 7 días</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p className="text-sm text-muted-foreground">Cargando...</p>
-            ) : proximos.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin turnos en la próxima semana.</p>
-            ) : (
-              <ul className="divide-y">
-                {proximos.map((t) => (
-                  <li key={t.id} className="py-3 flex items-center justify-between gap-3">
+      <Card>
+        <CardHeader>
+          <CardTitle>Turnos de hoy</CardTitle>
+          <CardDescription>Agenda completa del día</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Cargando...</p>
+          ) : hoy.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay turnos programados para hoy.</p>
+          ) : (
+            <ul className="divide-y">
+              {hoy.map((t) => {
+                const horario = getHorarioInfo(t);
+                return (
+                <li key={t.id} className="py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="h-9 w-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: t.profesional?.color_agenda ?? "hsl(var(--primary))" }}
+                    />
                     <div className="min-w-0">
                       <p className="font-medium truncate">
                         {t.paciente ? `${t.paciente.apellido}, ${t.paciente.nombre}` : "—"}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {format(new Date(t.fecha + "T00:00:00"), "EEE d MMM", { locale: es })} · {t.hora_inicio.slice(0, 5)} · Dr. {t.profesional?.apellido ?? "—"}
+                        {t.hora_inicio.slice(0, 5)} · Dr. {t.profesional?.apellido ?? "—"}
+                        {t.motivo_consulta ? ` · ${t.motivo_consulta}` : ""}
                       </p>
                     </div>
-                    <Badge variant="outline">{TURNO_ESTADO_LABELS[t.estado]}</Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    <Badge className={TURNO_ESTADO_CLASSES[t.estado]}>
+                      {TURNO_ESTADO_LABELS[t.estado]}
+                    </Badge>
+                    {horario && (
+                      <Badge variant="outline" className={`gap-1 ${horario.className}`}>
+                        {horario.icon && <AlertCircle className="h-3 w-3" />}
+                        {horario.label}
+                      </Badge>
+                    )}
+                  </div>
+                </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       {canManagePendientes && pendientesCierreCount > 0 && (
         <Card
