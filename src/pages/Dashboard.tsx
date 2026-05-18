@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { TURNO_ESTADO_CLASSES, TURNO_ESTADO_LABELS, type TurnoEstado } from "@/lib/constants";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -27,6 +28,7 @@ interface TurnoRow {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, hasRole, hasAnyRole } = useAuth();
+  const confirm = useConfirm();
   const canManagePendientes = hasAnyRole(["admin", "recepcion"]);
   const soloMisTurnos = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
 
@@ -129,7 +131,12 @@ export default function Dashboard() {
   }
 
   async function marcarAusente(id: string) {
-    if (!confirm("¿Marcar este turno como ausente?")) return;
+    const ok = await confirm({
+      title: "Marcar como ausente",
+      description: "¿Marcar este turno como ausente?",
+      confirmText: "Marcar ausente",
+    });
+    if (!ok) return;
     const { error } = await supabase.from("turnos").update({ estado: "ausente" }).eq("id", id);
     if (error) {
       toast.error("No se pudo actualizar: " + error.message);
@@ -140,7 +147,14 @@ export default function Dashboard() {
   }
 
   async function cancelarTurno(id: string) {
-    if (!confirm("¿Cancelar este turno?")) return;
+    const ok = await confirm({
+      title: "Cancelar turno",
+      description: "¿Cancelar este turno?",
+      confirmText: "Cancelar turno",
+      cancelText: "Volver",
+      destructive: true,
+    });
+    if (!ok) return;
     const { error } = await supabase.from("turnos").update({ estado: "cancelado" }).eq("id", id);
     if (error) {
       toast.error("No se pudo cancelar: " + error.message);

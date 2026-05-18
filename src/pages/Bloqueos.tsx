@@ -4,6 +4,7 @@ import { format, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarOff, Plus, AlertTriangle, Pencil, Ban, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -80,6 +81,7 @@ const safeFormatDate = (s: string | null | undefined) => {
 export default function Bloqueos() {
   const { user, hasRole } = useAuth();
   const { can } = usePermissions();
+  const confirm = useConfirm();
   const canEdit = can("bloqueos_agenda", "create") || can("bloqueos_agenda", "update") || can("bloqueos_agenda", "delete");
   const esProfRestringido = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
   const [miProfesionalId, setMiProfesionalId] = useState<string>("");
@@ -254,7 +256,14 @@ export default function Bloqueos() {
   }
 
   async function cancelarBloqueo(b: Bloqueo) {
-    if (!confirm("¿Cancelar este bloqueo? Quedará registrado como cancelado.")) return;
+    const ok = await confirm({
+      title: "Cancelar bloqueo",
+      description: "¿Cancelar este bloqueo? Quedará registrado como cancelado.",
+      confirmText: "Cancelar bloqueo",
+      cancelText: "Volver",
+      destructive: true,
+    });
+    if (!ok) return;
     const { error } = await supabase
       .from("bloqueos_agenda")
       .update({ estado: "cancelado" })
@@ -265,7 +274,13 @@ export default function Bloqueos() {
   }
 
   async function eliminarBloqueo(b: Bloqueo) {
-    if (!confirm("¿Eliminar definitivamente este bloqueo?")) return;
+    const ok = await confirm({
+      title: "Eliminar bloqueo",
+      description: "¿Eliminar definitivamente este bloqueo?",
+      confirmText: "Eliminar",
+      destructive: true,
+    });
+    if (!ok) return;
     const { error } = await supabase.from("bloqueos_agenda").delete().eq("id", b.id);
     if (error) return toast.error("No se pudo eliminar", { description: error.message });
     toast.success("Bloqueo eliminado");

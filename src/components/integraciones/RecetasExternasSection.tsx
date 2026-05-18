@@ -10,6 +10,7 @@ import { es } from "date-fns/locale";
 import { usePermissions } from "@/hooks/usePermissions";
 import { RecetaExternaDialog } from "./RecetaExternaDialog";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 interface RecetaRow {
   id: string;
@@ -30,6 +31,7 @@ interface Props {
 
 export function RecetasExternasSection({ atencionId, pacienteId, profesionalId }: Props) {
   const { can } = usePermissions();
+  const confirm = useConfirm();
   const [rows, setRows] = useState<RecetaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -66,7 +68,13 @@ export function RecetasExternasSection({ atencionId, pacienteId, profesionalId }
   };
 
   const eliminar = async (r: RecetaRow) => {
-    if (!confirm("¿Eliminar esta receta registrada?")) return;
+    const ok = await confirm({
+      title: "Eliminar receta",
+      description: "¿Eliminar esta receta registrada?",
+      confirmText: "Eliminar",
+      destructive: true,
+    });
+    if (!ok) return;
     const { error } = await supabase.from("recetas_externas").delete().eq("id", r.id);
     if (error) {
       toast.error("No se pudo eliminar", { description: error.message });
