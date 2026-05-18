@@ -96,6 +96,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <PermissionsProvider>
+          <ConfirmDialogProvider>
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/reservar" element={<ReservarTurno />} />
@@ -152,6 +153,7 @@ const App = () => (
 
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </ConfirmDialogProvider>
           </PermissionsProvider>
         </AuthProvider>
       </BrowserRouter>
