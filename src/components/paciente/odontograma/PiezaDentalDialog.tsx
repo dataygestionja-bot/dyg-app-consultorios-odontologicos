@@ -108,6 +108,14 @@ export default function PiezaDentalDialog({
 
   async function registrar(estado: DienteEstado) {
     if (!dienteInterno) return;
+    if (onRegistrarPendiente) {
+      onRegistrarPendiente(estado);
+      toast.success(`Pieza ${fdi}: ${DIENTE_ESTADO_LABELS[estado]} (pendiente)`, {
+        description: "Se guardará al guardar la atención.",
+      });
+      onOpenChange(false);
+      return;
+    }
     if (!profEfectivoId) {
       toast.error("Falta el profesional", {
         description: "No se pudo determinar el profesional del turno.",
