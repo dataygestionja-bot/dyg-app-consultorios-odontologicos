@@ -108,6 +108,7 @@ export default function AtencionForm() {
   const [slotProx, setSlotProx] = useState<string>("");
   const [agendarProximo, setAgendarProximo] = useState<boolean>(true);
   const [cargandoSlotsProx, setCargandoSlotsProx] = useState(false);
+  const [docDialogOpen, setDocDialogOpen] = useState(false);
 
   useEffect(() => {
     let cancel = false;
