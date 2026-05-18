@@ -101,7 +101,7 @@ export default function Dashboard() {
     const select = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido, color_agenda)";
     const selectSolic = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, origen, created_at, paciente:pacientes(nombre, apellido, telefono), profesional:profesionales(nombre, apellido, color_agenda)";
 
-    const aplicarFiltro = <T extends { eq: (col: string, val: string) => T }>(q: T): T =>
+    const aplicarFiltro = (q: any): any =>
       (soloMisTurnos && miProfesionalId) ? q.eq("profesional_id", miProfesionalId) : q;
 
     // Si es profesional pero no se pudo resolver su profesional_id, no mostrar nada
