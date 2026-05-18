@@ -745,6 +745,15 @@ export default function AtencionForm() {
                 mode="inline"
                 profesionalId={form.profesional_id}
                 fechaAtencion={form.fecha}
+                pendientes={odontoPendientes}
+                onAgregarPendiente={(diente, estado) => {
+                  setOdontoPendientes((prev) => {
+                    const next = new Map(prev);
+                    next.set(diente, estado);
+                    return next;
+                  });
+                }}
+                onLimpiarPendientes={() => setOdontoPendientes(new Map())}
               />
             </CardContent>
           </Card>
