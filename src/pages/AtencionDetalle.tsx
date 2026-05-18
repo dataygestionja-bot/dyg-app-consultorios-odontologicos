@@ -9,7 +9,6 @@ import { ArrowLeft, Pencil } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { IntegracionRctaInline } from "@/components/integraciones/IntegracionRctaInline";
-import { RecetasExternasSection } from "@/components/integraciones/RecetasExternasSection";
 
 type TipoAtencion = "con_turno" | "urgencia" | "espontanea";
 
