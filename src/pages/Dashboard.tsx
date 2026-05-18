@@ -314,87 +314,55 @@ export default function Dashboard() {
         </Card>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Turnos de hoy</CardTitle>
-            <CardDescription>Agenda completa del día</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p className="text-sm text-muted-foreground">Cargando...</p>
-            ) : hoy.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No hay turnos programados para hoy.</p>
-            ) : (
-              <ul className="divide-y">
-                {hoy.map((t) => {
-                  const horario = getHorarioInfo(t);
-                  return (
-                  <li key={t.id} className="py-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className="h-9 w-1.5 rounded-full shrink-0"
-                        style={{ backgroundColor: t.profesional?.color_agenda ?? "hsl(var(--primary))" }}
-                      />
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">
-                          {t.paciente ? `${t.paciente.apellido}, ${t.paciente.nombre}` : "—"}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {t.hora_inicio.slice(0, 5)} · Dr. {t.profesional?.apellido ?? "—"}
-                          {t.motivo_consulta ? ` · ${t.motivo_consulta}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                      <Badge className={TURNO_ESTADO_CLASSES[t.estado]}>
-                        {TURNO_ESTADO_LABELS[t.estado]}
-                      </Badge>
-                      {horario && (
-                        <Badge variant="outline" className={`gap-1 ${horario.className}`}>
-                          {horario.icon && <AlertCircle className="h-3 w-3" />}
-                          {horario.label}
-                        </Badge>
-                      )}
-                    </div>
-                  </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Próximos turnos</CardTitle>
-            <CardDescription>Siguientes 7 días</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p className="text-sm text-muted-foreground">Cargando...</p>
-            ) : proximos.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin turnos en la próxima semana.</p>
-            ) : (
-              <ul className="divide-y">
-                {proximos.map((t) => (
-                  <li key={t.id} className="py-3 flex items-center justify-between gap-3">
+      <Card>
+        <CardHeader>
+          <CardTitle>Turnos de hoy</CardTitle>
+          <CardDescription>Agenda completa del día</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Cargando...</p>
+          ) : hoy.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay turnos programados para hoy.</p>
+          ) : (
+            <ul className="divide-y">
+              {hoy.map((t) => {
+                const horario = getHorarioInfo(t);
+                return (
+                <li key={t.id} className="py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="h-9 w-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: t.profesional?.color_agenda ?? "hsl(var(--primary))" }}
+                    />
                     <div className="min-w-0">
                       <p className="font-medium truncate">
                         {t.paciente ? `${t.paciente.apellido}, ${t.paciente.nombre}` : "—"}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {format(new Date(t.fecha + "T00:00:00"), "EEE d MMM", { locale: es })} · {t.hora_inicio.slice(0, 5)} · Dr. {t.profesional?.apellido ?? "—"}
+                        {t.hora_inicio.slice(0, 5)} · Dr. {t.profesional?.apellido ?? "—"}
+                        {t.motivo_consulta ? ` · ${t.motivo_consulta}` : ""}
                       </p>
                     </div>
-                    <Badge variant="outline">{TURNO_ESTADO_LABELS[t.estado]}</Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    <Badge className={TURNO_ESTADO_CLASSES[t.estado]}>
+                      {TURNO_ESTADO_LABELS[t.estado]}
+                    </Badge>
+                    {horario && (
+                      <Badge variant="outline" className={`gap-1 ${horario.className}`}>
+                        {horario.icon && <AlertCircle className="h-3 w-3" />}
+                        {horario.label}
+                      </Badge>
+                    )}
+                  </div>
+                </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       {canManagePendientes && pendientesCierreCount > 0 && (
         <Card
