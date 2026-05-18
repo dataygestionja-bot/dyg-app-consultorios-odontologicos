@@ -1,20 +1,13 @@
 ## Cambio
 
-En la pantalla **Ver atención** (`src/pages/AtencionDetalle.tsx`), tarjeta **Prácticas realizadas**, eliminar las columnas que ya no se cargan en el nuevo formulario:
-
-- Cara
-- Cantidad
-- Observación
-
-La tabla queda con solo dos columnas: **Prestación** y **Pieza**.
+Cuando al guardar una atención se agenda el turno de próxima visita, actualmente se crea (o actualiza) con estado `reservado`. Debe quedar en estado `confirmado`, ya que la fecha se está pactando en el momento con el paciente.
 
 ## Detalles técnicos
 
-Editar `src/pages/AtencionDetalle.tsx` (líneas 237-273):
+Archivo: `src/pages/AtencionForm.tsx`
 
-- Quitar `<TableHead>` de Cara, Cantidad y Observación.
-- Quitar las `<TableCell>` correspondientes en el map de `atencion_practicas`.
-- Ajustar `colSpan={5}` → `colSpan={2}` en la fila "Sin prácticas registradas".
-- Quitar la clase `hidden sm:table-cell` de la columna Pieza para que sea siempre visible (ya que queda como única columna secundaria).
+- Línea 546: en el `update` del turno existente, cambiar `estado: "reservado"` → `estado: "confirmado"`.
+- Línea 564: en el `insert` del nuevo turno, cambiar `estado: "reservado"` → `estado: "confirmado"`.
+- Ajustar el mensaje de éxito (línea 573) de "Próximo turno reservado..." a "Próximo turno confirmado..." para mantener consistencia.
 
-No se modifica la base de datos ni el formulario de carga: los campos siguen existiendo en el modelo, solo se ocultan en esta vista de detalle.
+No requiere cambios de base de datos ni de RLS.
