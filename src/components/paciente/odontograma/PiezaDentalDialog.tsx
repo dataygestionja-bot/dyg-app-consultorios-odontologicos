@@ -56,6 +56,8 @@ export default function PiezaDentalDialog({
   canCreate,
   profesionalId,
   fechaAtencion,
+  onRegistrarPendiente,
+  pendingEstado,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -70,6 +72,10 @@ export default function PiezaDentalDialog({
   profesionalId?: string | null;
   /** Fecha de la atención (YYYY-MM-DD). Si no viene, se usa ahora. */
   fechaAtencion?: string | null;
+  /** Si se provee, no se persiste en la base — se delega el cambio al padre como pendiente. */
+  onRegistrarPendiente?: (estado: DienteEstado) => void;
+  /** Estado pendiente local para esta pieza (si existe). */
+  pendingEstado?: DienteEstado | null;
 }) {
   const [submitting, setSubmitting] = useState<DienteEstado | null>(null);
   const [verHistorial, setVerHistorial] = useState(false);
