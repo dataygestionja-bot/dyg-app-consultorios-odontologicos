@@ -256,7 +256,14 @@ export default function Bloqueos() {
   }
 
   async function cancelarBloqueo(b: Bloqueo) {
-    if (!confirm("¿Cancelar este bloqueo? Quedará registrado como cancelado.")) return;
+    const ok = await confirm({
+      title: "Cancelar bloqueo",
+      description: "¿Cancelar este bloqueo? Quedará registrado como cancelado.",
+      confirmText: "Cancelar bloqueo",
+      cancelText: "Volver",
+      destructive: true,
+    });
+    if (!ok) return;
     const { error } = await supabase
       .from("bloqueos_agenda")
       .update({ estado: "cancelado" })
@@ -267,7 +274,13 @@ export default function Bloqueos() {
   }
 
   async function eliminarBloqueo(b: Bloqueo) {
-    if (!confirm("¿Eliminar definitivamente este bloqueo?")) return;
+    const ok = await confirm({
+      title: "Eliminar bloqueo",
+      description: "¿Eliminar definitivamente este bloqueo?",
+      confirmText: "Eliminar",
+      destructive: true,
+    });
+    if (!ok) return;
     const { error } = await supabase.from("bloqueos_agenda").delete().eq("id", b.id);
     if (error) return toast.error("No se pudo eliminar", { description: error.message });
     toast.success("Bloqueo eliminado");
