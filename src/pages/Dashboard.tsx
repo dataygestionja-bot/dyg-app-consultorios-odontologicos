@@ -26,9 +26,12 @@ interface TurnoRow {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { hasAnyRole } = useAuth();
+  const { user, hasRole, hasAnyRole } = useAuth();
   const canManagePendientes = hasAnyRole(["admin", "recepcion"]);
+  const soloMisTurnos = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
 
+  const [miProfesionalId, setMiProfesionalId] = useState<string | null>(null);
+  const [profIdReady, setProfIdReady] = useState(false);
   const [hoy, setHoy] = useState<TurnoRow[]>([]);
   const [proximos, setProximos] = useState<TurnoRow[]>([]);
   const [solicitudes, setSolicitudes] = useState<TurnoRow[]>([]);
@@ -41,8 +44,36 @@ export default function Dashboard() {
 
   useEffect(() => {
     document.title = "Dashboard | Consultorio";
-    cargar();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function resolverProfesional() {
+      if (!soloMisTurnos) {
+        setMiProfesionalId(null);
+        setProfIdReady(true);
+        return;
+      }
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from("profesionales")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      setMiProfesionalId(data?.id ?? null);
+      setProfIdReady(true);
+    }
+    resolverProfesional();
+    return () => { cancelled = true; };
+  }, [user?.id, soloMisTurnos]);
+
+  useEffect(() => {
+    if (!profIdReady) return;
+    cargar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profIdReady, miProfesionalId]);
+
 
   useEffect(() => {
     const id = setInterval(() => setAhora(new Date()), 60000);
@@ -70,14 +101,26 @@ export default function Dashboard() {
     const select = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido, color_agenda)";
     const selectSolic = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, origen, created_at, paciente:pacientes(nombre, apellido, telefono), profesional:profesionales(nombre, apellido, color_agenda)";
 
+    const aplicarFiltro = (q: any): any =>
+      (soloMisTurnos && miProfesionalId) ? q.eq("profesional_id", miProfesionalId) : q;
+
+    // Si es profesional pero no se pudo resolver su profesional_id, no mostrar nada
+    if (soloMisTurnos && !miProfesionalId) {
+      setHoy([]); setProximos([]); setAtendidosHoy(0);
+      setSolicitudes([]); setSolicitudesCount(0);
+      setPendientesCierre([]); setPendientesCierreCount(0);
+      setLoading(false);
+      return;
+    }
+
     const [hoyRes, proxRes, atRes, solicRes, solicCountRes, pcRes, pcCountRes] = await Promise.all([
-      supabase.from("turnos").select(select).eq("fecha", today).order("hora_inicio"),
-      supabase.from("turnos").select(select).gt("fecha", today).lte("fecha", in7).order("fecha").order("hora_inicio").limit(10),
-      supabase.from("turnos").select("id", { count: "exact", head: true }).eq("fecha", today).eq("estado", "atendido"),
-      supabase.from("turnos").select(selectSolic).eq("estado", "solicitado").order("created_at", { ascending: false }).limit(5),
-      supabase.from("turnos").select("id", { count: "exact", head: true }).eq("estado", "solicitado"),
-      supabase.from("turnos").select(select).eq("estado", "pendiente_cierre").order("fecha", { ascending: false }).order("hora_inicio").limit(20),
-      supabase.from("turnos").select("id", { count: "exact", head: true }).eq("estado", "pendiente_cierre"),
+      aplicarFiltro(supabase.from("turnos").select(select).eq("fecha", today)).order("hora_inicio"),
+      aplicarFiltro(supabase.from("turnos").select(select).gt("fecha", today).lte("fecha", in7)).order("fecha").order("hora_inicio").limit(10),
+      aplicarFiltro(supabase.from("turnos").select("id", { count: "exact", head: true }).eq("fecha", today).eq("estado", "atendido")),
+      aplicarFiltro(supabase.from("turnos").select(selectSolic).eq("estado", "solicitado")).order("created_at", { ascending: false }).limit(5),
+      aplicarFiltro(supabase.from("turnos").select("id", { count: "exact", head: true }).eq("estado", "solicitado")),
+      aplicarFiltro(supabase.from("turnos").select(select).eq("estado", "pendiente_cierre")).order("fecha", { ascending: false }).order("hora_inicio").limit(20),
+      aplicarFiltro(supabase.from("turnos").select("id", { count: "exact", head: true }).eq("estado", "pendiente_cierre")),
     ]);
 
     setHoy((hoyRes.data ?? []) as unknown as TurnoRow[]);
