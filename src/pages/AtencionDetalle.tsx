@@ -271,12 +271,6 @@ export default function AtencionDetalle() {
         <TextBlock label="Indicaciones" value={atencion.indicaciones} />
         <TextBlock label="Observaciones" value={atencion.observaciones} />
       </div>
-
-      <RecetasExternasSection
-        atencionId={atencion.id}
-        pacienteId={atencion.paciente_id}
-        profesionalId={atencion.profesional_id}
-      />
     </div>
   );
 }
