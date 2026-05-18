@@ -232,7 +232,7 @@ export default function Odontograma({
         </CardHeader>
         <CardContent className="px-0 sm:px-2">
           <OdontogramaAnatomico
-            registros={registros}
+            registros={registrosConPendientes}
             disabled={mode === "inline" && !profesionalId}
             piezaResaltada={piezaSeleccionada}
             onPiezaClick={(interno) => {
