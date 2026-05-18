@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      atencion_documentos: {
+        Row: {
+          archivo_mime: string | null
+          archivo_nombre: string
+          archivo_path: string
+          archivo_size: number | null
+          atencion_id: string
+          created_at: string
+          created_by: string | null
+          fecha: string
+          id: string
+          referencia: string
+          updated_at: string
+        }
+        Insert: {
+          archivo_mime?: string | null
+          archivo_nombre: string
+          archivo_path: string
+          archivo_size?: number | null
+          atencion_id: string
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          id?: string
+          referencia: string
+          updated_at?: string
+        }
+        Update: {
+          archivo_mime?: string | null
+          archivo_nombre?: string
+          archivo_path?: string
+          archivo_size?: number | null
+          atencion_id?: string
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          id?: string
+          referencia?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atencion_documentos_atencion_id_fkey"
+            columns: ["atencion_id"]
+            isOneToOne: false
+            referencedRelation: "atenciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atencion_practicas: {
         Row: {
           atencion_id: string

@@ -21,6 +21,8 @@ import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
 import HistorialOdontograma from "@/components/paciente/HistorialOdontograma";
 import { Badge } from "@/components/ui/badge";
 import { IntegracionRctaInline } from "@/components/integraciones/IntegracionRctaInline";
+import { AgregarDocumentacionDialog } from "@/components/atenciones/AgregarDocumentacionDialog";
+import { FileUp } from "lucide-react";
 
 interface Paciente { id: string; nombre: string; apellido: string; dni: string; alergias?: string | null; medicacion_actual?: string | null; antecedentes_medicos?: string | null; }
 interface Profesional { id: string; nombre: string; apellido: string; }
@@ -106,6 +108,7 @@ export default function AtencionForm() {
   const [slotProx, setSlotProx] = useState<string>("");
   const [agendarProximo, setAgendarProximo] = useState<boolean>(true);
   const [cargandoSlotsProx, setCargandoSlotsProx] = useState(false);
+  const [docDialogOpen, setDocDialogOpen] = useState(false);
 
   useEffect(() => {
     let cancel = false;
@@ -756,6 +759,20 @@ export default function AtencionForm() {
                   return p ? `${p.apellido}, ${p.nombre}` : undefined;
                 })()}
               />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (!id || id === "nuevo") {
+                    toast.error("Primero guardá la atención para poder adjuntar documentación.");
+                    return;
+                  }
+                  setDocDialogOpen(true);
+                }}
+              >
+                <FileUp className="h-4 w-4" /> Agregar documentación
+              </Button>
               <Button type="button" size="sm" onClick={addPractica}>
                 <Plus className="h-4 w-4" /> Agregar práctica
               </Button>
@@ -882,6 +899,11 @@ export default function AtencionForm() {
       </form>
 
       <PrestacionQuickDialog open={quickOpen} onOpenChange={setQuickOpen} onCreated={onPrestacionCreada} />
+      <AgregarDocumentacionDialog
+        open={docDialogOpen}
+        onOpenChange={setDocDialogOpen}
+        atencionId={id && id !== "nuevo" ? id : null}
+      />
     </div>
   );
 }
