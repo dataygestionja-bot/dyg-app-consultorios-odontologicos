@@ -31,6 +31,7 @@ interface Props {
 
 export function RecetasExternasSection({ atencionId, pacienteId, profesionalId }: Props) {
   const { can } = usePermissions();
+  const confirm = useConfirm();
   const [rows, setRows] = useState<RecetaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
