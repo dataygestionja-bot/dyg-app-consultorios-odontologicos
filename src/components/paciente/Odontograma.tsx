@@ -77,11 +77,18 @@ export default function Odontograma({
   mode = "full",
   profesionalId,
   fechaAtencion,
+  pendientes,
+  onAgregarPendiente,
+  onLimpiarPendientes,
 }: {
   pacienteId: string;
   mode?: "full" | "inline";
   profesionalId?: string;
   fechaAtencion?: string;
+  /** Si se proveen, el componente trabaja en modo "diferido": los clics no persisten en la base. */
+  pendientes?: Map<number, DienteEstado>;
+  onAgregarPendiente?: (diente: number, estado: DienteEstado) => void;
+  onLimpiarPendientes?: () => void;
 }) {
   const { user } = useAuth();
   const { can } = usePermissions();
