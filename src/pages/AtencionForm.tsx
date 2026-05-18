@@ -531,6 +531,8 @@ export default function AtencionForm() {
       }
       setOdontoPendientes(new Map());
     }
+
+    // Agendar / actualizar próximo turno si corresponde
     let mensajeTurno = "";
     if (agendarProximo && form.proxima_visita_sugerida && slotProx && form.profesional_id && form.paciente_id) {
       const [hi, hf] = slotProx.split("-");
