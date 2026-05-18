@@ -508,7 +508,29 @@ export default function AtencionForm() {
       }
     }
 
-    // Agendar / actualizar próximo turno si corresponde
+    // Persistir registros del odontograma pendientes (cargados en este formulario)
+    if (atencionId && odontoPendientes.size > 0) {
+      const fechaIso = new Date(
+        `${form.fecha}T${format(new Date(), "HH:mm:ss")}`,
+      ).toISOString();
+      const rowsOdo = Array.from(odontoPendientes.entries()).map(([diente, estado]) => ({
+        paciente_id: form.paciente_id,
+        diente,
+        estado,
+        fecha: fechaIso,
+        profesional_id: form.profesional_id,
+        observaciones: null,
+      }));
+      const { error: errOdo } = await supabase.from("odontograma_registros").insert(rowsOdo);
+      if (errOdo) {
+        setSubmitting(false);
+        toast.error("Atención guardada, pero falló el odontograma", {
+          description: errOdo.message,
+        });
+        return;
+      }
+      setOdontoPendientes(new Map());
+    }
     let mensajeTurno = "";
     if (agendarProximo && form.proxima_visita_sugerida && slotProx && form.profesional_id && form.paciente_id) {
       const [hi, hf] = slotProx.split("-");
