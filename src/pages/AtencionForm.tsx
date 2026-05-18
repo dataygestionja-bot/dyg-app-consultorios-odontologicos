@@ -21,6 +21,8 @@ import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
 import HistorialOdontograma from "@/components/paciente/HistorialOdontograma";
 import { Badge } from "@/components/ui/badge";
 import { IntegracionRctaInline } from "@/components/integraciones/IntegracionRctaInline";
+import { AgregarDocumentacionDialog } from "@/components/atenciones/AgregarDocumentacionDialog";
+import { FileUp } from "lucide-react";
 
 interface Paciente { id: string; nombre: string; apellido: string; dni: string; alergias?: string | null; medicacion_actual?: string | null; antecedentes_medicos?: string | null; }
 interface Profesional { id: string; nombre: string; apellido: string; }
