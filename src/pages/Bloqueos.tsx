@@ -81,6 +81,7 @@ const safeFormatDate = (s: string | null | undefined) => {
 export default function Bloqueos() {
   const { user, hasRole } = useAuth();
   const { can } = usePermissions();
+  const confirm = useConfirm();
   const canEdit = can("bloqueos_agenda", "create") || can("bloqueos_agenda", "update") || can("bloqueos_agenda", "delete");
   const esProfRestringido = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
   const [miProfesionalId, setMiProfesionalId] = useState<string>("");
