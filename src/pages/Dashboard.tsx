@@ -26,9 +26,12 @@ interface TurnoRow {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { hasAnyRole } = useAuth();
+  const { user, hasRole, hasAnyRole } = useAuth();
   const canManagePendientes = hasAnyRole(["admin", "recepcion"]);
+  const soloMisTurnos = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
 
+  const [miProfesionalId, setMiProfesionalId] = useState<string | null>(null);
+  const [profIdReady, setProfIdReady] = useState(false);
   const [hoy, setHoy] = useState<TurnoRow[]>([]);
   const [proximos, setProximos] = useState<TurnoRow[]>([]);
   const [solicitudes, setSolicitudes] = useState<TurnoRow[]>([]);
@@ -41,8 +44,36 @@ export default function Dashboard() {
 
   useEffect(() => {
     document.title = "Dashboard | Consultorio";
-    cargar();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function resolverProfesional() {
+      if (!soloMisTurnos) {
+        setMiProfesionalId(null);
+        setProfIdReady(true);
+        return;
+      }
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from("profesionales")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      setMiProfesionalId(data?.id ?? null);
+      setProfIdReady(true);
+    }
+    resolverProfesional();
+    return () => { cancelled = true; };
+  }, [user?.id, soloMisTurnos]);
+
+  useEffect(() => {
+    if (!profIdReady) return;
+    cargar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profIdReady, miProfesionalId]);
+
 
   useEffect(() => {
     const id = setInterval(() => setAhora(new Date()), 60000);
