@@ -4,6 +4,7 @@ import { format, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarOff, Plus, AlertTriangle, Pencil, Ban, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
