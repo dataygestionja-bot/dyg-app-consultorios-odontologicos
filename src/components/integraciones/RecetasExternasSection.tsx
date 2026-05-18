@@ -68,7 +68,13 @@ export function RecetasExternasSection({ atencionId, pacienteId, profesionalId }
   };
 
   const eliminar = async (r: RecetaRow) => {
-    if (!confirm("¿Eliminar esta receta registrada?")) return;
+    const ok = await confirm({
+      title: "Eliminar receta",
+      description: "¿Eliminar esta receta registrada?",
+      confirmText: "Eliminar",
+      destructive: true,
+    });
+    if (!ok) return;
     const { error } = await supabase.from("recetas_externas").delete().eq("id", r.id);
     if (error) {
       toast.error("No se pudo eliminar", { description: error.message });
