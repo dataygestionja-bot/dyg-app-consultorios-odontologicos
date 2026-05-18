@@ -110,6 +110,7 @@ export default function AtencionForm() {
   const [agendarProximo, setAgendarProximo] = useState<boolean>(true);
   const [cargandoSlotsProx, setCargandoSlotsProx] = useState(false);
   const [docDialogOpen, setDocDialogOpen] = useState(false);
+  const [odontoPendientes, setOdontoPendientes] = useState<Map<number, DienteEstado>>(new Map());
 
   useEffect(() => {
     let cancel = false;
