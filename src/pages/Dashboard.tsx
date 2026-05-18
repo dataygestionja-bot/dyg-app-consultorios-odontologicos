@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { TURNO_ESTADO_CLASSES, TURNO_ESTADO_LABELS, type TurnoEstado } from "@/lib/constants";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
