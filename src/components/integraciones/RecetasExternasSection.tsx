@@ -10,6 +10,7 @@ import { es } from "date-fns/locale";
 import { usePermissions } from "@/hooks/usePermissions";
 import { RecetaExternaDialog } from "./RecetaExternaDialog";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 interface RecetaRow {
   id: string;
