@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { PrestacionQuickDialog } from "@/components/prestaciones/PrestacionQuickDialog";
 import { useAuth } from "@/hooks/useAuth";
 import Odontograma from "@/components/paciente/Odontograma";
+import type { DienteEstado } from "@/lib/constants";
 import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
 import HistorialOdontograma from "@/components/paciente/HistorialOdontograma";
 import { Badge } from "@/components/ui/badge";
