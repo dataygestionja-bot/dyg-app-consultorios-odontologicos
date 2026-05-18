@@ -165,6 +165,15 @@ export default function PiezaDentalDialog({
               ) : (
                 <span className="text-xs text-muted-foreground">Sin registros previos.</span>
               )}
+              {pendingEstado && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-amber-600">Pendiente de guardar:</span>
+                  <Badge variant="outline" className="gap-1.5 border-amber-500 text-amber-700">
+                    <span className={`h-2 w-2 rounded-full ${DIENTE_ESTADO_DOT[pendingEstado]}`} />
+                    {DIENTE_ESTADO_LABELS[pendingEstado]}
+                  </Badge>
+                </div>
+              )}
               {profEfectivo && canCreate && (
                 <div className="text-xs text-muted-foreground">
                   Se registrará a nombre de{" "}
