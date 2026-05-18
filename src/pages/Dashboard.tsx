@@ -33,7 +33,7 @@ export default function Dashboard() {
   const [miProfesionalId, setMiProfesionalId] = useState<string | null>(null);
   const [profIdReady, setProfIdReady] = useState(false);
   const [hoy, setHoy] = useState<TurnoRow[]>([]);
-  const [proximos, setProximos] = useState<TurnoRow[]>([]);
+  
   const [solicitudes, setSolicitudes] = useState<TurnoRow[]>([]);
   const [solicitudesCount, setSolicitudesCount] = useState<number>(0);
   const [pendientesCierre, setPendientesCierre] = useState<TurnoRow[]>([]);
