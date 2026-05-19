@@ -123,6 +123,12 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
   const [turnos, setTurnos] = useState<TurnoLite[]>([]);
   const [detalle, setDetalle] = useState<{ prof: Profesional; fecha: Date } | null>(null);
   const [nuevoTurnoOpen, setNuevoTurnoOpen] = useState(false);
+  const [diaActivoIdx, setDiaActivoIdx] = useState(0);
+
+  useEffect(() => {
+    const idx = dias.findIndex((d) => format(d, "yyyy-MM-dd") === hoyStr);
+    if (idx >= 0) setDiaActivoIdx(idx);
+  }, [semanaInicio]);
   const [turnoReprogramar, setTurnoReprogramar] = useState<TurnoLite | null>(null);
   const [turnoCancelar, setTurnoCancelar] = useState<TurnoLite | null>(null);
   const [cancelando, setCancelando] = useState(false);
@@ -280,9 +286,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
   }
 
   // ── Vista mobile: un día a la vez ──
-  const [diaActivoIdx, setDiaActivoIdx] = useState(
-    () => dias.findIndex((d) => format(d, "yyyy-MM-dd") === hoyStr) ?? 0
-  );
+  const hoyIdx = dias.findIndex((d) => format(d, "yyyy-MM-dd") === hoyStr);
   const diaActivo = dias[Math.max(0, Math.min(diaActivoIdx, 6))];
 
   const MobileView = () => (
