@@ -556,6 +556,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
           </tbody>
         </table>
       </div>
+      </div>{/* end overflow-auto */}
 
       {/* Leyenda */}
       <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -577,7 +578,6 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
           </span>
         ))}
       </div>
-      </div>{/* end overflow-auto */}
       </div>{/* end desktop */}
 
       <Sheet open={!!detalle} onOpenChange={(v) => !v && setDetalle(null)}>
