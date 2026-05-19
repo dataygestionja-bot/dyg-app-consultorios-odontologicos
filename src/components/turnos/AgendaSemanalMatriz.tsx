@@ -122,6 +122,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
   const [bloqueos, setBloqueos] = useState<Bloqueo[]>([]);
   const [turnos, setTurnos] = useState<TurnoLite[]>([]);
   const [detalle, setDetalle] = useState<{ prof: Profesional; fecha: Date } | null>(null);
+  const [detalleTurnos, setDetalleTurnos] = useState<{ prof: Profesional; fecha: Date } | null>(null);
   const [nuevoTurnoOpen, setNuevoTurnoOpen] = useState(false);
   const [diaActivoIdx, setDiaActivoIdx] = useState(0);
 
@@ -528,7 +529,14 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                       <td key={d.toISOString()} className={cn("border-b p-1.5 align-top", esHoy && "bg-[hsl(120,100%,25%)]/10")}>
                         <button
                           type="button"
-                          onClick={() => setDetalle({ prof: p, fecha: d })}
+                          onClick={() => {
+                            if (info.count > 0) {
+                              setDetalleTurnos({ prof: p, fecha: d });
+                            } else {
+                              setDetalle({ prof: p, fecha: d });
+                              setNuevoTurnoOpen(true);
+                            }
+                          }}
                           className={cn(
                             "group relative flex h-[64px] w-full flex-col items-start justify-between rounded-md px-2 py-1.5 text-left transition-all hover:ring-2 hover:ring-ring/40",
                             KIND_CLASSES[info.kind]
@@ -578,6 +586,85 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
           ))}
         </div>
       </div>
+
+      {/* Sheet: detalle de turnos del día */}
+      <Sheet open={!!detalleTurnos} onOpenChange={(v) => !v && setDetalleTurnos(null)}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          {detalleTurnos && (() => {
+            const turnosDia = turnos
+              .filter(
+                (t) =>
+                  t.profesional_id === detalleTurnos.prof.id &&
+                  t.fecha === format(detalleTurnos.fecha, "yyyy-MM-dd")
+              )
+              .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+
+            return (
+              <>
+                <SheetHeader className="mb-4">
+                  <SheetTitle>
+                    {detalleTurnos.prof.apellido}, {detalleTurnos.prof.nombre}
+                  </SheetTitle>
+                  <SheetDescription>
+                    {format(detalleTurnos.fecha, "EEEE d 'de' MMMM yyyy", { locale: es })}
+                    {" · "}{turnosDia.length} turno{turnosDia.length !== 1 ? "s" : ""}
+                  </SheetDescription>
+                </SheetHeader>
+
+                <div className="space-y-3">
+                  {turnosDia.map((t) => (
+                    <div key={t.id} className="rounded-lg border bg-card p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-sm">
+                          {t.hora_inicio.slice(0, 5)} – {t.hora_fin.slice(0, 5)}
+                        </span>
+                        <Badge className={cn("text-xs", TURNO_ESTADO_CLASSES[t.estado] ?? "")}>
+                          {TURNO_ESTADO_LABELS[t.estado] ?? t.estado}
+                        </Badge>
+                      </div>
+                      <div className="text-sm font-medium">
+                        {t.paciente
+                          ? `${t.paciente.apellido}, ${t.paciente.nombre}`
+                          : <span className="text-muted-foreground italic">Sin paciente</span>
+                        }
+                      </div>
+                      {t.paciente?.telefono && (
+                        <div className="text-xs text-muted-foreground">{t.paciente.telefono}</div>
+                      )}
+                      {t.motivo_consulta && (
+                        <div className="text-xs text-muted-foreground border-t pt-2">{t.motivo_consulta}</div>
+                      )}
+                      <div className="flex gap-2 pt-1">
+                        <WhatsAppTurnoButton
+                          telefono={t.paciente?.telefono ?? null}
+                          nombrePaciente={t.paciente ? `${t.paciente.nombre} ${t.paciente.apellido}`.trim() : "Paciente"}
+                          nombreProfesional={`${detalleTurnos.prof.nombre} ${detalleTurnos.prof.apellido}`}
+                          fecha={t.fecha}
+                          hora={t.hora_inicio}
+                          size="sm"
+                        />
+                      </div>
+                    </div>
+                  ))}
+
+                  <Button
+                    variant="outline"
+                    className="w-full mt-2"
+                    onClick={() => {
+                      setDetalleTurnos(null);
+                      setDetalle(detalleTurnos);
+                      setNuevoTurnoOpen(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Agregar turno
+                  </Button>
+                </div>
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
 
       {detalle && (
         <NuevoTurnoDialog
