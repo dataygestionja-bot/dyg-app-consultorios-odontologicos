@@ -448,254 +448,132 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
 
   return (
     <>
-      {/* Vista mobile */}
       <div className="md:hidden">
         <MobileView />
       </div>
 
-      {/* Vista desktop */}
       <div className="hidden md:block">
-      <div className="overflow-auto rounded-lg border bg-card">
-        <table className="w-full border-separate border-spacing-0 text-sm">
-          <thead>
-            <tr>
-              <th className="sticky left-0 top-0 z-30 w-[260px] min-w-[260px] border-b border-r bg-primary p-3 text-center text-xs font-semibold uppercase tracking-wide text-primary-foreground shadow-[2px_0_4px_-2px_hsl(var(--foreground)/0.15)]">
-                <div className="flex flex-col items-center gap-0.5">
-                  <span>Profesional</span>
-                  <span className="text-[10px] font-normal normal-case opacity-90">
-                    Semana del {format(dias[0], "d MMM", { locale: es })} al {format(dias[6], "d MMM yyyy", { locale: es })}
-                  </span>
-                </div>
-              </th>
-              {dias.map((d) => {
-                const esHoy = format(d, "yyyy-MM-dd") === hoyStr;
-                return (
-                  <th
-                    key={d.toISOString()}
-                    className={cn(
-                      "sticky top-0 z-20 min-w-[140px] border-b bg-primary p-3 text-center text-xs font-semibold uppercase tracking-wide text-primary-foreground shadow-[0_2px_4px_-2px_hsl(var(--foreground)/0.12)]",
-                      esHoy && "bg-[hsl(120,100%,25%)]"
-                    )}
-                  >
-                    <div className="flex items-baseline justify-center gap-1">
-                      <span>{format(d, "EEE", { locale: es })}</span>
-                      <span>{format(d, "d", { locale: es })}</span>
-                      {esHoy && (
-                        <span className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full border border-gray-400 bg-white text-[9px] font-bold text-gray-700">
-                          HOY
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {filas.map((p) => (
-              <tr key={p.id}>
-                <td className="sticky left-0 z-10 w-[260px] min-w-[260px] border-b border-r bg-card p-3 align-top shadow-[2px_0_4px_-2px_hsl(var(--foreground)/0.12)]">
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-10 w-10">
-                      {p.foto_url && <AvatarImage src={p.foto_url} alt={`${p.apellido} ${p.nombre}`} />}
-                      <AvatarFallback
-                        className="text-xs font-medium"
-                        style={{ backgroundColor: `${p.color_agenda}33`, color: p.color_agenda }}
-                      >
-                        {(p.apellido[0] ?? "") + (p.nombre[0] ?? "")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0">
-                      <div className="truncate font-medium leading-tight">
-                        {p.apellido}, {p.nombre}
-                      </div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {p.especialidad ?? "—"}
-                      </div>
-                      <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {totalHoras(p)} h / sem
-                      </div>
-                    </div>
+        <div className="overflow-auto rounded-lg border bg-card">
+          <table className="w-full border-separate border-spacing-0 text-sm">
+            <thead>
+              <tr>
+                <th className="sticky left-0 top-0 z-30 w-[260px] min-w-[260px] border-b border-r bg-primary p-3 text-center text-xs font-semibold uppercase tracking-wide text-primary-foreground shadow-[2px_0_4px_-2px_hsl(var(--foreground)/0.15)]">
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span>Profesional</span>
+                    <span className="text-[10px] font-normal normal-case opacity-90">
+                      Semana del {format(dias[0], "d MMM", { locale: es })} al {format(dias[6], "d MMM yyyy", { locale: es })}
+                    </span>
                   </div>
-                </td>
+                </th>
                 {dias.map((d) => {
-                  const info = cellFor(p, d);
                   const esHoy = format(d, "yyyy-MM-dd") === hoyStr;
                   return (
-                    <td key={d.toISOString()} className={cn("border-b p-1.5 align-top", esHoy && "bg-[hsl(120,100%,25%)]/10")}>
-                      <button
-                        type="button"
-                        onClick={() => setDetalle({ prof: p, fecha: d })}
-                        className={cn(
-                          "group relative flex h-[64px] w-full flex-col items-start justify-between rounded-md px-2 py-1.5 text-left transition-all hover:ring-2 hover:ring-ring/40",
-                          KIND_CLASSES[info.kind]
-                        )}
-                      >
-                        <div className="text-xs font-semibold leading-tight">
-                          {info.label}
-                          {info.motivo && info.kind === "ausencia" && (
-                            <span className="ml-1 font-normal opacity-80">· {info.motivo}</span>
-                          )}
-                        </div>
-                        {info.rango && (
-                          <div className="text-[11px] font-medium opacity-90">{info.rango}</div>
-                        )}
-                        {info.count > 0 && (
-                          <span className="absolute right-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full bg-background/70 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
-                            <Check className="h-2.5 w-2.5" />
-                            {info.count}
+                    <th
+                      key={d.toISOString()}
+                      className={cn(
+                        "sticky top-0 z-20 min-w-[140px] border-b bg-primary p-3 text-center text-xs font-semibold uppercase tracking-wide text-primary-foreground shadow-[0_2px_4px_-2px_hsl(var(--foreground)/0.12)]",
+                        esHoy && "bg-[hsl(120,100%,25%)]"
+                      )}
+                    >
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span>{format(d, "EEE", { locale: es })}</span>
+                        <span>{format(d, "d", { locale: es })}</span>
+                        {esHoy && (
+                          <span className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full border border-gray-400 bg-white text-[9px] font-bold text-gray-700">
+                            HOY
                           </span>
                         )}
-                      </button>
-                    </td>
+                      </div>
+                    </th>
                   );
                 })}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      </div>{/* end overflow-auto */}
-
-      {/* Leyenda */}
-      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-        <span className="font-medium">Referencias:</span>
-        {(
-          [
-            ["libre", "Día libre"],
-            ["sinturnos", "Sin turnos"],
-            ["pocos", "1 a 3 turnos"],
-            ["medio", "4 a 6 turnos"],
-            ["lleno", "7 o más turnos"],
-            ["ausencia", "Ausencia"],
-            ["festivo", "Feriado"],
-          ] as [CellKind, string][]
-        ).map(([k, l]) => (
-          <span key={k} className="inline-flex items-center gap-1.5">
-            <span className={cn("inline-block h-3 w-3 rounded", KIND_CLASSES[k])} />
-            {l}
-          </span>
-        ))}
-      </div>
-      </div>{/* end desktop */}
-
-      <Sheet open={!!detalle} onOpenChange={(v) => !v && setDetalle(null)}>
-        <SheetContent className="w-full sm:max-w-md">
-          {detalle && (() => {
-            const info = cellFor(detalle.prof, detalle.fecha);
-            const puedeAgendar = info.kind !== "libre" && info.kind !== "ausencia" && info.kind !== "festivo";
-            return (
-              <>
-                <SheetHeader>
-                  <SheetTitle>
-                    {detalle.prof.apellido}, {detalle.prof.nombre}
-                  </SheetTitle>
-                  <SheetDescription>
-                    {format(detalle.fecha, "EEEE d 'de' MMMM yyyy", { locale: es })}
-                  </SheetDescription>
-                </SheetHeader>
-
-                {puedeAgendar && (
-                  <div className="mt-4">
-                    <Button onClick={() => setNuevoTurnoOpen(true)} className="w-full">
-                      <Plus className="h-4 w-4" />
-                      Agendar turno
-                    </Button>
-                  </div>
-                )}
-                {!puedeAgendar && (
-                  <p className="mt-4 text-xs text-muted-foreground">
-                    {info.kind === "libre"
-                      ? "El profesional no tiene horario cargado este día."
-                      : info.kind === "ausencia"
-                      ? `Ausencia: ${info.motivo ?? ""}`
-                      : "Día feriado."}
-                  </p>
-                )}
-
-                <div className="mt-6 space-y-2">
-                  {turnosDetalle.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Sin turnos registrados este día.</p>
-                  ) : (
-                    turnosDetalle.map((t) => {
-                      const estadoFinal = ["cancelado", "ausente", "atendido", "pendiente_cierre", "rechazado"].includes(t.estado);
-                      return (
-                        <div
-                          key={t.id}
-                          className="flex items-start justify-between gap-3 rounded-md border bg-card p-3"
+            </thead>
+            <tbody>
+              {filas.map((p) => (
+                <tr key={p.id}>
+                  <td className="sticky left-0 z-10 w-[260px] min-w-[260px] border-b border-r bg-card p-3 align-top shadow-[2px_0_4px_-2px_hsl(var(--foreground)/0.12)]">
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-10 w-10">
+                        {p.foto_url && <AvatarImage src={p.foto_url} alt={`${p.apellido} ${p.nombre}`} />}
+                        <AvatarFallback
+                          className="text-xs font-medium"
+                          style={{ backgroundColor: `${p.color_agenda}33`, color: p.color_agenda }}
                         >
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm font-medium">
-                              {t.hora_inicio.slice(0, 5)} - {t.hora_fin.slice(0, 5)}
-                            </div>
-                            <div className="truncate text-sm text-muted-foreground">
-                              {t.paciente
-                                ? `${t.paciente.apellido}, ${t.paciente.nombre}`
-                                : "Sin paciente"}
-                            </div>
-                            {t.motivo_consulta && (
-                              <div className="mt-1 truncate text-xs text-muted-foreground">
-                                {t.motivo_consulta}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <WhatsAppTurnoButton
-                              telefono={t.paciente?.telefono ?? null}
-                              nombrePaciente={
-                                t.paciente
-                                  ? `${t.paciente.nombre} ${t.paciente.apellido}`.trim()
-                                  : "Paciente"
-                              }
-                              nombreProfesional={`${detalle!.prof.nombre} ${detalle!.prof.apellido}`}
-                              fecha={t.fecha}
-                              hora={t.hora_inicio}
-                              size="sm"
-                            />
-                            <Badge className={TURNO_ESTADO_CLASSES[t.estado] ?? ""}>
-                              {TURNO_ESTADO_LABELS[t.estado] ?? t.estado}
-                            </Badge>
-                            {!estadoFinal && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7">
-                                    <Pencil className="h-3.5 w-3.5" />
-                                    <span className="sr-only">Editar</span>
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  {t.estado === "reservado" && (
-                                    <DropdownMenuItem onClick={() => confirmarTurno(t)}>
-                                      <Check className="mr-2 h-4 w-4" />
-                                      Confirmar turno
-                                    </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuItem onClick={() => setTurnoReprogramar(t)}>
-                                    <CalendarClock className="mr-2 h-4 w-4" />
-                                    Reprogramar
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => setTurnoCancelar(t)}
-                                    className="text-destructive focus:text-destructive"
-                                  >
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    Cancelar turno
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                          </div>
+                          {(p.apellido[0] ?? "") + (p.nombre[0] ?? "")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <div className="truncate font-medium leading-tight">
+                          {p.apellido}, {p.nombre}
                         </div>
-                      );
-                    })
-                  )}
-                </div>
-              </>
-            );
-          })()}
-        </SheetContent>
-      </Sheet>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {p.especialidad ?? "—"}
+                        </div>
+                        <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {totalHoras(p)} h / sem
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  {dias.map((d) => {
+                    const info = cellFor(p, d);
+                    const esHoy = format(d, "yyyy-MM-dd") === hoyStr;
+                    return (
+                      <td key={d.toISOString()} className={cn("border-b p-1.5 align-top", esHoy && "bg-[hsl(120,100%,25%)]/10")}>
+                        <button
+                          type="button"
+                          onClick={() => setDetalle({ prof: p, fecha: d })}
+                          className={cn(
+                            "group relative flex h-[64px] w-full flex-col items-start justify-between rounded-md px-2 py-1.5 text-left transition-all hover:ring-2 hover:ring-ring/40",
+                            KIND_CLASSES[info.kind]
+                          )}
+                        >
+                          <div className="text-xs font-semibold leading-tight">
+                            {info.label}
+                            {info.motivo && info.kind === "ausencia" && (
+                              <span className="ml-1 font-normal opacity-80">· {info.motivo}</span>
+                            )}
+                          </div>
+                          {info.rango && (
+                            <div className="text-[11px] font-medium opacity-90">{info.rango}</div>
+                          )}
+                          {info.count > 0 && (
+                            <span className="absolute right-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full bg-background/70 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
+                              <Check className="h-2.5 w-2.5" />
+                              {info.count}
+                            </span>
+                          )}
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          <span className="font-medium">Referencias:</span>
+          {(
+            [
+              ["libre", "Día libre"],
+              ["sinturnos", "Sin turnos"],
+              ["pocos", "1 a 3 turnos"],
+              ["medio", "4 a 6 turnos"],
+              ["lleno", "7 o más turnos"],
+              ["ausencia", "Ausencia"],
+              ["festivo", "Feriado"],
+            ] as [CellKind, string][]
+          ).map(([k, l]) => (
+            <span key={k} className="inline-flex items-center gap-1.5">
+              <span className={cn("inline-block h-3 w-3 rounded", KIND_CLASSES[k])} />
+              {l}
+            </span>
+          ))}
+        </div>
+      </div>
 
       {detalle && (
         <NuevoTurnoDialog
