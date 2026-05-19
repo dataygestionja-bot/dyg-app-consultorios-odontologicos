@@ -577,8 +577,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
           </span>
         ))}
       </div>
-
-      </div>
+      </div>{/* end overflow-auto */}
       </div>{/* end desktop */}
 
       <Sheet open={!!detalle} onOpenChange={(v) => !v && setDetalle(null)}>
