@@ -279,6 +279,165 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
     return <p className="text-sm text-muted-foreground">No hay profesionales para mostrar.</p>;
   }
 
+  // ── Vista mobile: un día a la vez ──
+  const [diaActivoIdx, setDiaActivoIdx] = useState(
+    () => dias.findIndex((d) => format(d, "yyyy-MM-dd") === hoyStr) ?? 0
+  );
+  const diaActivo = dias[Math.max(0, Math.min(diaActivoIdx, 6))];
+
+  const MobileView = () => (
+    <div className="flex flex-col gap-3">
+      {/* Navegación de días */}
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => setDiaActivoIdx((i) => Math.max(0, i - 1))}
+          disabled={diaActivoIdx === 0}
+          className="rounded-md border px-3 py-1.5 text-sm disabled:opacity-40"
+        >
+          ‹ Ant
+        </button>
+        <div className="text-center">
+          <div className="font-semibold capitalize">
+            {format(diaActivo, "EEEE", { locale: es })}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {format(diaActivo, "d 'de' MMMM", { locale: es })}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setDiaActivoIdx((i) => Math.min(6, i + 1))}
+          disabled={diaActivoIdx === 6}
+          className="rounded-md border px-3 py-1.5 text-sm disabled:opacity-40"
+        >
+          Sig ›
+        </button>
+      </div>
+
+      {/* Selector de días rápido */}
+      <div className="flex gap-1 overflow-x-auto pb-1">
+        {dias.map((d, i) => {
+          const esHoy = format(d, "yyyy-MM-dd") === hoyStr;
+          const esActivo = i === diaActivoIdx;
+          return (
+            <button
+              key={d.toISOString()}
+              type="button"
+              onClick={() => setDiaActivoIdx(i)}
+              className={cn(
+                "flex min-w-[44px] flex-col items-center rounded-lg px-2 py-1.5 text-xs transition-colors",
+                esActivo
+                  ? "bg-primary text-primary-foreground"
+                  : esHoy
+                  ? "border border-primary text-primary"
+                  : "border text-muted-foreground"
+              )}
+            >
+              <span className="uppercase">{format(d, "EEE", { locale: es }).slice(0, 3)}</span>
+              <span className="font-semibold">{format(d, "d")}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Profesionales del día */}
+      <div className="space-y-3">
+        {filas.map((p) => {
+          const info = cellFor(p, diaActivo);
+          const turnosDia = turnos
+            .filter(
+              (t) =>
+                t.profesional_id === p.id &&
+                t.fecha === format(diaActivo, "yyyy-MM-dd") &&
+                !["cancelado", "reprogramado", "ausente", "solicitado", "rechazado"].includes(t.estado)
+            )
+            .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+
+          return (
+            <div key={p.id} className="rounded-lg border bg-card overflow-hidden">
+              {/* Header profesional */}
+              <div
+                className="flex items-center gap-3 p-3"
+                style={{ borderLeft: `4px solid ${p.color_agenda}` }}
+              >
+                <Avatar className="h-9 w-9 shrink-0">
+                  {p.foto_url && <AvatarImage src={p.foto_url} />}
+                  <AvatarFallback
+                    className="text-xs font-medium"
+                    style={{ backgroundColor: `${p.color_agenda}33`, color: p.color_agenda }}
+                  >
+                    {(p.apellido[0] ?? "") + (p.nombre[0] ?? "")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium text-sm">
+                    {p.apellido}, {p.nombre}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{p.especialidad ?? "—"}</div>
+                </div>
+                <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", KIND_CLASSES[info.kind])}>
+                  {info.label}
+                </span>
+              </div>
+
+              {/* Turnos del día */}
+              {turnosDia.length > 0 && (
+                <div className="divide-y border-t">
+                  {turnosDia.map((t) => (
+                    <div key={t.id} className="flex items-center gap-2 px-3 py-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-semibold text-muted-foreground">
+                          {t.hora_inicio.slice(0, 5)} - {t.hora_fin.slice(0, 5)}
+                        </div>
+                        <div className="truncate text-sm font-medium">
+                          {t.paciente
+                            ? `${t.paciente.apellido}, ${t.paciente.nombre}`
+                            : "Sin paciente"}
+                        </div>
+                        {t.motivo_consulta && (
+                          <div className="truncate text-xs text-muted-foreground">{t.motivo_consulta}</div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <WhatsAppTurnoButton
+                          telefono={t.paciente?.telefono ?? null}
+                          nombrePaciente={t.paciente ? `${t.paciente.nombre} ${t.paciente.apellido}`.trim() : "Paciente"}
+                          nombreProfesional={`${p.nombre} ${p.apellido}`}
+                          fecha={t.fecha}
+                          hora={t.hora_inicio}
+                          size="sm"
+                        />
+                        <Badge className={cn("text-xs", TURNO_ESTADO_CLASSES[t.estado] ?? "")}>
+                          {TURNO_ESTADO_LABELS[t.estado] ?? t.estado}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Botón agendar */}
+              {info.kind !== "libre" && info.kind !== "ausencia" && info.kind !== "festivo" && (
+                <div className="border-t p-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full text-xs"
+                    onClick={() => setDetalle({ prof: p, fecha: diaActivo })}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Agendar turno
+                  </Button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   const turnosDetalle = detalle
     ? turnos
         .filter(
@@ -289,6 +448,13 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
 
   return (
     <>
+      {/* Vista mobile */}
+      <div className="md:hidden">
+        <MobileView />
+      </div>
+
+      {/* Vista desktop */}
+      <div className="hidden md:block">
       <div className="overflow-auto rounded-lg border bg-card">
         <table className="w-full border-separate border-spacing-0 text-sm">
           <thead>
@@ -411,6 +577,9 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
           </span>
         ))}
       </div>
+
+      </div>
+      </div>{/* end desktop */}
 
       <Sheet open={!!detalle} onOpenChange={(v) => !v && setDetalle(null)}>
         <SheetContent className="w-full sm:max-w-md">
