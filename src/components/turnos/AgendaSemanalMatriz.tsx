@@ -618,9 +618,19 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                         <span className="font-semibold text-sm">
                           {t.hora_inicio.slice(0, 5)} – {t.hora_fin.slice(0, 5)}
                         </span>
-                        <Badge className={cn("text-xs", TURNO_ESTADO_CLASSES[t.estado] ?? "")}>
-                          {TURNO_ESTADO_LABELS[t.estado] ?? t.estado}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <WhatsAppTurnoButton
+                            telefono={t.paciente?.telefono ?? null}
+                            nombrePaciente={t.paciente ? `${t.paciente.nombre} ${t.paciente.apellido}`.trim() : "Paciente"}
+                            nombreProfesional={`${detalleTurnos.prof.nombre} ${detalleTurnos.prof.apellido}`}
+                            fecha={t.fecha}
+                            hora={t.hora_inicio}
+                            size="sm"
+                          />
+                          <Badge className={cn("text-xs", TURNO_ESTADO_CLASSES[t.estado] ?? "")}>
+                            {TURNO_ESTADO_LABELS[t.estado] ?? t.estado}
+                          </Badge>
+                        </div>
                       </div>
                       <div className="text-sm font-medium">
                         {t.paciente
@@ -634,22 +644,11 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                       {t.motivo_consulta && (
                         <div className="text-xs text-muted-foreground border-t pt-2">{t.motivo_consulta}</div>
                       )}
-                      <div className="flex gap-2 pt-1">
-                        <WhatsAppTurnoButton
-                          telefono={t.paciente?.telefono ?? null}
-                          nombrePaciente={t.paciente ? `${t.paciente.nombre} ${t.paciente.apellido}`.trim() : "Paciente"}
-                          nombreProfesional={`${detalleTurnos.prof.nombre} ${detalleTurnos.prof.apellido}`}
-                          fecha={t.fecha}
-                          hora={t.hora_inicio}
-                          size="sm"
-                        />
-                      </div>
                     </div>
                   ))}
 
                   <Button
-                    variant="outline"
-                    className="w-full mt-2"
+                    className="w-full mt-2 bg-teal-600 hover:bg-teal-700 text-white"
                     onClick={() => {
                       setDetalleTurnos(null);
                       setDetalle(detalleTurnos);
