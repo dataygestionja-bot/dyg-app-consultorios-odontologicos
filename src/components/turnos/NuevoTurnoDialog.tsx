@@ -2,30 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,
@@ -130,7 +114,6 @@ export default function NuevoTurnoDialog({
       .then(({ data }) => setPacientes((data ?? []) as PacienteOpt[]));
   }, [open]);
 
-  // Generar slots libres del día
   const slotsLibres = useMemo(() => {
     const slots: { inicio: string; fin: string; key: string }[] = [];
     const ocupados = turnosOcupados
@@ -210,33 +193,57 @@ export default function NuevoTurnoDialog({
     onSaved?.();
   }
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Agendar turno</DialogTitle>
-          <DialogDescription>
-            {profesionalNombre} · {format(fecha, "EEEE d 'de' MMMM yyyy", { locale: es })}
-          </DialogDescription>
-        </DialogHeader>
+  if (!open) return null;
 
-        <div className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label>Paciente</Label>
+  return (
+    // Overlay propio — reemplaza Dialog de shadcn para tener control total del layout
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      onClick={(e) => { if (e.target === e.currentTarget) onOpenChange(false); }}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50" />
+
+      {/* Modal */}
+      <div className="relative z-10 w-full max-w-lg mx-4 bg-background rounded-lg shadow-xl border flex flex-col"
+        style={{ maxHeight: "90vh" }}
+      >
+        {/* Header — fijo */}
+        <div className="flex items-start justify-between px-5 pt-4 pb-3 border-b shrink-0">
+          <div>
+            <h2 className="text-base font-semibold leading-tight">Agendar turno</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {profesionalNombre} · {format(fecha, "EEEE d 'de' MMMM yyyy", { locale: es })}
+            </p>
+          </div>
+          <button
+            onClick={() => onOpenChange(false)}
+            className="text-muted-foreground hover:text-foreground transition-colors ml-4 mt-0.5"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Contenido — scrolleable */}
+        <div className="flex-1 overflow-y-auto px-5 py-3 space-y-3">
+
+          {/* Paciente */}
+          <div className="space-y-1">
+            <Label className="text-xs font-medium">Paciente</Label>
             <Popover open={pacientePopoverOpen} onOpenChange={setPacientePopoverOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
                   aria-expanded={pacientePopoverOpen}
-                  className="w-full justify-between font-normal"
+                  className="w-full justify-between font-normal h-8 text-xs"
                 >
                   <span className={cn("truncate", !pacienteSeleccionado && "text-muted-foreground")}>
                     {pacienteSeleccionado
                       ? `${pacienteSeleccionado.apellido}, ${pacienteSeleccionado.nombre} — ${pacienteSeleccionado.dni}`
                       : "Buscar paciente por nombre, apellido o DNI..."}
                   </span>
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
@@ -278,27 +285,29 @@ export default function NuevoTurnoDialog({
             </Popover>
           </div>
 
+          {/* Sobreturno */}
           <div className="flex items-center gap-2">
             <Checkbox
               id="sobreturno"
               checked={sobreturno}
               onCheckedChange={(v) => setSobreturno(!!v)}
             />
-            <Label htmlFor="sobreturno" className="cursor-pointer">
+            <Label htmlFor="sobreturno" className="cursor-pointer text-xs">
               Sobreturno (fuera de los slots disponibles)
             </Label>
           </div>
 
+          {/* Slots o sobreturno manual */}
           {!sobreturno ? (
-            <div className="space-y-2">
-              <Label>Horario disponible</Label>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Horario disponible</Label>
               {slotsLibres.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   No hay slots libres este día. Marcá "Sobreturno" para agendar fuera de horario.
                 </p>
               ) : (
-                <div className="max-h-56 overflow-y-auto rounded-md border p-2">
-                  <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                <div className="max-h-28 overflow-y-auto rounded-md border p-1.5">
+                  <div className="grid grid-cols-4 gap-1">
                     {slotsLibres.map((s) => {
                       const selected = slot === s.key;
                       return (
@@ -308,9 +317,8 @@ export default function NuevoTurnoDialog({
                           variant={selected ? "default" : "outline"}
                           size="sm"
                           className={cn(
-                            "h-8 px-2 text-xs font-medium transition-all",
-                            selected &&
-                              "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.03]",
+                            "h-7 px-1 text-xs font-medium transition-all",
+                            selected && "ring-2 ring-primary ring-offset-1 shadow-sm",
                           )}
                           onClick={() => setSlot(s.key)}
                         >
@@ -324,20 +332,22 @@ export default function NuevoTurnoDialog({
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Hora inicio</Label>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Hora inicio</Label>
                 <Input
                   type="time"
+                  className="h-8 text-xs"
                   value={horaManual}
                   onChange={(e) => setHoraManual(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Duración (min)</Label>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Duración (min)</Label>
                 <Input
                   type="number"
                   min={5}
                   step={5}
+                  className="h-8 text-xs"
                   value={duracionManual}
                   onChange={(e) => setDuracionManual(parseInt(e.target.value) || 30)}
                 />
@@ -345,40 +355,12 @@ export default function NuevoTurnoDialog({
             </div>
           )}
 
-          {(() => {
-            let preview: { inicio: string; fin: string } | null = null;
-            if (sobreturno && horaManual) {
-              const start = toMin(horaManual);
-              const end = start + (duracionManual || 30);
-              preview = { inicio: horaManual, fin: fromMin(end) };
-            } else if (!sobreturno && slot) {
-              const [hi, hf] = slot.split("-");
-              preview = { inicio: hi, fin: hf };
-            }
-            if (!preview) return null;
-            const dur = toMin(preview.fin) - toMin(preview.inicio);
-            return (
-              <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-primary">
-                  Horario seleccionado
-                </div>
-                <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-lg font-semibold tabular-nums text-foreground">
-                    {preview.inicio} – {preview.fin}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    ({dur} min{sobreturno ? " · sobreturno" : ""})
-                  </span>
-                </div>
-              </div>
-            );
-          })()}
-
-
-          <div className="space-y-2">
-            <Label>Motivo de consulta</Label>
-            <Textarea
-              rows={2}
+                    {/* Motivo */}
+          <div className="space-y-1">
+            <Label className="text-xs font-medium">Motivo de consulta</Label>
+            <textarea
+              style={{ height: "56px", minHeight: "56px", maxHeight: "56px", resize: "none" }}
+              className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
               placeholder="Consulta odontológica, control, etc."
@@ -387,15 +369,16 @@ export default function NuevoTurnoDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={guardando}>
+        {/* Footer — fijo */}
+        <div className="flex justify-end gap-2 px-5 py-3 border-t shrink-0">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={guardando}>
             Cancelar
           </Button>
-          <Button onClick={guardar} disabled={guardando}>
+          <Button size="sm" onClick={guardar} disabled={guardando}>
             {guardando ? "Guardando..." : "Agendar"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>
   );
 }
