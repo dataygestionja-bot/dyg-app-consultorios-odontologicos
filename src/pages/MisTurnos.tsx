@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { CalendarDays, PlayCircle, FileText, Plus, RefreshCw, AlertTriangle } from "lucide-react";
+import { CalendarDays, PlayCircle, FileText, Plus, RefreshCw, AlertTriangle, Pencil, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +32,17 @@ import {
   TURNO_ESTADO_LABELS,
   type TurnoEstado,
 } from "@/lib/constants";
+import { ReprogramarDialog } from "@/components/turnos/ReprogramarDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Profesional {
   id: string;
@@ -50,7 +61,7 @@ interface TurnoRow {
   es_sobreturno: boolean;
   paciente_id: string;
   profesional_id: string;
-  paciente: { nombre: string; apellido: string; dni: string } | null;
+  paciente: { nombre: string; apellido: string; dni: string; telefono?: string | null } | null;
   profesional: { nombre: string; apellido: string } | null;
   atencion_id?: string | null;
 }
@@ -87,6 +98,9 @@ export default function MisTurnos() {
   const [turnos, setTurnos] = useState<TurnoRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<"activos" | "finalizados" | "todos">("activos");
+  const [turnoEditar, setTurnoEditar] = useState<TurnoRow | null>(null);
+  const [turnoACancelar, setTurnoACancelar] = useState<TurnoRow | null>(null);
+  const [cancelando, setCancelando] = useState(false);
 
   useEffect(() => {
     document.title = "Mis turnos de hoy | Consultorio";
@@ -133,7 +147,7 @@ export default function MisTurnos() {
       .from("turnos")
       .select(
         `id, fecha, hora_inicio, hora_fin, motivo_consulta, estado, es_sobreturno, paciente_id, profesional_id,
-         paciente:pacientes(nombre, apellido, dni),
+         paciente:pacientes(nombre, apellido, dni, telefono),
          profesional:profesionales(nombre, apellido)`,
       )
       .eq("fecha", fecha)
@@ -215,6 +229,23 @@ export default function MisTurnos() {
       // si falla por RLS, no rompemos el flujo
     }
     navigate(`/atenciones/nuevo?turno=${t.id}`);
+  }
+
+  async function confirmarCancelacion() {
+    if (!turnoACancelar) return;
+    setCancelando(true);
+    const { error } = await supabase
+      .from("turnos")
+      .update({ estado: "cancelado" as TurnoEstado })
+      .eq("id", turnoACancelar.id);
+    setCancelando(false);
+    if (error) {
+      toast.error("No se pudo cancelar el turno", { description: error.message });
+      return;
+    }
+    toast.success("Turno cancelado");
+    setTurnoACancelar(null);
+    cargarTurnos();
   }
 
   return (
@@ -306,7 +337,7 @@ export default function MisTurnos() {
                       {!isProfesional && <TableHead>Profesional</TableHead>}
                       <TableHead>Motivo</TableHead>
                       <TableHead className="w-[150px]">Estado</TableHead>
-                      <TableHead className="w-[200px] text-right">Acción</TableHead>
+                      <TableHead className="w-[280px] text-right">Acción</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -385,23 +416,44 @@ export default function MisTurnos() {
                               </div>
                             </TableCell>
                             <TableCell className="text-right">
-                              {t.atencion_id ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => navigate(`/atenciones/${t.atencion_id}/ver`)}
-                                >
-                                  <FileText className="h-4 w-4" />
-                                  Ver atención
-                                </Button>
-                              ) : puedeIniciar ? (
-                                <Button size="sm" onClick={() => iniciarAtencion(t)}>
-                                  <PlayCircle className="h-4 w-4" />
-                                  Iniciar atención
-                                </Button>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              )}
+                              <div className="flex flex-wrap justify-end gap-1">
+                                {t.atencion_id ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => navigate(`/atenciones/${t.atencion_id}/ver`)}
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                    Ver atención
+                                  </Button>
+                                ) : puedeIniciar ? (
+                                  <Button size="sm" onClick={() => iniciarAtencion(t)}>
+                                    <PlayCircle className="h-4 w-4" />
+                                    Iniciar atención
+                                  </Button>
+                                ) : null}
+                                {!["atendido", "cancelado", "reprogramado", "ausente"].includes(t.estado) && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setTurnoEditar(t)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                      Editar
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-destructive hover:text-destructive"
+                                      onClick={() => setTurnoACancelar(t)}
+                                    >
+                                      <XCircle className="h-4 w-4" />
+                                      Cancelar
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
@@ -414,6 +466,65 @@ export default function MisTurnos() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {turnoEditar && (
+        <ReprogramarDialog
+          turno={{
+            id: turnoEditar.id,
+            profesional_id: turnoEditar.profesional_id,
+            fecha: turnoEditar.fecha,
+            hora_inicio: turnoEditar.hora_inicio,
+            motivo_consulta: turnoEditar.motivo_consulta,
+            paciente_nombre: turnoEditar.paciente
+              ? `${turnoEditar.paciente.nombre} ${turnoEditar.paciente.apellido}`.trim()
+              : "Paciente",
+            paciente_telefono: turnoEditar.paciente?.telefono ?? null,
+            profesional_nombre: turnoEditar.profesional
+              ? `${turnoEditar.profesional.nombre} ${turnoEditar.profesional.apellido}`.trim()
+              : "",
+          }}
+          onClose={() => setTurnoEditar(null)}
+          onDone={() => { setTurnoEditar(null); cargarTurnos(); }}
+        />
+      )}
+
+      <AlertDialog
+        open={!!turnoACancelar}
+        onOpenChange={(v) => { if (!v && !cancelando) setTurnoACancelar(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cancelar este turno?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {turnoACancelar && (
+                <>
+                  Se cancelará el turno de{" "}
+                  <span className="font-medium text-foreground">
+                    {turnoACancelar.paciente
+                      ? `${turnoACancelar.paciente.apellido}, ${turnoACancelar.paciente.nombre}`
+                      : "el paciente"}
+                  </span>{" "}
+                  a las{" "}
+                  <span className="font-medium text-foreground">
+                    {turnoACancelar.hora_inicio.slice(0, 5)}
+                  </span>
+                  . Esta acción no se puede deshacer.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelando}>Volver</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmarCancelacion(); }}
+              disabled={cancelando}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelando ? "Cancelando..." : "Sí, cancelar turno"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

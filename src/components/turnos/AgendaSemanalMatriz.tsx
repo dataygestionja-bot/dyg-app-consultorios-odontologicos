@@ -389,7 +389,9 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
               {/* Turnos del día */}
               {turnosDia.length > 0 && (
                 <div className="divide-y border-t">
-                  {turnosDia.map((t) => (
+                  {turnosDia.map((t) => {
+                    const puedeGestionar = !["atendido", "cancelado", "reprogramado", "ausente"].includes(t.estado);
+                    return (
                     <div key={t.id} className="flex items-center gap-2 px-3 py-2">
                       <div className="min-w-0 flex-1">
                         <div className="text-xs font-semibold text-muted-foreground">
@@ -404,21 +406,45 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                           <div className="truncate text-xs text-muted-foreground">{t.motivo_consulta}</div>
                         )}
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <WhatsAppTurnoButton
-                          telefono={t.paciente?.telefono ?? null}
-                          nombrePaciente={t.paciente ? `${t.paciente.nombre} ${t.paciente.apellido}`.trim() : "Paciente"}
-                          nombreProfesional={`${p.nombre} ${p.apellido}`}
-                          fecha={t.fecha}
-                          hora={t.hora_inicio}
-                          size="sm"
-                        />
-                        <Badge className={cn("text-xs", TURNO_ESTADO_CLASSES[t.estado] ?? "")}>
-                          {TURNO_ESTADO_LABELS[t.estado] ?? t.estado}
-                        </Badge>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <div className="flex items-center gap-1">
+                          <WhatsAppTurnoButton
+                            telefono={t.paciente?.telefono ?? null}
+                            nombrePaciente={t.paciente ? `${t.paciente.nombre} ${t.paciente.apellido}`.trim() : "Paciente"}
+                            nombreProfesional={`${p.nombre} ${p.apellido}`}
+                            fecha={t.fecha}
+                            hora={t.hora_inicio}
+                            size="sm"
+                          />
+                          <Badge className={cn("text-xs", TURNO_ESTADO_CLASSES[t.estado] ?? "")}>
+                            {TURNO_ESTADO_LABELS[t.estado] ?? t.estado}
+                          </Badge>
+                        </div>
+                        {puedeGestionar && (
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => setTurnoReprogramar(t)}
+                            >
+                              <Pencil className="h-3 w-3 mr-1" />
+                              Editar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                              onClick={() => setTurnoCancelar(t)}
+                            >
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Cancelar
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
 
@@ -612,7 +638,9 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                 </SheetHeader>
 
                 <div className="space-y-3">
-                  {turnosDia.map((t) => (
+                  {turnosDia.map((t) => {
+                    const puedeGestionar = !["atendido", "cancelado", "reprogramado", "ausente"].includes(t.estado);
+                    return (
                     <div key={t.id} className="rounded-lg border bg-card p-3 space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-semibold text-sm">
@@ -644,8 +672,30 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                       {t.motivo_consulta && (
                         <div className="text-xs text-muted-foreground border-t pt-2">{t.motivo_consulta}</div>
                       )}
+                      {puedeGestionar && (
+                        <div className="flex items-center gap-1 border-t pt-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 text-xs h-7"
+                            onClick={() => { setDetalleTurnos(null); setTurnoReprogramar(t); }}
+                          >
+                            <Pencil className="h-3 w-3 mr-1" />
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 text-xs h-7 text-destructive hover:text-destructive"
+                            onClick={() => { setDetalleTurnos(null); setTurnoCancelar(t); }}
+                          >
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Cancelar
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  )})}
 
                   <Button
                     className="w-full mt-2 bg-teal-600 hover:bg-teal-700 text-white"
@@ -716,6 +766,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
               profesional_id: turnoReprogramar.profesional_id,
               fecha: turnoReprogramar.fecha,
               hora_inicio: turnoReprogramar.hora_inicio,
+              motivo_consulta: turnoReprogramar.motivo_consulta,
               paciente_nombre: turnoReprogramar.paciente
                 ? `${turnoReprogramar.paciente.nombre} ${turnoReprogramar.paciente.apellido}`.trim()
                 : "Paciente",

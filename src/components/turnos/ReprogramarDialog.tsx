@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -27,6 +28,7 @@ interface Props {
     paciente_nombre: string;
     paciente_telefono: string | null;
     profesional_nombre: string;
+    motivo_consulta?: string | null;
   };
   onClose: () => void;
   onDone: () => void;
@@ -46,6 +48,7 @@ export function ReprogramarDialog({ turno, onClose, onDone }: Props) {
   const [fecha, setFecha] = useState<Date | undefined>(undefined);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [slot, setSlot] = useState<Slot | null>(null);
+  const [motivo, setMotivo] = useState(turno.motivo_consulta ?? "");
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -140,6 +143,7 @@ export function ReprogramarDialog({ turno, onClose, onDone }: Props) {
           hora_inicio: slot.hora_inicio,
           hora_fin: slot.hora_fin,
           estado: "confirmado",
+          motivo_consulta: motivo.trim() || null,
         })
         .eq("id", turno.id);
       if (error) throw error;
@@ -186,9 +190,9 @@ export function ReprogramarDialog({ turno, onClose, onDone }: Props) {
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Reprogramar turno</DialogTitle>
+          <DialogTitle>Editar turno</DialogTitle>
           <DialogDescription>
-            Elegí nueva fecha y horario. El turno quedará confirmado y se notificará al paciente por WhatsApp.
+            Modificá profesional, fecha, horario y/o motivo. Al guardar el turno quedará confirmado y se notificará al paciente por WhatsApp.
           </DialogDescription>
         </DialogHeader>
 
@@ -267,6 +271,17 @@ export function ReprogramarDialog({ turno, onClose, onDone }: Props) {
               )}
             </div>
           )}
+          <div className="grid gap-2">
+            <Label>Motivo de consulta</Label>
+            <Textarea
+              rows={2}
+              style={{ height: "60px", minHeight: "60px", maxHeight: "60px", resize: "none" }}
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Consulta, control, etc."
+              maxLength={500}
+            />
+          </div>
         </div>
 
         <DialogFooter>
