@@ -3,12 +3,23 @@ import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Users, Plus, AlertCircle, Inbox, Globe, ArrowRight, Phone, UserX, Ban, Stethoscope } from "lucide-react";
+import { CalendarDays, Users, Plus, AlertCircle, Inbox, Globe, ArrowRight, Phone, UserX, Ban, Stethoscope, Pencil, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TURNO_ESTADO_CLASSES, TURNO_ESTADO_LABELS, type TurnoEstado } from "@/lib/constants";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { ReprogramarDialog } from "@/components/turnos/ReprogramarDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -43,6 +54,9 @@ export default function Dashboard() {
   const [atendidosHoy, setAtendidosHoy] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [ahora, setAhora] = useState<Date>(new Date());
+  const [turnoReprogramar, setTurnoReprogramar] = useState<TurnoRow | null>(null);
+  const [turnoCancelarDash, setTurnoCancelarDash] = useState<TurnoRow | null>(null);
+  const [cancelandoDash, setCancelandoDash] = useState(false);
 
   useEffect(() => {
     document.title = "Dashboard | Consultorio";
@@ -164,7 +178,19 @@ export default function Dashboard() {
     cargar();
   }
 
+  async function confirmarCancelacionDash() {
+    if (!turnoCancelarDash) return;
+    setCancelandoDash(true);
+    const { error } = await supabase.from("turnos").update({ estado: "cancelado" }).eq("id", turnoCancelarDash.id);
+    setCancelandoDash(false);
+    if (error) { toast.error("No se pudo cancelar: " + error.message); return; }
+    toast.success("Turno cancelado");
+    setTurnoCancelarDash(null);
+    cargar();
+  }
+
   return (
+    <>
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -354,6 +380,26 @@ export default function Dashboard() {
                         {horario.label}
                       </Badge>
                     )}
+                    {!["atendido", "cancelado", "reprogramado", "ausente"].includes(t.estado) && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs gap-1"
+                          onClick={() => setTurnoReprogramar(t)}
+                        >
+                          <Pencil className="h-3 w-3" /> Editar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs gap-1 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => setTurnoCancelarDash(t)}
+                        >
+                          <XCircle className="h-3 w-3" /> Cancelar
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </li>
                 );
@@ -447,5 +493,61 @@ export default function Dashboard() {
         </Card>
       )}
     </div>
+
+      {turnoReprogramar && (
+        <ReprogramarDialog
+          turno={{
+            id: turnoReprogramar.id,
+            profesional_id: turnoReprogramar.profesional?.nombre ?? "",
+            fecha: turnoReprogramar.fecha,
+            hora_inicio: turnoReprogramar.hora_inicio,
+            motivo_consulta: turnoReprogramar.motivo_consulta,
+            paciente_nombre: turnoReprogramar.paciente
+              ? `${turnoReprogramar.paciente.nombre} ${turnoReprogramar.paciente.apellido}`.trim()
+              : "Paciente",
+            paciente_telefono: turnoReprogramar.paciente?.telefono ?? null,
+            profesional_nombre: turnoReprogramar.profesional
+              ? `${turnoReprogramar.profesional.nombre} ${turnoReprogramar.profesional.apellido}`
+              : "",
+          }}
+          onClose={() => setTurnoReprogramar(null)}
+          onDone={() => { setTurnoReprogramar(null); cargar(); }}
+        />
+      )}
+
+      <AlertDialog open={!!turnoCancelarDash} onOpenChange={(v) => { if (!v && !cancelandoDash) setTurnoCancelarDash(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cancelar este turno?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {turnoCancelarDash && (
+                <>
+                  Se cancelará el turno de{" "}
+                  <span className="font-medium text-foreground">
+                    {turnoCancelarDash.paciente
+                      ? `${turnoCancelarDash.paciente.apellido}, ${turnoCancelarDash.paciente.nombre}`
+                      : "el paciente"}
+                  </span>{" "}
+                  a las{" "}
+                  <span className="font-medium text-foreground">
+                    {turnoCancelarDash.hora_inicio.slice(0, 5)}
+                  </span>. Esta acción no se puede deshacer.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelandoDash}>Volver</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmarCancelacionDash(); }}
+              disabled={cancelandoDash}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelandoDash ? "Cancelando..." : "Sí, cancelar turno"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
