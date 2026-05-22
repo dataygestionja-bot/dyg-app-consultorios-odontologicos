@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 interface CaraRegistro {
   cara: CaraDental;
   estado: DienteEstado;
+  pendiente?: boolean;
 }
 
 interface Props {
@@ -25,7 +26,16 @@ const SIZE = 44;
 
 function getCaraFill(cara: CaraDental, caras: CaraRegistro[]): string {
   const r = caras.find((c) => c.cara === cara);
-  return r ? DIENTE_ESTADO_HEX[r.estado] : "#ffffff";
+  if (!r) return "#ffffff";
+  const hex = DIENTE_ESTADO_HEX[r.estado] ?? "#ffffff";
+  // Pendientes con opacidad reducida
+  return r.pendiente ? hex + "99" : hex;
+}
+
+function getCaraStroke(cara: CaraDental, caras: CaraRegistro[]): string {
+  const r = caras.find((c) => c.cara === cara);
+  if (r?.pendiente) return "#f59e0b"; // amber para pendientes
+  return STROKE;
 }
 
 function OclusalMolar({ caras, caraOcl, onZoneClick, disabled }: {
@@ -43,7 +53,7 @@ function OclusalMolar({ caras, caraOcl, onZoneClick, disabled }: {
 
   const zoneProps = (cara: CaraDental) => ({
     fill: getCaraFill(cara, caras),
-    stroke: STROKE,
+    stroke: getCaraStroke(cara, caras),
     strokeWidth: STROKE_W,
     className: cn("transition-all", !disabled ? "cursor-pointer hover:brightness-75" : "cursor-default"),
     onClick: disabled ? undefined : (e: React.MouseEvent) => onZoneClick(cara, e),
@@ -78,7 +88,7 @@ function OclusalIncisor({ caras, caraOcl, onZoneClick, disabled }: {
 
   const zoneProps = (cara: CaraDental) => ({
     fill: getCaraFill(cara, caras),
-    stroke: STROKE,
+    stroke: getCaraStroke(cara, caras),
     strokeWidth: STROKE_W,
     className: cn("transition-all", !disabled ? "cursor-pointer hover:brightness-75" : "cursor-default"),
     onClick: disabled ? undefined : (e: React.MouseEvent) => onZoneClick(cara, e),

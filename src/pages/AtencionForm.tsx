@@ -16,7 +16,7 @@ import {
 import { format } from "date-fns";
 import { PrestacionQuickDialog } from "@/components/prestaciones/PrestacionQuickDialog";
 import { useAuth } from "@/hooks/useAuth";
-import Odontograma from "@/components/paciente/Odontograma";
+import Odontograma, { type PendienteCara } from "@/components/paciente/Odontograma";
 import type { DienteEstado } from "@/lib/constants";
 import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
 import HistorialOdontograma from "@/components/paciente/HistorialOdontograma";
@@ -110,7 +110,17 @@ export default function AtencionForm() {
   const [agendarProximo, setAgendarProximo] = useState<boolean>(true);
   const [cargandoSlotsProx, setCargandoSlotsProx] = useState(false);
   const [docDialogOpen, setDocDialogOpen] = useState(false);
-  const [odontoPendientes, setOdontoPendientes] = useState<Map<number, DienteEstado>>(new Map());
+  const [odontoPendientes, setOdontoPendientes] = useState<Map<string, PendienteCara>>(new Map());
+
+  useEffect(() => {
+    if (odontoPendientes.size === 0) return;
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [odontoPendientes.size]);
 
   useEffect(() => {
     let cancel = false;
@@ -510,16 +520,16 @@ export default function AtencionForm() {
 
     // Persistir registros del odontograma pendientes (cargados en este formulario)
     if (atencionId && odontoPendientes.size > 0) {
-      const fechaIso = new Date(
-        `${form.fecha}T${format(new Date(), "HH:mm:ss")}`,
-      ).toISOString();
-      const rowsOdo = Array.from(odontoPendientes.entries()).map(([diente, estado]) => ({
+      const fechaIso = new Date(`${form.fecha}T${format(new Date(), "HH:mm:ss")}`).toISOString();
+      const rowsOdo = Array.from(odontoPendientes.values()).map((p) => ({
         paciente_id: form.paciente_id,
-        diente,
-        estado,
+        diente: p.diente,
+        estado: p.estado,
         fecha: fechaIso,
         profesional_id: form.profesional_id,
         observaciones: null,
+        cara: p.cara,
+        tipo_denticion: "permanente",
       }));
       const { error: errOdo } = await supabase.from("odontograma_registros").insert(rowsOdo);
       if (errOdo) {
@@ -632,7 +642,16 @@ export default function AtencionForm() {
   return (
     <div className="space-y-4 max-w-5xl">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/atenciones")}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            if (odontoPendientes.size > 0) {
+              if (!window.confirm("Tenés cambios en el odontograma sin guardar. ¿Querés salir de todas formas?")) return;
+            }
+            navigate("/atenciones");
+          }}
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -790,10 +809,10 @@ export default function AtencionForm() {
                 profesionalId={form.profesional_id}
                 fechaAtencion={form.fecha}
                 pendientes={odontoPendientes}
-                onAgregarPendiente={(diente, estado) => {
+                onAgregarPendiente={(key, p) => {
                   setOdontoPendientes((prev) => {
                     const next = new Map(prev);
-                    next.set(diente, estado);
+                    next.set(key, p);
                     return next;
                   });
                 }}
@@ -933,7 +952,18 @@ export default function AtencionForm() {
         })()}
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => navigate("/atenciones")}>Cancelar</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              if (odontoPendientes.size > 0) {
+                if (!window.confirm("Tenés cambios en el odontograma sin guardar. ¿Querés salir de todas formas?")) return;
+              }
+              navigate("/atenciones");
+            }}
+          >
+            Cancelar
+          </Button>
           <Button type="submit" disabled={submitting}>{submitting ? "Guardando..." : "Guardar"}</Button>
         </div>
       </form>

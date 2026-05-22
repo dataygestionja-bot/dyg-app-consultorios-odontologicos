@@ -25,20 +25,20 @@ interface Registro {
 
 interface Props {
   registros: Registro[];
-  onPiezaClick?: (dienteInterno: number) => void;
   onCaraEstado?: (dienteInterno: number, cara: CaraDental, estado: DienteEstado) => void;
   disabled?: boolean;
   piezaResaltada?: number | null;
   canCreate?: boolean;
+  pendientesKeys?: Set<string>; // keys "diente-cara" pendientes
 }
 
 export default function OdontogramaAnatomico({
   registros,
-  onPiezaClick,
   onCaraEstado,
   disabled,
   piezaResaltada,
   canCreate,
+  pendientesKeys = new Set(),
 }: Props) {
   const [denticion, setDenticion] = useState<"permanente" | "temporal">("permanente");
 
@@ -52,12 +52,16 @@ export default function OdontogramaAnatomico({
 
   // Caras con último estado por diente interno
   const carasPorDiente = useMemo(() => {
-    const map = new Map<number, Map<CaraDental, DienteEstado>>();
-    // registros vienen desc por fecha → el primero es el más reciente
-    for (const r of [...registros].reverse()) {
+    const map = new Map<number, Map<CaraDental, { estado: DienteEstado; pendiente: boolean }>>();
+    // Primero registros reales (desc) — el primero es el más reciente
+    for (const r of registros) {
       if (!r.cara) continue;
+      const esPendiente = r.id?.startsWith("pending-") ?? false;
       if (!map.has(r.diente)) map.set(r.diente, new Map());
-      map.get(r.diente)!.set(r.cara as CaraDental, r.estado);
+      const caraMap = map.get(r.diente)!;
+      if (!caraMap.has(r.cara as CaraDental)) {
+        caraMap.set(r.cara as CaraDental, { estado: r.estado, pendiente: esPendiente });
+      }
     }
     return map;
   }, [registros]);
@@ -65,7 +69,7 @@ export default function OdontogramaAnatomico({
   function getCaras(interno: number) {
     const m = carasPorDiente.get(interno);
     if (!m) return [];
-    return Array.from(m.entries()).map(([cara, estado]) => ({ cara, estado }));
+    return Array.from(m.entries()).map(([cara, { estado, pendiente }]) => ({ cara, estado, pendiente }));
   }
 
   function renderArcada(fdis: number[], arcada: "superior" | "inferior") {
