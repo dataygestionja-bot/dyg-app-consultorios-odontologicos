@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Users, Plus, AlertCircle, Inbox, Globe, ArrowRight, Phone, UserX, Ban, Stethoscope, Pencil, XCircle } from "lucide-react";
+import { CalendarDays, Users, Plus, AlertCircle, Inbox, Globe, ArrowRight, Phone, UserX, Ban, Stethoscope, Pencil, XCircle, MessageSquare, BotOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TURNO_ESTADO_CLASSES, TURNO_ESTADO_LABELS, type TurnoEstado } from "@/lib/constants";
 import { useAuth } from "@/hooks/useAuth";
@@ -58,8 +58,11 @@ export default function Dashboard() {
   const [turnoReprogramar, setTurnoReprogramar] = useState<TurnoRow | null>(null);
   const [turnoCancelarDash, setTurnoCancelarDash] = useState<TurnoRow | null>(null);
   const [cancelandoDash, setCancelandoDash] = useState(false);
+  const [whatsappCount, setWhatsappCount] = useState<number>(0);
+  const [whatsappUltimo, setWhatsappUltimo] = useState<string | null>(null);
+  const [esFeriado, setEsFeriado] = useState(false);
 
-  console.log("AUTH:", { authLoading, soloMisTurnos, profIdReady, miProfesionalId, userId: user?.id });
+
 
   useEffect(() => {
     document.title = "Dashboard | Consultorio";
@@ -142,6 +145,18 @@ export default function Dashboard() {
       aplicarFiltro(supabase.from("turnos").select(select).eq("estado", "pendiente_cierre")).order("fecha", { ascending: false }).order("hora_inicio").limit(20),
       aplicarFiltro(supabase.from("turnos").select("id", { count: "exact", head: true }).eq("estado", "pendiente_cierre")),
     ]);
+
+    // Datos del bot WhatsApp y feriado (solo para admin/recepcion)
+    if (!profId) {
+      const [waCountRes, waUltimoRes, feriadoRes] = await Promise.all([
+        supabase.from("turnos").select("id", { count: "exact", head: true }).eq("origen", "WhatsApp"),
+        supabase.from("turnos").select("created_at").eq("origen", "WhatsApp").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("bloqueos_agenda").select("id").eq("todo_el_dia", true).eq("fecha_desde", today).eq("fecha_hasta", today).maybeSingle(),
+      ]);
+      setWhatsappCount(waCountRes.count ?? 0);
+      setWhatsappUltimo(waUltimoRes.data?.created_at ?? null);
+      setEsFeriado(!!feriadoRes.data);
+    }
 
     setHoy((hoyRes.data ?? []) as unknown as TurnoRow[]);
     setAtendidosHoy(atRes.count ?? 0);
@@ -276,6 +291,46 @@ export default function Dashboard() {
             </Card>
           </a>
         )}
+        {canManagePendientes && (() => {
+          const ahora = new Date();
+          const hora = ahora.getHours();
+          const diaSemana = ahora.getDay();
+          const esDomingo = diaSemana === 0;
+          const fueraDeHorario = hora < 8 || hora >= 20;
+          const inhabil = esDomingo || esFeriado || fueraDeHorario;
+
+          const ultimoDate = whatsappUltimo ? new Date(whatsappUltimo) : null;
+          const diffHoras = ultimoDate ? (ahora.getTime() - ultimoDate.getTime()) / (1000 * 60 * 60) : null;
+          const hayAlerta = !inhabil && diffHoras !== null && diffHoras > 4;
+
+          const ultimoLabel = ultimoDate
+            ? format(ultimoDate, "dd/MM HH:mm") + "hs"
+            : "Sin registros";
+
+          return (
+            <Card className={`border-l-4 ${hayAlerta ? "border-l-red-500" : "border-l-green-500"}`}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+                  {hayAlerta
+                    ? <BotOff className="h-4 w-4 text-red-500" />
+                    : <MessageSquare className="h-4 w-4 text-green-600" />
+                  }
+                  Bot WhatsApp
+                </CardTitle>
+                {hayAlerta && <AlertCircle className="h-4 w-4 text-red-500" />}
+              </CardHeader>
+              <CardContent>
+                <div className={`text-3xl font-bold ${hayAlerta ? "text-red-500" : "text-green-600"}`}>
+                  {whatsappCount}
+                </div>
+                <p className="text-xs text-muted-foreground truncate">
+                  Último: {ultimoLabel}
+                  {inhabil && " · horario inhábil"}
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })()}
       </div>
 
       {solicitudesCount > 0 && canManagePendientes && (
