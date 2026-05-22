@@ -682,6 +682,26 @@ export default function AtencionForm() {
                   <Label className="text-xs text-muted-foreground">Tipo de atención</Label>
                   <div><Badge variant="secondary">{TIPO_ATENCION_LABELS[form.tipo_atencion]}</Badge></div>
                 </div>
+                {(() => {
+                  const p = pacientes.find((x) => x.id === form.paciente_id);
+                  if (!p) return null;
+                  return (
+                    <div className="col-span-full border-t pt-2 mt-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div className="space-y-0.5">
+                        <Label className="text-xs text-muted-foreground">Alergias</Label>
+                        <p className="text-xs whitespace-pre-wrap leading-snug">{p.alergias?.trim() || "Sin alergias declaradas"}</p>
+                      </div>
+                      <div className="space-y-0.5">
+                        <Label className="text-xs text-muted-foreground">Medicación actual</Label>
+                        <p className="text-xs whitespace-pre-wrap leading-snug">{p.medicacion_actual?.trim() || "Sin medicación actual"}</p>
+                      </div>
+                      <div className="space-y-0.5">
+                        <Label className="text-xs text-muted-foreground">Antecedentes médicos</Label>
+                        <p className="text-xs whitespace-pre-wrap leading-snug">{p.antecedentes_medicos?.trim() || "Sin antecedentes médicos"}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               <div className="space-y-4">
@@ -893,28 +913,13 @@ export default function AtencionForm() {
           return (
             <Card>
               <CardContent className="py-3">
-                <Tabs defaultValue="ficha">
+                <Tabs defaultValue="odontograma">
                   <div className="-mx-1 overflow-x-auto">
                     <TabsList className="inline-flex w-max min-w-full justify-start gap-1">
-                      <TabsTrigger value="ficha" className="whitespace-nowrap">Ficha clínica</TabsTrigger>
                       <TabsTrigger value="odontograma" className="whitespace-nowrap">Historial odontograma</TabsTrigger>
                       <TabsTrigger value="atenciones" className="whitespace-nowrap">Historial de atenciones</TabsTrigger>
                     </TabsList>
                   </div>
-                  <TabsContent value="ficha" className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 pt-2 mt-0">
-                    <div className="space-y-0.5">
-                      <Label className="text-xs text-muted-foreground">Alergias</Label>
-                      <p className="text-sm whitespace-pre-wrap leading-snug">{p?.alergias?.trim() || "—"}</p>
-                    </div>
-                    <div className="space-y-0.5">
-                      <Label className="text-xs text-muted-foreground">Medicación actual</Label>
-                      <p className="text-sm whitespace-pre-wrap leading-snug">{p?.medicacion_actual?.trim() || "—"}</p>
-                    </div>
-                    <div className="space-y-0.5">
-                      <Label className="text-xs text-muted-foreground">Antecedentes médicos</Label>
-                      <p className="text-sm whitespace-pre-wrap leading-snug">{p?.antecedentes_medicos?.trim() || "—"}</p>
-                    </div>
-                  </TabsContent>
                   <TabsContent value="odontograma" className="pt-2 mt-0">
                     <HistorialOdontograma pacienteId={form.paciente_id} />
                   </TabsContent>
