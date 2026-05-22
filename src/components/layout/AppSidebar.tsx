@@ -53,7 +53,7 @@ interface Item {
 
 const itemsOperatoria: Item[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Mis turnos de hoy", url: "/mis-turnos", icon: ListTodo },
+  { title: "Mis turnos de hoy", url: "/mis-turnos", icon: ListTodo, roles: ["profesional"] },
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Atenciones", url: "/atenciones", icon: ClipboardList },
   { title: "Profesionales", url: "/profesionales", icon: Stethoscope, roles: ["admin"] },
@@ -61,9 +61,9 @@ const itemsOperatoria: Item[] = [
 ];
 
 const itemsTurnos: Item[] = [
-  { title: "Agenda", url: "/turnos", icon: CalendarDays, perm: { module: "agenda", action: "read" } },
+  { title: "Agenda", url: "/turnos", icon: CalendarDays, roles: ["admin", "recepcion"] },
   { title: "Turnos solicitados", url: "/turnos/solicitudes", icon: Inbox, roles: ["admin", "recepcion"] },
-  { title: "Bloqueos de agenda", url: "/bloqueos", icon: CalendarOff, perm: { module: "bloqueos_agenda", action: "read" } },
+  { title: "Bloqueos de agenda", url: "/bloqueos", icon: CalendarOff, roles: ["admin", "recepcion"] },
 ];
 
 const itemsGestion: Item[] = [

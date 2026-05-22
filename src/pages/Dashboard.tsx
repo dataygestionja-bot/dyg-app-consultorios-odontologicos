@@ -42,6 +42,7 @@ export default function Dashboard() {
   const confirm = useConfirm();
   const canManagePendientes = hasAnyRole(["admin", "recepcion"]);
   const soloMisTurnos = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
+  const puedeEditarTurnos = hasAnyRole(["admin", "recepcion"]);
 
   const [miProfesionalId, setMiProfesionalId] = useState<string | null>(null);
   const [profIdReady, setProfIdReady] = useState(false);
@@ -230,23 +231,25 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground">Pacientes atendidos</p>
           </CardContent>
         </Card>
-        <Link to="/turnos/solicitudes" className="block">
-          <Card
-            className="h-full transition-all hover:shadow-md border-l-4"
-            style={{ borderLeftColor: "hsl(var(--estado-solicitado))" }}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Solicitudes pendientes</CardTitle>
-              <Inbox className="h-4 w-4" style={{ color: "hsl(var(--estado-solicitado))" }} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold" style={{ color: "hsl(var(--estado-solicitado))" }}>
-                {solicitudesCount}
-              </div>
-              <p className="text-xs text-muted-foreground">Reservas a confirmar</p>
-            </CardContent>
-          </Card>
-        </Link>
+        {canManagePendientes && (
+          <Link to="/turnos/solicitudes" className="block">
+            <Card
+              className="h-full transition-all hover:shadow-md border-l-4"
+              style={{ borderLeftColor: "hsl(var(--estado-solicitado))" }}
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Solicitudes pendientes</CardTitle>
+                <Inbox className="h-4 w-4" style={{ color: "hsl(var(--estado-solicitado))" }} />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold" style={{ color: "hsl(var(--estado-solicitado))" }}>
+                  {solicitudesCount}
+                </div>
+                <p className="text-xs text-muted-foreground">Reservas a confirmar</p>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
         {canManagePendientes && (
           <a href="#pendientes-cierre" className="block">
             <Card
@@ -268,7 +271,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {solicitudesCount > 0 && (
+      {solicitudesCount > 0 && canManagePendientes && (
         <Card
           className="border-l-4"
           style={{
@@ -342,7 +345,9 @@ export default function Dashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Turnos de hoy</CardTitle>
-          <CardDescription>Agenda completa del día</CardDescription>
+          <CardDescription>
+            {soloMisTurnos ? "Tus turnos programados para hoy" : "Agenda completa del día"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -380,7 +385,7 @@ export default function Dashboard() {
                         {horario.label}
                       </Badge>
                     )}
-                    {!["atendido", "cancelado", "reprogramado", "ausente"].includes(t.estado) && (
+                    {!["atendido", "cancelado", "reprogramado", "ausente"].includes(t.estado) && puedeEditarTurnos && (
                       <div className="flex items-center gap-1">
                         <Button
                           size="sm"
