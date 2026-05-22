@@ -50,7 +50,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import OdontogramaAnatomico from "./OdontogramaAnatomico";
 import PiezaDentalDialog from "./odontograma/PiezaDentalDialog";
-import { internoToFdi } from "@/lib/odontograma";
+import { internoToFdi, type CaraDental } from "@/lib/odontograma";
 
 interface Profesional {
   id: string;
@@ -190,6 +190,38 @@ export default function Odontograma({
     cargar();
   }
 
+  async function registrarCaraEstado(dienteInterno: number, cara: CaraDental, estado: DienteEstado) {
+    const profId = profesionalId ?? profesionales.find((p) => p.user_id === user?.id)?.id;
+    if (!profId) {
+      toast.error("Falta el profesional", { description: "Seleccioná un profesional antes de registrar." });
+      return;
+    }
+    if (!puedeAgregar) {
+      toast.error("Sin permiso para registrar en el odontograma");
+      return;
+    }
+    const fechaIso = fechaAtencion
+      ? new Date(`${fechaAtencion}T${format(new Date(), "HH:mm:ss")}`).toISOString()
+      : new Date().toISOString();
+    const { error } = await supabase.from("odontograma_registros").insert({
+      paciente_id: pacienteId,
+      diente: dienteInterno,
+      estado,
+      fecha: fechaIso,
+      profesional_id: profId,
+      observaciones: null,
+      cara,
+      tipo_denticion: "permanente",
+    });
+    if (error) {
+      toast.error("No se pudo registrar", { description: error.message });
+      return;
+    }
+    const fdi = internoToFdi(dienteInterno);
+    toast.success(`Pieza ${fdi} · ${cara}: ${DIENTE_ESTADO_LABELS[estado]}`);
+    cargar();
+  }
+
   return (
     <div className="space-y-4">
       {/* Encabezado + botón */}
@@ -235,9 +267,11 @@ export default function Odontograma({
             registros={registrosConPendientes}
             disabled={mode === "inline" && !profesionalId}
             piezaResaltada={piezaSeleccionada}
+            canCreate={puedeAgregar && (mode !== "inline" || !!profesionalId)}
             onPiezaClick={(interno) => {
               setPiezaSeleccionada(interno);
             }}
+            onCaraEstado={registrarCaraEstado}
           />
           {/* Leyenda compacta debajo del odontograma */}
           <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 px-3 text-[11px] text-muted-foreground">

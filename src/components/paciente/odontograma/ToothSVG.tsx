@@ -1,115 +1,251 @@
-import { type DienteEstado, DIENTE_ESTADO_HEX } from "@/lib/constants";
-import { toothType, type ToothType } from "@/lib/odontograma";
+import { useState, useRef, useEffect } from "react";
+import { type DienteEstado, DIENTE_ESTADO_HEX, DIENTE_ESTADO_LABELS, DIENTE_ESTADOS_SELECCIONABLES, DIENTE_ESTADO_DOT } from "@/lib/constants";
+import { type ToothType, type CaraDental, CARA_LABELS, caraOclusalLabel } from "@/lib/odontograma";
 import { cn } from "@/lib/utils";
+
+interface CaraRegistro {
+  cara: CaraDental;
+  estado: DienteEstado;
+}
 
 interface Props {
   fdi: number;
-  estado?: DienteEstado | null;
   arcada: "superior" | "inferior";
-  onClick?: () => void;
-  highlighted?: boolean;
+  caras: CaraRegistro[];
+  toothTypeFn?: (fdi: number) => ToothType;
+  onCaraEstado?: (cara: CaraDental, estado: DienteEstado) => void;
   disabled?: boolean;
-  ariaLabel?: string;
-  title?: string;
+  highlighted?: boolean;
+  canCreate?: boolean;
 }
 
-// Renderiza una silueta simple/anatómica por tipo de pieza.
-// Dimensiones: 40 x 56 viewBox.
-function ToothShape({
-  type,
-  fill,
-  stroke,
-  arcada,
-}: {
-  type: ToothType;
-  fill: string;
-  stroke: string;
-  arcada: "superior" | "inferior";
-}) {
-  // Para arcada inferior invertimos verticalmente, así la corona
-  // queda hacia el centro del odontograma.
-  const transform = arcada === "inferior" ? "scale(1,-1) translate(0,-56)" : undefined;
+const STROKE = "#475569";
+const STROKE_W = 1.5;
+const SIZE = 44;
 
-  let path = "";
-  switch (type) {
-    case "molar":
-      // Corona cuadrada con 4 cúspides + raíces gemelas
-      path =
-        "M6 4 Q4 12 6 22 Q3 24 4 30 Q5 38 8 46 Q10 52 14 52 Q15 44 14 36 Q18 36 20 36 Q22 36 26 36 Q25 44 26 52 Q30 52 32 46 Q35 38 36 30 Q37 24 34 22 Q36 12 34 4 Q28 1 20 1 Q12 1 6 4 Z";
-      break;
-    case "premolar":
-      // Corona con 2 cúspides + 1 raíz
-      path =
-        "M8 4 Q6 14 9 22 Q6 26 7 34 Q9 44 14 52 Q17 54 20 54 Q23 54 26 52 Q31 44 33 34 Q34 26 31 22 Q34 14 32 4 Q26 1 20 1 Q14 1 8 4 Z";
-      break;
-    case "canino":
-      // Corona puntiaguda + raíz larga
-      path =
-        "M10 6 Q8 14 11 22 Q8 28 9 38 Q11 48 16 54 Q18 55 20 55 Q22 55 24 54 Q29 48 31 38 Q32 28 29 22 Q32 14 30 6 Q26 1 20 1 Q14 1 10 6 Z";
-      break;
-    case "incisivo":
-    default:
-      // Corona plana con borde + 1 raíz cónica
-      path =
-        "M10 4 Q8 12 10 20 Q8 26 10 34 Q12 46 16 52 Q18 54 20 54 Q22 54 24 52 Q28 46 30 34 Q32 26 30 20 Q32 12 30 4 Q26 1 20 1 Q14 1 10 4 Z";
-      break;
-  }
+function getCaraFill(cara: CaraDental, caras: CaraRegistro[]): string {
+  const r = caras.find((c) => c.cara === cara);
+  return r ? DIENTE_ESTADO_HEX[r.estado] : "#ffffff";
+}
+
+function OclusalMolar({ caras, caraOcl, onZoneClick, disabled }: {
+  caras: CaraRegistro[];
+  caraOcl: CaraDental;
+  onZoneClick: (cara: CaraDental, e: React.MouseEvent) => void;
+  disabled?: boolean;
+}) {
+  const s = SIZE;
+  const pad = 3;
+  const inner = 12;
+  const x0 = pad, y0 = pad, x1 = s - pad, y1 = s - pad;
+  const ix0 = s / 2 - inner / 2, iy0 = s / 2 - inner / 2;
+  const ix1 = s / 2 + inner / 2, iy1 = s / 2 + inner / 2;
+
+  const zoneProps = (cara: CaraDental) => ({
+    fill: getCaraFill(cara, caras),
+    stroke: STROKE,
+    strokeWidth: STROKE_W,
+    className: cn("transition-all", !disabled ? "cursor-pointer hover:brightness-75" : "cursor-default"),
+    onClick: disabled ? undefined : (e: React.MouseEvent) => onZoneClick(cara, e),
+  });
 
   return (
-    <g transform={transform}>
-      <path d={path} fill={fill} stroke={stroke} strokeWidth="1.2" strokeLinejoin="round" />
-      {/* Línea sutil corona/raíz */}
-      <path
-        d="M6 22 Q20 24 34 22"
-        fill="none"
-        stroke={stroke}
-        strokeOpacity="0.35"
-        strokeWidth="0.8"
-      />
-    </g>
+    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full h-full">
+      <rect x={x0} y={y0} width={x1 - x0} height={y1 - y0} fill="none" stroke={STROKE} strokeWidth={STROKE_W} rx={2} />
+      <polygon points={`${x0},${y0} ${x1},${y0} ${ix1},${iy0} ${ix0},${iy0}`} {...zoneProps("vestibular")} />
+      <polygon points={`${x0},${y1} ${x1},${y1} ${ix1},${iy1} ${ix0},${iy1}`} {...zoneProps("palatino")} />
+      <polygon points={`${x0},${y0} ${x0},${y1} ${ix0},${iy1} ${ix0},${iy0}`} {...zoneProps("mesial")} />
+      <polygon points={`${x1},${y0} ${x1},${y1} ${ix1},${iy1} ${ix1},${iy0}`} {...zoneProps("distal")} />
+      <rect x={ix0} y={iy0} width={inner} height={inner} {...zoneProps(caraOcl)} />
+      <line x1={x0} y1={y0} x2={ix0} y2={iy0} stroke={STROKE} strokeWidth={STROKE_W * 0.7} />
+      <line x1={x1} y1={y0} x2={ix1} y2={iy0} stroke={STROKE} strokeWidth={STROKE_W * 0.7} />
+      <line x1={x0} y1={y1} x2={ix0} y2={iy1} stroke={STROKE} strokeWidth={STROKE_W * 0.7} />
+      <line x1={x1} y1={y1} x2={ix1} y2={iy1} stroke={STROKE} strokeWidth={STROKE_W * 0.7} />
+    </svg>
+  );
+}
+
+function OclusalIncisor({ caras, caraOcl, onZoneClick, disabled }: {
+  caras: CaraRegistro[];
+  caraOcl: CaraDental;
+  onZoneClick: (cara: CaraDental, e: React.MouseEvent) => void;
+  disabled?: boolean;
+}) {
+  const s = SIZE;
+  const cx = s / 2, cy = s / 2;
+  const R = s / 2 - 3;
+  const r = R * 0.32;
+
+  const zoneProps = (cara: CaraDental) => ({
+    fill: getCaraFill(cara, caras),
+    stroke: STROKE,
+    strokeWidth: STROKE_W,
+    className: cn("transition-all", !disabled ? "cursor-pointer hover:brightness-75" : "cursor-default"),
+    onClick: disabled ? undefined : (e: React.MouseEvent) => onZoneClick(cara, e),
+  });
+
+  function annularSector(a1: number, a2: number) {
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const cos1 = Math.cos(toRad(a1)), sin1 = Math.sin(toRad(a1));
+    const cos2 = Math.cos(toRad(a2)), sin2 = Math.sin(toRad(a2));
+    const large = a2 - a1 > 180 ? 1 : 0;
+    return [
+      `M ${cx + R * cos1} ${cy + R * sin1}`,
+      `A ${R} ${R} 0 ${large} 1 ${cx + R * cos2} ${cy + R * sin2}`,
+      `L ${cx + r * cos2} ${cy + r * sin2}`,
+      `A ${r} ${r} 0 ${large} 0 ${cx + r * cos1} ${cy + r * sin1}`,
+      "Z",
+    ].join(" ");
+  }
+
+  const d45 = Math.cos(Math.PI / 4);
+
+  return (
+    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full h-full">
+      <circle cx={cx} cy={cy} r={R} fill="none" stroke={STROKE} strokeWidth={STROKE_W} />
+      <path d={annularSector(-135, -45)} {...zoneProps("vestibular")} />
+      <path d={annularSector(-45, 45)} {...zoneProps("distal")} />
+      <path d={annularSector(45, 135)} {...zoneProps("palatino")} />
+      <path d={annularSector(135, 225)} {...zoneProps("mesial")} />
+      <circle cx={cx} cy={cy} r={r} {...zoneProps(caraOcl)} />
+      <line x1={cx - R * d45} y1={cy - R * d45} x2={cx - r * d45} y2={cy - r * d45} stroke={STROKE} strokeWidth={STROKE_W * 0.7} />
+      <line x1={cx + R * d45} y1={cy - R * d45} x2={cx + r * d45} y2={cy - r * d45} stroke={STROKE} strokeWidth={STROKE_W * 0.7} />
+      <line x1={cx - R * d45} y1={cy + R * d45} x2={cx - r * d45} y2={cy + r * d45} stroke={STROKE} strokeWidth={STROKE_W * 0.7} />
+      <line x1={cx + R * d45} y1={cy + R * d45} x2={cx + r * d45} y2={cy + r * d45} stroke={STROKE} strokeWidth={STROKE_W * 0.7} />
+    </svg>
+  );
+}
+
+function EstadoPopover({ cara, fdi, position, onSelect, onClose, submitting }: {
+  cara: CaraDental;
+  fdi: number;
+  position: { x: number; y: number };
+  onSelect: (estado: DienteEstado) => void;
+  onClose: () => void;
+  submitting: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [onClose]);
+
+  const popW = 280, popH = 220;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let left = position.x + 10;
+  let top = position.y - 40;
+  if (left + popW > vw - 8) left = position.x - popW - 10;
+  if (top + popH > vh - 8) top = vh - popH - 8;
+  if (top < 8) top = 8;
+
+  return (
+    <div
+      ref={ref}
+      className="fixed z-50 rounded-lg border bg-popover text-popover-foreground shadow-lg p-2"
+      style={{ left, top, width: popW }}
+    >
+      <div className="text-[11px] font-semibold text-muted-foreground mb-1.5 px-1 border-b pb-1">
+        Pieza {fdi} · {CARA_LABELS[cara]}
+      </div>
+      <div className="grid grid-cols-2 gap-0.5">
+        {DIENTE_ESTADOS_SELECCIONABLES.map((e) => (
+          <button
+            key={e}
+            type="button"
+            disabled={submitting}
+            className="flex items-center gap-2 rounded px-2 py-1 text-xs text-left hover:bg-accent transition-colors disabled:opacity-50 w-full"
+            onClick={() => onSelect(e)}
+          >
+            <span className={cn("h-2.5 w-2.5 shrink-0 rounded-sm", DIENTE_ESTADO_DOT[e])} />
+            {DIENTE_ESTADO_LABELS[e]}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
 export default function ToothSVG({
   fdi,
-  estado,
   arcada,
-  onClick,
-  highlighted,
+  caras,
+  toothTypeFn,
+  onCaraEstado,
   disabled,
-  ariaLabel,
-  title,
+  highlighted,
+  canCreate,
 }: Props) {
-  const type = toothType(fdi);
-  const fill = estado ? DIENTE_ESTADO_HEX[estado] : "#ffffff";
-  const stroke = "hsl(215 20% 45%)";
+  const [popover, setPopover] = useState<{ cara: CaraDental; x: number; y: number } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const getType = toothTypeFn ?? ((f: number): ToothType => {
+    const p = f % 10;
+    if (p >= 6) return "molar";
+    if (p >= 4) return "premolar";
+    if (p === 3) return "canino";
+    return "incisivo";
+  });
+
+  const type = getType(fdi);
+  const caraOcl = caraOclusalLabel(type);
+  const isMolarType = type === "molar" || type === "premolar";
+
+  function handleZoneClick(cara: CaraDental, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!canCreate || disabled) return;
+    setPopover({ cara, x: e.clientX, y: e.clientY });
+  }
+
+  async function handleEstadoSelect(estado: DienteEstado) {
+    if (!popover) return;
+    setSubmitting(true);
+    await onCaraEstado?.(popover.cara, estado);
+    setSubmitting(false);
+    setPopover(null);
+  }
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      aria-label={ariaLabel ?? `Pieza ${fdi}`}
-      className={cn(
-        "group flex flex-col items-center gap-0.5 rounded-md p-0.5 transition",
-        "hover:bg-accent/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-        highlighted && "ring-2 ring-primary bg-accent/60",
-        disabled && "cursor-not-allowed opacity-50",
+    <>
+      <div className={cn(
+        "flex flex-col items-center gap-0.5",
+        highlighted && "ring-2 ring-primary rounded-md",
+      )}>
+        {arcada === "superior" && (
+          <span className="text-[9px] font-medium text-muted-foreground leading-none">{fdi}</span>
+        )}
+        <div className={cn("w-9 h-9", disabled && "opacity-50")}>
+          {isMolarType ? (
+            <OclusalMolar caras={caras} caraOcl={caraOcl} onZoneClick={handleZoneClick} disabled={disabled || !canCreate} />
+          ) : (
+            <OclusalIncisor caras={caras} caraOcl={caraOcl} onZoneClick={handleZoneClick} disabled={disabled || !canCreate} />
+          )}
+        </div>
+        {arcada === "inferior" && (
+          <span className="text-[9px] font-medium text-muted-foreground leading-none">{fdi}</span>
+        )}
+      </div>
+
+      {popover && (
+        <EstadoPopover
+          cara={popover.cara}
+          fdi={fdi}
+          position={{ x: popover.x, y: popover.y }}
+          onSelect={handleEstadoSelect}
+          onClose={() => setPopover(null)}
+          submitting={submitting}
+        />
       )}
-    >
-      {arcada === "superior" && (
-        <span className="text-[10px] font-medium text-muted-foreground leading-none">{fdi}</span>
-      )}
-      <svg
-        viewBox="0 0 40 56"
-        className="h-10 w-7 drop-shadow-sm transition-transform group-hover:scale-110"
-      >
-        <ToothShape type={type} fill={fill} stroke={stroke} arcada={arcada} />
-      </svg>
-      {arcada === "inferior" && (
-        <span className="text-[10px] font-medium text-muted-foreground leading-none">{fdi}</span>
-      )}
-    </button>
+    </>
   );
 }
