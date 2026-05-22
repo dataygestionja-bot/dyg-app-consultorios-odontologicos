@@ -22,7 +22,7 @@ import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
 import HistorialOdontograma from "@/components/paciente/HistorialOdontograma";
 import { Badge } from "@/components/ui/badge";
 import { IntegracionRctaInline } from "@/components/integraciones/IntegracionRctaInline";
-import { AgregarDocumentacionDialog } from "@/components/atenciones/AgregarDocumentacionDialog";
+import { AgregarDocumentacionDialog, type DocPendiente } from "@/components/atenciones/AgregarDocumentacionDialog";
 import { FileUp } from "lucide-react";
 
 interface Paciente { id: string; nombre: string; apellido: string; dni: string; alergias?: string | null; medicacion_actual?: string | null; antecedentes_medicos?: string | null; }
@@ -111,6 +111,7 @@ export default function AtencionForm() {
   const [cargandoSlotsProx, setCargandoSlotsProx] = useState(false);
   const [docDialogOpen, setDocDialogOpen] = useState(false);
   const [odontoPendientes, setOdontoPendientes] = useState<Map<string, PendienteCara>>(new Map());
+  const [docsPendientes, setDocsPendientes] = useState<DocPendiente[]>([]);
 
   useEffect(() => {
     if (odontoPendientes.size === 0) return;
@@ -542,6 +543,32 @@ export default function AtencionForm() {
       setOdontoPendientes(new Map());
     }
 
+    // Subir documentos pendientes
+    if (atencionId && docsPendientes.length > 0) {
+      for (const doc of docsPendientes) {
+        const ext = doc.file.name.includes(".") ? doc.file.name.split(".").pop() : "bin";
+        const path = `${atencionId}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("atencion-documentos")
+          .upload(path, doc.file, { contentType: doc.file.type || undefined, upsert: false });
+        if (upErr) {
+          toast.error("Atención guardada, pero falló un documento", { description: upErr.message });
+          continue;
+        }
+        await supabase.from("atencion_documentos").insert({
+          atencion_id: atencionId,
+          referencia: doc.referencia,
+          fecha: doc.fecha,
+          archivo_path: path,
+          archivo_nombre: doc.file.name,
+          archivo_mime: doc.file.type || null,
+          archivo_size: doc.file.size,
+          created_by: (await supabase.auth.getUser()).data.user?.id ?? null,
+        });
+      }
+      setDocsPendientes([]);
+    }
+
     // Agendar / actualizar próximo turno si corresponde
     let mensajeTurno = "";
     if (agendarProximo && form.proxima_visita_sugerida && slotProx && form.profesional_id && form.paciente_id) {
@@ -837,15 +864,14 @@ export default function AtencionForm() {
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() => {
-                  if (!id || id === "nuevo") {
-                    toast.error("Primero guardá la atención para poder adjuntar documentación.");
-                    return;
-                  }
-                  setDocDialogOpen(true);
-                }}
+                onClick={() => setDocDialogOpen(true)}
               >
                 <FileUp className="h-4 w-4" /> Agregar documentación
+                {docsPendientes.length > 0 && (
+                  <span className="ml-1 rounded-full bg-amber-500 text-white text-[10px] px-1.5 py-0.5">
+                    {docsPendientes.length}
+                  </span>
+                )}
               </Button>
               <Button type="button" size="sm" onClick={addPractica}>
                 <Plus className="h-4 w-4" /> Agregar práctica
@@ -972,7 +998,7 @@ export default function AtencionForm() {
       <AgregarDocumentacionDialog
         open={docDialogOpen}
         onOpenChange={setDocDialogOpen}
-        atencionId={id && id !== "nuevo" ? id : null}
+        onAgregar={(docs) => setDocsPendientes((prev) => [...prev, ...docs])}
       />
     </div>
   );
