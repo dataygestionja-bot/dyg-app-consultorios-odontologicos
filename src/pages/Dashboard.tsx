@@ -301,26 +301,40 @@ export default function Dashboard() {
 
           const ultimoDate = whatsappUltimo ? new Date(whatsappUltimo) : null;
           const diffHoras = ultimoDate ? (ahora.getTime() - ultimoDate.getTime()) / (1000 * 60 * 60) : null;
-          const hayAlerta = !inhabil && diffHoras !== null && diffHoras > 4;
+          const hayAlertaNaranja = !inhabil && diffHoras !== null && diffHoras > 4 && diffHoras <= 8;
+          const hayAlertaRoja = !inhabil && diffHoras !== null && diffHoras > 8;
+          const hayAlerta = hayAlertaNaranja || hayAlertaRoja;
+
+          const colorClass = hayAlertaRoja
+            ? "text-red-500"
+            : hayAlertaNaranja
+            ? "text-amber-500"
+            : "text-green-600";
+
+          const borderClass = hayAlertaRoja
+            ? "border-l-red-500"
+            : hayAlertaNaranja
+            ? "border-l-amber-500"
+            : "border-l-green-500";
 
           const ultimoLabel = ultimoDate
             ? format(ultimoDate, "dd/MM HH:mm'hs'")
             : "Sin registros";
 
           return (
-            <Card className={`border-l-4 ${hayAlerta ? "border-l-red-500" : "border-l-green-500"}`}>
+            <Card className={`border-l-4 ${borderClass}`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-1.5">
                   {hayAlerta
-                    ? <BotOff className="h-4 w-4 text-red-500" />
+                    ? <BotOff className={`h-4 w-4 ${colorClass}`} />
                     : <MessageSquare className="h-4 w-4 text-green-600" />
                   }
                   Bot WhatsApp
                 </CardTitle>
-                {hayAlerta && <AlertCircle className="h-4 w-4 text-red-500" />}
+                {hayAlerta && <AlertCircle className={`h-4 w-4 ${colorClass}`} />}
               </CardHeader>
               <CardContent>
-                <div className={`text-3xl font-bold ${hayAlerta ? "text-red-500" : "text-green-600"}`}>
+                <div className={`text-3xl font-bold ${colorClass}`}>
                   {whatsappCount}
                 </div>
                 <p className="text-xs text-muted-foreground">
