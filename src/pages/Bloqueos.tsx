@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -106,7 +105,7 @@ export default function Bloqueos() {
   const [fHoraDesde, setFHoraDesde] = useState("09:00");
   const [fHoraHasta, setFHoraHasta] = useState("13:00");
   const [fMotivo, setFMotivo] = useState<MotivoBloqueo>("vacaciones");
-  const [fObs, setFObs] = useState("");
+
   const [saving, setSaving] = useState(false);
 
   // Confirmación de turnos afectados
@@ -168,7 +167,6 @@ export default function Bloqueos() {
     setFHoraDesde("09:00");
     setFHoraHasta("13:00");
     setFMotivo("vacaciones");
-    setFObs("");
     setOpen(true);
   }
 
@@ -181,7 +179,6 @@ export default function Bloqueos() {
     setFHoraDesde(b.hora_desde?.slice(0, 5) ?? "09:00");
     setFHoraHasta(b.hora_hasta?.slice(0, 5) ?? "13:00");
     setFMotivo(b.motivo);
-    setFObs(b.observaciones ?? "");
     setOpen(true);
   }
 
@@ -235,7 +232,7 @@ export default function Bloqueos() {
         hora_desde: fTodoDia ? null : fHoraDesde,
         hora_hasta: fTodoDia ? null : fHoraHasta,
         motivo: fMotivo,
-        observaciones: fObs.trim() || null,
+        observaciones: null,
       };
 
       // Si se seleccionó "Todos los profesionales", insertar uno por cada profesional
@@ -391,7 +388,6 @@ export default function Bloqueos() {
                   <TableHead>Período</TableHead>
                   <TableHead>Horario</TableHead>
                   <TableHead>Motivo</TableHead>
-                  <TableHead>Observaciones</TableHead>
                   <TableHead>Estado</TableHead>
                   {canEdit && <TableHead className="text-right">Acciones</TableHead>}
                 </TableRow>
@@ -399,7 +395,7 @@ export default function Bloqueos() {
               <TableBody>
                 {bloqueos.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={canEdit ? 7 : 6} className="text-center text-muted-foreground py-10">
+                    <TableCell colSpan={canEdit ? 6 : 5} className="text-center text-muted-foreground py-10">
                       {loading ? "Cargando..." : "No hay bloqueos para los filtros seleccionados."}
                     </TableCell>
                   </TableRow>
@@ -419,9 +415,6 @@ export default function Bloqueos() {
                         : `${b.hora_desde?.slice(0, 5)} – ${b.hora_hasta?.slice(0, 5)}`}
                     </TableCell>
                     <TableCell>{MOTIVO_LABELS[b.motivo]}</TableCell>
-                    <TableCell className="max-w-[260px] truncate text-sm text-muted-foreground">
-                      {b.observaciones ?? "—"}
-                    </TableCell>
                     <TableCell>
                       {b.estado === "activo" ? (
                         <Badge style={{ backgroundColor: "hsl(var(--estado-bloqueado))" }} className="text-white">
@@ -466,7 +459,7 @@ export default function Bloqueos() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2 max-h-[70vh] overflow-y-auto pr-1">
+          <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>Profesional *</Label>
               {esProfRestringido ? (
@@ -529,11 +522,6 @@ export default function Bloqueos() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Observaciones</Label>
-              <Textarea value={fObs} onChange={(e) => setFObs(e.target.value)} rows={3} placeholder="Notas internas (opcional)" />
             </div>
           </div>
 
