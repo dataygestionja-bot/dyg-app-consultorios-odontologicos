@@ -55,7 +55,6 @@ const itemsOperatoria: Item[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Mis turnos de hoy", url: "/mis-turnos", icon: ListTodo, roles: ["profesional"] },
   { title: "Pacientes", url: "/pacientes", icon: Users },
-  { title: "Atenciones", url: "/atenciones", icon: ClipboardList },
   { title: "Profesionales", url: "/profesionales", icon: Stethoscope, roles: ["admin"] },
   { title: "Obras sociales", url: "/obras-sociales", icon: BadgeCheck, roles: ["admin", "recepcion"] },
 ];
@@ -66,11 +65,9 @@ const itemsTurnos: Item[] = [
   { title: "Bloqueos de agenda", url: "/bloqueos", icon: CalendarOff, roles: ["admin", "recepcion"] },
 ];
 
-const itemsGestion: Item[] = [
-  { title: "Prestaciones", url: "/prestaciones", icon: ListChecks, roles: ["admin", "recepcion"] },
-  { title: "Presupuestos", url: "/presupuestos", icon: FileText, roles: ["admin", "recepcion"] },
-  { title: "Cobros", url: "/cobros", icon: Wallet, roles: ["admin", "recepcion"] },
-];
+const itemsGestion: Item[] = [];
+// Prestaciones: accesible solo desde la ficha del paciente (solo lectura)
+// Presupuestos y Cobros: pendientes de rediseño completo
 
 const itemsSeguridad: Item[] = [
   { title: "Usuarios", url: "/seguridad/usuarios", icon: Users, roles: ["admin"] },
