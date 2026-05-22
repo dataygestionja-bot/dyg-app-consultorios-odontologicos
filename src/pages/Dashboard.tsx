@@ -38,7 +38,7 @@ interface TurnoRow {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, hasRole, hasAnyRole } = useAuth();
+  const { user, hasRole, hasAnyRole, loading: authLoading } = useAuth();
   const confirm = useConfirm();
   const canManagePendientes = hasAnyRole(["admin", "recepcion"]);
   const soloMisTurnos = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
@@ -59,6 +59,8 @@ export default function Dashboard() {
   const [turnoCancelarDash, setTurnoCancelarDash] = useState<TurnoRow | null>(null);
   const [cancelandoDash, setCancelandoDash] = useState(false);
 
+  console.log("AUTH:", { authLoading, soloMisTurnos, profIdReady, miProfesionalId, userId: user?.id });
+
   useEffect(() => {
     document.title = "Dashboard | Consultorio";
   }, []);
@@ -66,6 +68,9 @@ export default function Dashboard() {
   useEffect(() => {
     let cancelled = false;
     async function resolverProfesional() {
+      // Esperar a que los roles estén cargados
+      if (authLoading) return;
+
       if (!soloMisTurnos) {
         setMiProfesionalId(null);
         setProfIdReady(true);
@@ -81,13 +86,15 @@ export default function Dashboard() {
       setMiProfesionalId(data?.id ?? null);
       setProfIdReady(true);
     }
+    // Resetear para forzar re-evaluación cuando los roles cambian
+    setProfIdReady(false);
     resolverProfesional();
     return () => { cancelled = true; };
-  }, [user?.id, soloMisTurnos]);
+  }, [user?.id, soloMisTurnos, authLoading]);
 
   useEffect(() => {
     if (!profIdReady) return;
-    cargar();
+    cargar(miProfesionalId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profIdReady, miProfesionalId]);
 
@@ -109,7 +116,7 @@ export default function Dashboard() {
     return { label: "Fuera de horario", className: "border-amber-500/50 text-amber-700 dark:text-amber-400 bg-amber-500/10", icon: true };
   }
 
-  async function cargar() {
+  async function cargar(profId: string | null = miProfesionalId) {
     setLoading(true);
     const today = format(new Date(), "yyyy-MM-dd");
 
@@ -117,9 +124,9 @@ export default function Dashboard() {
     const selectSolic = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, origen, created_at, paciente:pacientes(nombre, apellido, telefono), profesional:profesionales(nombre, apellido, color_agenda)";
 
     const aplicarFiltro = (q: any): any =>
-      (soloMisTurnos && miProfesionalId) ? q.eq("profesional_id", miProfesionalId) : q;
+      (soloMisTurnos && profId) ? q.eq("profesional_id", profId) : q;
 
-    if (soloMisTurnos && !miProfesionalId) {
+    if (soloMisTurnos && !profId) {
       setHoy([]); setAtendidosHoy(0);
       setSolicitudes([]); setSolicitudesCount(0);
       setPendientesCierre([]); setPendientesCierreCount(0);
