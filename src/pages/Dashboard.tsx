@@ -61,6 +61,7 @@ export default function Dashboard() {
   const [whatsappCount, setWhatsappCount] = useState<number>(0);
   const [whatsappUltimo, setWhatsappUltimo] = useState<string | null>(null);
   const [esFeriado, setEsFeriado] = useState(false);
+  const [canceladosHoy, setCanceladosHoy] = useState<number>(0);
 
 
 
@@ -148,14 +149,16 @@ export default function Dashboard() {
 
     // Datos del bot WhatsApp y feriado (solo para admin/recepcion)
     if (!profId) {
-      const [waCountRes, waUltimoRes, feriadoRes] = await Promise.all([
+      const [waCountRes, waUltimoRes, feriadoRes, canceladosRes] = await Promise.all([
         supabase.from("turnos").select("id", { count: "exact", head: true }).eq("origen", "whatsapp"),
         supabase.from("turnos").select("created_at").eq("origen", "whatsapp").order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("bloqueos_agenda").select("id").eq("todo_el_dia", true).eq("fecha_desde", today).eq("fecha_hasta", today).maybeSingle(),
+        supabase.from("turnos").select("id", { count: "exact", head: true }).eq("fecha", today).eq("estado", "cancelado"),
       ]);
       setWhatsappCount(waCountRes.count ?? 0);
       setWhatsappUltimo(waUltimoRes.data?.created_at ?? null);
       setEsFeriado(!!feriadoRes.data);
+      setCanceladosHoy(canceladosRes.count ?? 0);
     }
 
     setHoy((hoyRes.data ?? []) as unknown as TurnoRow[]);
@@ -253,25 +256,26 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground">Pacientes atendidos</p>
           </CardContent>
         </Card>
-        {canManagePendientes && (
-          <Link to="/turnos/solicitudes" className="block">
-            <Card
-              className="h-full transition-all hover:shadow-md border-l-4"
-              style={{ borderLeftColor: "hsl(var(--estado-solicitado))" }}
-            >
+        {canManagePendientes && (() => {
+          const total = hoy.length + canceladosHoy; // total incluyendo cancelados
+          const pct = total > 0 ? (canceladosHoy / total) * 100 : 0;
+          const colorClass = pct >= 50 ? "text-red-500" : pct >= 20 ? "text-amber-500" : "text-foreground";
+          const borderClass = pct >= 50 ? "border-l-red-500" : pct >= 20 ? "border-l-amber-500" : "border-l-muted-foreground/30";
+          return (
+            <Card className={`h-full border-l-4 ${borderClass}`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Solicitudes pendientes</CardTitle>
-                <Inbox className="h-4 w-4" style={{ color: "hsl(var(--estado-solicitado))" }} />
+                <CardTitle className="text-sm font-medium">Cancelados hoy</CardTitle>
+                <Ban className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold" style={{ color: "hsl(var(--estado-solicitado))" }}>
-                  {solicitudesCount}
-                </div>
-                <p className="text-xs text-muted-foreground">Reservas a confirmar</p>
+                <div className={`text-3xl font-bold ${colorClass}`}>{canceladosHoy}</div>
+                <p className="text-xs text-muted-foreground">
+                  {total > 0 ? `${Math.round(pct)}% del total del día` : "Sin turnos hoy"}
+                </p>
               </CardContent>
             </Card>
-          </Link>
-        )}
+          );
+        })()}
         {canManagePendientes && (
           <a href="#pendientes-cierre" className="block">
             <Card
