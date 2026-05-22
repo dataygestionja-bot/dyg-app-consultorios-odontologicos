@@ -149,8 +149,8 @@ export default function Dashboard() {
     // Datos del bot WhatsApp y feriado (solo para admin/recepcion)
     if (!profId) {
       const [waCountRes, waUltimoRes, feriadoRes] = await Promise.all([
-        supabase.from("turnos").select("id", { count: "exact", head: true }).eq("origen", "WhatsApp"),
-        supabase.from("turnos").select("created_at").eq("origen", "WhatsApp").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("turnos").select("id", { count: "exact", head: true }).eq("origen", "whatsapp"),
+        supabase.from("turnos").select("created_at").eq("origen", "whatsapp").order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("bloqueos_agenda").select("id").eq("todo_el_dia", true).eq("fecha_desde", today).eq("fecha_hasta", today).maybeSingle(),
       ]);
       setWhatsappCount(waCountRes.count ?? 0);
@@ -304,7 +304,7 @@ export default function Dashboard() {
           const hayAlerta = !inhabil && diffHoras !== null && diffHoras > 4;
 
           const ultimoLabel = ultimoDate
-            ? format(ultimoDate, "dd/MM HH:mm") + "hs"
+            ? format(ultimoDate, "dd/MM HH:mm'hs'")
             : "Sin registros";
 
           return (
@@ -323,9 +323,8 @@ export default function Dashboard() {
                 <div className={`text-3xl font-bold ${hayAlerta ? "text-red-500" : "text-green-600"}`}>
                   {whatsappCount}
                 </div>
-                <p className="text-xs text-muted-foreground truncate">
+                <p className="text-xs text-muted-foreground">
                   Último: {ultimoLabel}
-                  {inhabil && " · horario inhábil"}
                 </p>
               </CardContent>
             </Card>
