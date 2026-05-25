@@ -70,9 +70,10 @@ const itemsTurnos: Item[] = [
   { title: "Bloqueos de agenda", url: "/bloqueos", icon: CalendarOff, roles: ["admin", "recepcion"] },
 ];
 
-const itemsGestion: Item[] = [];
-// Prestaciones: accesible solo desde la ficha del paciente (solo lectura)
-// Presupuestos y Cobros: pendientes de rediseño completo
+const itemsGestion: Item[] = [
+  { title: "Caja diaria", url: "/caja", icon: DollarSign },
+  { title: "Historial de cajas", url: "/caja/historial", icon: ScrollText },
+];
 
 const itemsLaboratorio: Item[] = [
   { title: "Órdenes de trabajo", url: "/laboratorio/ordenes", icon: ClipboardCheck },

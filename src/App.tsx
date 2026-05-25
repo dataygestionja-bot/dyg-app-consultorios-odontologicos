@@ -41,6 +41,8 @@ import NotFound from "./pages/NotFound.tsx";
 import OrdenesTrabajoPage from "./pages/OrdenesTrabajoPage";
 import CuentaCorrienteLaboratorio from "./pages/CuentaCorrienteLaboratorio";
 import NominaLaboratorios from "./pages/NominaLaboratorios";
+import CajaDiaria from "./pages/CajaDiaria";
+import HistorialCajas from "./pages/HistorialCajas";
 
 const queryClient = new QueryClient();
 
@@ -140,6 +142,10 @@ const App = () => (
             <Route path="/cobros" element={
               <RoleProtected roles={["admin", "recepcion"]}><Cobros /></RoleProtected>
             } />
+
+            {/* Gestión - Caja */}
+            <Route path="/caja" element={<Private><CajaDiaria /></Private>} />
+            <Route path="/caja/historial" element={<Private><HistorialCajas /></Private>} />
 
             {/* Laboratorio */}
             <Route path="/laboratorio/ordenes" element={<Private><OrdenesTrabajoPage /></Private>} />
