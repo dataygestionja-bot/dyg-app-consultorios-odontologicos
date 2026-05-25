@@ -19,6 +19,7 @@ interface Caja {
   estado: EstadoCaja;
   comentario_cierre: string | null;
   created_at: string;
+  movimientos_caja: { tipo: "ingreso" | "egreso"; importe: number }[];
 }
 
 interface Movimiento {
@@ -59,7 +60,9 @@ export default function HistorialCajas() {
 
   async function cargar() {
     setLoading(true);
-    let q = supabase.from("caja_diaria").select("*").order("fecha", { ascending: false }).order("created_at", { ascending: false });
+    let q = supabase.from("caja_diaria")
+      .select("*, movimientos_caja(tipo, importe)")
+      .order("fecha", { ascending: false }).order("created_at", { ascending: false });
     if (fechaDesde) q = q.gte("fecha", fechaDesde);
     if (fechaHasta) q = q.lte("fecha", fechaHasta);
     const { data } = await q;
@@ -98,28 +101,37 @@ export default function HistorialCajas() {
                 <TableHead>Fecha</TableHead>
                 <TableHead>Nombre</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Saldo inicial</TableHead>
+                <TableHead className="text-right">Ingresos</TableHead>
+                <TableHead className="text-right">Egresos</TableHead>
+                <TableHead className="text-right">Saldo final</TableHead>
                 <TableHead>Comentario</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
               ) : cajas.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin cajas</TableCell></TableRow>
-              ) : cajas.map((c) => (
-                <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => verDetalle(c)}>
-                  <TableCell className="text-xs">{format(parseISO(c.fecha), "dd/MM/yyyy", { locale: es })}</TableCell>
-                  <TableCell className="text-xs font-medium">{c.nombre}</TableCell>
-                  <TableCell>
-                    <Badge variant={ESTADO_INFO[c.estado].variant} className="text-xs">
-                      {ESTADO_INFO[c.estado].label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right text-xs font-mono">{fmt(c.saldo_inicial)}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground truncate max-w-[200px]">{c.comentario_cierre ?? "—"}</TableCell>
-                </TableRow>
-              ))}
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin cajas</TableCell></TableRow>
+              ) : cajas.map((c) => {
+                const ing = c.movimientos_caja.filter(m => m.tipo === "ingreso").reduce((s, m) => s + m.importe, 0);
+                const eg = c.movimientos_caja.filter(m => m.tipo === "egreso").reduce((s, m) => s + m.importe, 0);
+                const sf = c.saldo_inicial + ing - eg;
+                return (
+                  <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => verDetalle(c)}>
+                    <TableCell className="text-xs">{format(parseISO(c.fecha), "dd/MM/yyyy", { locale: es })}</TableCell>
+                    <TableCell className="text-xs font-medium">{c.nombre}</TableCell>
+                    <TableCell>
+                      <Badge variant={ESTADO_INFO[c.estado].variant} className="text-xs">
+                        {ESTADO_INFO[c.estado].label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right text-xs font-mono text-green-600">{fmt(ing)}</TableCell>
+                    <TableCell className="text-right text-xs font-mono text-red-500">{fmt(eg)}</TableCell>
+                    <TableCell className="text-right text-xs font-mono font-semibold">{fmt(sf)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground truncate max-w-[200px]">{c.comentario_cierre ?? "—"}</TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
