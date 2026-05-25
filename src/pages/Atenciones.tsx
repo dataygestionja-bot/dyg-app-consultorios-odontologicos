@@ -51,8 +51,9 @@ function calcSaldo(practicas: Practica[]): number {
 
 export default function Atenciones() {
   const { can } = usePermissions();
-  const { hasAnyRole } = useAuth();
+  const { hasAnyRole, hasRole, user } = useAuth();
   const esAdminRecepcion = hasAnyRole(["admin", "recepcion"]);
+  const esProfesional = hasRole("profesional") && !esAdminRecepcion;
 
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +73,7 @@ export default function Atenciones() {
   async function cargar() {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("atenciones")
         .select(`
           id, fecha, diagnostico, tipo_atencion,
@@ -83,6 +84,23 @@ export default function Atenciones() {
         `)
         .order("fecha", { ascending: false });
 
+      // Si es profesional, filtrar por su profesional_id
+      if (esProfesional && user?.id) {
+        const { data: prof } = await supabase
+          .from("profesionales")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (prof?.id) {
+          query = query.eq("profesional_id", prof.id) as any;
+        } else {
+          setRows([]);
+          setLoading(false);
+          return;
+        }
+      }
+
+      const { data, error } = await query;
       if (error) console.error("Error cargando atenciones:", error);
       const atenciones = (data ?? []) as unknown as Row[];
       const filtradas = esAdminRecepcion
