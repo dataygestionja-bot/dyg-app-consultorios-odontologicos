@@ -441,7 +441,7 @@ export default function CajaDiaria() {
             <div className="grid grid-cols-3 gap-2 text-xs bg-muted/50 rounded-md px-3 py-2">
               <div><span className="text-muted-foreground">Ingresos</span><p className="font-medium text-green-600">{fmt(totalIngresos)}</p></div>
               <div><span className="text-muted-foreground">Egresos</span><p className="font-medium text-red-500">{fmt(totalEgresos)}</p></div>
-              <div><span className="text-muted-foreground">Saldo</span><p className="font-medium">{fmt(saldoFinal)}</p></div>
+              <div><span className="text-muted-foreground">Saldo final</span><p className="font-medium">{fmt(saldoFinal)}</p></div>
             </div>
 
             {/* Desglose por medio de pago */}
@@ -449,7 +449,9 @@ export default function CajaDiaria() {
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Desglose por medio de pago</p>
               <div className="rounded-md border divide-y text-xs">
                 {(() => {
-                  const medios: Record<string, { ingresos: number; egresos: number }> = {};
+                  const medios: Record<string, { ingresos: number; egresos: number }> = {
+                    efectivo: { ingresos: cajaActiva?.saldo_inicial ?? 0, egresos: 0 }
+                  };
                   movimientos.forEach(m => {
                     if (!medios[m.medio_pago]) medios[m.medio_pago] = { ingresos: 0, egresos: 0 };
                     if (m.tipo === "ingreso") medios[m.medio_pago].ingresos += m.importe;

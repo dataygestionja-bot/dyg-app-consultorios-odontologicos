@@ -20,6 +20,8 @@ interface Caja {
   comentario_cierre: string | null;
   created_at: string;
   movimientos_caja: { tipo: "ingreso" | "egreso"; importe: number }[];
+  creado_por: string | null;
+  cerrado_por: string | null;
 }
 
 interface Movimiento {
@@ -47,6 +49,7 @@ const MEDIO_LABELS: Record<string, string> = {
 
 export default function HistorialCajas() {
   const [cajas, setCajas] = useState<Caja[]>([]);
+  const [perfiles, setPerfiles] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
@@ -65,7 +68,15 @@ export default function HistorialCajas() {
       .order("fecha", { ascending: false }).order("created_at", { ascending: false });
     if (fechaDesde) q = q.gte("fecha", fechaDesde);
     if (fechaHasta) q = q.lte("fecha", fechaHasta);
-    const { data } = await q;
+    const [{ data }, { data: profs }] = await Promise.all([
+      q,
+      supabase.from("profiles").select("id, nombre, apellido"),
+    ]);
+    const map: Record<string, string> = {};
+    (profs ?? []).forEach((p: any) => {
+      map[p.id] = `${p.nombre ?? ""} ${p.apellido ?? ""}`.trim() || "—";
+    });
+    setPerfiles(map);
     setCajas((data ?? []) as Caja[]);
     setLoading(false);
   }
@@ -104,15 +115,15 @@ export default function HistorialCajas() {
                 <TableHead className="text-right">Ingresos</TableHead>
                 <TableHead className="text-right">Egresos</TableHead>
                 <TableHead className="text-right">Saldo final</TableHead>
-                <TableHead>Comentario</TableHead>
+                <TableHead>Abrió</TableHead>
+                <TableHead>Conforme</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
               ) : cajas.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin cajas</TableCell></TableRow>
-              ) : cajas.map((c) => {
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin cajas</TableCell></TableRow>              ) : cajas.map((c) => {
                 const ing = c.movimientos_caja.filter(m => m.tipo === "ingreso").reduce((s, m) => s + m.importe, 0);
                 const eg = c.movimientos_caja.filter(m => m.tipo === "egreso").reduce((s, m) => s + m.importe, 0);
                 const sf = c.saldo_inicial + ing - eg;
@@ -128,7 +139,8 @@ export default function HistorialCajas() {
                     <TableCell className="text-right text-xs font-mono text-green-600">{fmt(ing)}</TableCell>
                     <TableCell className="text-right text-xs font-mono text-red-500">{fmt(eg)}</TableCell>
                     <TableCell className="text-right text-xs font-mono font-semibold">{fmt(sf)}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground truncate max-w-[200px]">{c.comentario_cierre ?? "—"}</TableCell>
+                    <TableCell className="text-xs">{c.creado_por ? perfiles[c.creado_por] ?? "—" : "—"}</TableCell>
+                    <TableCell className="text-xs">{c.cerrado_por ? perfiles[c.cerrado_por] ?? "—" : "—"}</TableCell>
                   </TableRow>
                 );
               })}
