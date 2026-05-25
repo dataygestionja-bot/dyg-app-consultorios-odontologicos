@@ -8,15 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
-type MedioPago = "efectivo" | "transferencia" | "debito" | "credito" | "mercadopago" | "otro";
+type MedioPago = "efectivo" | "transferencia" | "debito" | "credito" | "cheque";
 
 const MEDIO_PAGO_LABELS: Record<MedioPago, string> = {
   efectivo: "Efectivo",
   transferencia: "Transferencia",
   debito: "Débito",
   credito: "Crédito",
-  mercadopago: "MercadoPago",
-  otro: "Otro",
+  cheque: "Cheque",
 };
 
 interface Cobro {
@@ -95,8 +94,17 @@ export function RegistrarCobroDialog({ atencionId, pacienteId, fecha, open, onOp
   async function guardar() {
     const totalHaber = Object.values(haberes).reduce((s, v) => s + (parseFloat(v) || 0), 0);
     if (totalHaber <= 0) return toast.error("Ingresá al menos un importe en Haber");
+
+    // Verificar que ningún haber exceda el saldo de su práctica
+    for (const p of practicas) {
+      const saldoActual = (parseFloat(debes[p.id] ?? String(p.debe)) || 0) - haberAcumulado(p);
+      const haberNuevo = parseFloat(haberes[p.id] || "0") || 0;
+      if (haberNuevo > saldoActual) {
+        return toast.error(`El haber de ${p.prestacion?.codigo} excede el saldo pendiente`);
+      }
+    }
     if (!medioPago) return toast.error("Seleccioná el medio de pago");
-    if (medioPago !== "efectivo" && medioPago !== "debito" && medioPago !== "credito" && !referencia.trim()) return toast.error("Ingresá la referencia del pago");
+    if (medioPago !== "efectivo" && !referencia.trim()) return toast.error("Ingresá la referencia del pago");
 
     setGuardando(true);
 
@@ -191,16 +199,28 @@ export function RegistrarCobroDialog({ atencionId, pacienteId, fecha, open, onOp
                     className="h-7 text-xs text-right bg-muted"
                     value={haberAcumulado(p).toLocaleString("es-AR")}
                   />
-                  <Input
-                    type="number"
-                    min={0}
-                    step={1}
-                    className="h-7 text-xs text-right"
-                    placeholder="0"
-                    value={haberes[p.id] ?? ""}
-                    onChange={(e) => setHaberes((h) => ({ ...h, [p.id]: e.target.value }))}
-                    onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
-                  />
+                  {(() => {
+                    const saldoActual = (parseFloat(debes[p.id] ?? String(p.debe)) || 0) - haberAcumulado(p);
+                    const haberNuevo = parseFloat(haberes[p.id] || "0") || 0;
+                    const saldado = saldoActual <= 0;
+                    const excede = haberNuevo > saldoActual;
+                    return (
+                      <div className="space-y-0.5">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={1}
+                          className={`h-7 text-xs text-right ${excede ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+                          placeholder="0"
+                          value={haberes[p.id] ?? ""}
+                          disabled={saldado}
+                          onChange={(e) => setHaberes((h) => ({ ...h, [p.id]: e.target.value }))}
+                          onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+                        />
+                        {excede && <p className="text-[10px] text-red-500 text-right">Excede el saldo</p>}
+                      </div>
+                    );
+                  })()}
                   <Input
                     readOnly
                     className={`h-7 text-xs text-right bg-muted font-medium ${saldoPractica(p) > 0 ? "text-amber-600" : "text-green-600"}`}
@@ -236,7 +256,7 @@ export function RegistrarCobroDialog({ atencionId, pacienteId, fecha, open, onOp
                   </SelectContent>
                 </Select>
               </div>
-              {medioPago !== "efectivo" && medioPago !== "debito" && medioPago !== "credito" && (
+              {medioPago !== "efectivo" && (
                 <div className="space-y-1">
                   <Label className="text-xs">Referencia *</Label>
                   <Input
