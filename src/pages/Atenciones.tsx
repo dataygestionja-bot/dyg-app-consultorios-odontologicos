@@ -100,11 +100,20 @@ export default function Atenciones() {
         }
       }
 
-      const { data, error } = await query;
+      const hoy = new Date().toISOString().slice(0, 10);
+      const [{ data, error }, { data: cobrosHoy }] = await Promise.all([
+        query,
+        supabase.from("cobros").select("paciente_id").eq("fecha", hoy),
+      ]);
+
       if (error) console.error("Error cargando atenciones:", error);
       const atenciones = (data ?? []) as unknown as Row[];
+      const pacientesConCobrosHoy = new Set((cobrosHoy ?? []).map((c) => c.paciente_id));
       const filtradas = esAdminRecepcion
-        ? atenciones.filter((a) => calcSaldo(a.atencion_practicas) > 0)
+        ? atenciones.filter((a) =>
+            calcSaldo(a.atencion_practicas) > 0 ||
+            (a.paciente?.id && pacientesConCobrosHoy.has(a.paciente.id))
+          )
         : atenciones;
 
       setRows(filtradas);
@@ -145,7 +154,7 @@ export default function Atenciones() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Atenciones</h1>
           <p className="text-sm text-muted-foreground">
-            {esAdminRecepcion ? "Atenciones con saldo pendiente" : "Historial de atenciones clínicas"}
+            {esAdminRecepcion ? "Atenciones con saldo pendiente · hoy saldadas" : "Historial de atenciones clínicas"}
           </p>
         </div>
         {can("atenciones", "create") && !esAdminRecepcion && (
@@ -236,8 +245,12 @@ export default function Atenciones() {
                       </TableCell>
                       <TableCell className="hidden md:table-cell max-w-[200px] truncate">{a.diagnostico ?? "—"}</TableCell>
                       {esAdminRecepcion && (
-                        <TableCell className="text-right font-medium text-amber-600 whitespace-nowrap">
-                          $ {saldo.toLocaleString("es-AR")}
+                        <TableCell className="text-right font-medium whitespace-nowrap">
+                          {saldo > 0 ? (
+                            <span className="text-amber-600">$ {saldo.toLocaleString("es-AR")}</span>
+                          ) : (
+                            <span className="text-green-600 text-xs">✓ Saldado</span>
+                          )}
                         </TableCell>
                       )}
                       <TableCell className="text-right">

@@ -8,15 +8,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
-type MedioPago = "efectivo" | "transferencia" | "debito" | "credito" | "cheque";
+type MedioPago = "efectivo" | "transferencia" | "debito" | "credito" | "mercadopago" | "otro";
 
 const MEDIO_PAGO_LABELS: Record<MedioPago, string> = {
   efectivo: "Efectivo",
   transferencia: "Transferencia",
   debito: "Débito",
   credito: "Crédito",
-  cheque: "Cheque",
+  mercadopago: "MercadoPago",
+  otro: "Otro",
 };
+
+interface CobroHoy {
+  id: string;
+  importe: number;
+  medio_pago: string;
+  referencia: string | null;
+  observaciones: string | null;
+}
 
 interface Cobro {
   importe_aplicado: number;
@@ -47,34 +56,71 @@ export function RegistrarCobroDialog({ atencionId, pacienteId, fecha, open, onOp
   const [referencia, setReferencia] = useState("");
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [cobrosHoy, setCobrosHoy] = useState<CobroHoy[]>([]);
+  const [cobroEditId, setCobroEditId] = useState<string | null>(null);
+  const [editImporte, setEditImporte] = useState("");
+  const [editMedio, setEditMedio] = useState<MedioPago>("efectivo");
+  const [editRef, setEditRef] = useState("");
+  const [guardandoEdit, setGuardandoEdit] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
-    setMedioPago("efectivo");
+  if (!open) return;
+  console.log("pacienteId:", pacienteId, "fecha prop:", fecha);
+  setMedioPago("efectivo");
     setReferencia("");
     cargar();
   }, [open, atencionId]);
 
   async function cargar() {
     setLoading(true);
-    const { data } = await supabase
-      .from("atencion_practicas")
-      .select("id, debe, prestacion:prestaciones(codigo, descripcion), cobro_aplicaciones(importe_aplicado)")
-      .eq("atencion_id", atencionId)
-      .order("orden");
+    const today = new Date().toISOString().slice(0, 10);
+    const [{ data }, { data: cobros }] = await Promise.all([
+      supabase.from("atencion_practicas")
+        .select("id, debe, prestacion:prestaciones(codigo, descripcion), cobro_aplicaciones(importe_aplicado)")
+        .eq("atencion_id", atencionId).order("orden"),
+      supabase.from("cobros")
+        .select("id, importe, medio_pago, referencia, observaciones")
+        .eq("paciente_id", pacienteId)
+        .eq("fecha", today)
+        .order("created_at", { ascending: false }),
+    ]);
     const rows = (data ?? []) as unknown as Practica[];
     setPracticas(rows);
-
-    // Inicializar haberes en 0 y debes con el valor actual
+    setCobrosHoy((cobros ?? []) as CobroHoy[]);
     const h: Record<string, string> = {};
     const d: Record<string, string> = {};
-    rows.forEach((p) => {
-      h[p.id] = "";
-      d[p.id] = String(p.debe ?? 0);
-    });
+    rows.forEach((p) => { h[p.id] = ""; d[p.id] = String(p.debe ?? 0); });
     setHaberes(h);
     setDebes(d);
+    setCobroEditId(null);
     setLoading(false);
+  }
+
+  async function guardarEdicion() {
+    if (!cobroEditId) return;
+    if (!editImporte || parseFloat(editImporte) <= 0) return toast.error("Ingresá un importe válido");
+    if (editMedio !== "efectivo" && editMedio !== "debito" && editMedio !== "credito" && !editRef.trim()) {
+      return toast.error("Ingresá la referencia");
+    }
+    setGuardandoEdit(true);
+    const { error } = await supabase.from("cobros").update({
+      importe: parseFloat(editImporte),
+      medio_pago: editMedio,
+      referencia: editRef.trim() || null,
+    }).eq("id", cobroEditId);
+    setGuardandoEdit(false);
+    if (error) return toast.error("Error actualizando cobro", { description: error.message });
+    toast.success("Cobro actualizado");
+    setCobroEditId(null);
+    await cargar();
+    onSaved();
+  }
+
+  function seleccionarCobroEditar(cobro: CobroHoy) {
+    setCobroEditId(cobro.id);
+    setEditImporte(String(cobro.importe));
+    setEditMedio(cobro.medio_pago as MedioPago);
+    setEditRef(cobro.referencia ?? "");
   }
 
   function haberAcumulado(p: Practica): number {
@@ -124,7 +170,7 @@ export function RegistrarCobroDialog({ atencionId, pacienteId, fecha, open, onOp
       if (haberNuevo <= 0) continue;
 
       const { data: cobro, error } = await supabase.from("cobros").insert({
-        fecha,
+        fecha: new Date().toISOString().slice(0, 10),
         paciente_id: pacienteId,
         importe: haberNuevo,
         medio_pago: medioPago,
@@ -240,6 +286,64 @@ export function RegistrarCobroDialog({ atencionId, pacienteId, fecha, open, onOp
                 </div>
               </div>
             </div>
+
+            {/* Cobros del día */}
+            {cobrosHoy.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <Label className="text-xs font-medium">Cobros registrados hoy</Label>
+                <div className="space-y-1">
+                  {cobrosHoy.map((c) => (
+                    <div key={c.id} className={`rounded-md border px-3 py-2 cursor-pointer text-xs ${cobroEditId === c.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}
+                      onClick={() => cobroEditId === c.id ? setCobroEditId(null) : seleccionarCobroEditar(c)}>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">{c.observaciones ?? "Cobro"}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">${c.importe.toLocaleString("es-AR")}</span>
+                          <span className="text-muted-foreground">{MEDIO_PAGO_LABELS[c.medio_pago as MedioPago] ?? c.medio_pago}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {cobroEditId && (
+                  <div className="rounded-md border border-primary p-3 space-y-2 bg-primary/5">
+                    <p className="text-xs font-medium text-primary">Editando cobro</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Importe</Label>
+                        <Input type="number" min={0} step={1} className="h-7 text-xs text-right"
+                          value={editImporte} onChange={(e) => setEditImporte(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Medio de pago</Label>
+                        <Select value={editMedio} onValueChange={(v) => setEditMedio(v as MedioPago)}>
+                          <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {(Object.keys(MEDIO_PAGO_LABELS) as MedioPago[]).map((m) => (
+                              <SelectItem key={m} value={m}>{MEDIO_PAGO_LABELS[m]}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {editMedio !== "efectivo" && editMedio !== "debito" && editMedio !== "credito" && (
+                        <div className="space-y-1">
+                          <Label className="text-xs">Referencia</Label>
+                          <Input className="h-7 text-xs" value={editRef} onChange={(e) => setEditRef(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setCobroEditId(null)}>Cancelar</Button>
+                      <Button size="sm" className="h-7 text-xs" onClick={guardarEdicion} disabled={guardandoEdit}>
+                        {guardandoEdit ? "Guardando..." : "Guardar cambios"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Medio de pago */}
             <div className="grid grid-cols-2 gap-3 pt-2 border-t">
