@@ -175,6 +175,7 @@ export default function OrdenesTrabajoPage() {
                 <TableRow>
                   <TableHead>Fecha</TableHead>
                   <TableHead>Paciente</TableHead>
+                  <TableHead>Profesional</TableHead>
                   <TableHead>Laboratorio</TableHead>
                   <TableHead>Tipo de trabajo</TableHead>
                   <TableHead>Prioridad</TableHead>
@@ -188,9 +189,9 @@ export default function OrdenesTrabajoPage() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">Sin órdenes</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground">Sin órdenes</TableCell></TableRow>
                 ) : filtered.map((o) => (
                   <TableRow key={o.id}>
                     <TableCell className="whitespace-nowrap text-xs">
@@ -198,6 +199,9 @@ export default function OrdenesTrabajoPage() {
                     </TableCell>
                     <TableCell className="text-xs">
                       {o.paciente ? `${o.paciente.apellido}, ${o.paciente.nombre}` : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {o.profesional ? `${o.profesional.apellido}, ${o.profesional.nombre}` : "—"}
                     </TableCell>
                     <TableCell className="text-xs">{o.laboratorio?.nombre ?? "—"}</TableCell>
                     <TableCell className="text-xs">{o.tipo_trabajo}</TableCell>
