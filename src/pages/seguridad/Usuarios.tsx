@@ -100,6 +100,31 @@ export default function Usuarios() {
           .from("user_roles")
           .insert(toAdd.map((role) => ({ user_id: editing.id, role })));
         if (error) throw error;
+
+        // Si se agrega el rol profesional, crear registro en profesionales si no existe
+        if (toAdd.includes("profesional")) {
+          const { data: yaExiste } = await supabase
+            .from("profesionales")
+            .select("id")
+            .eq("user_id", editing.id)
+            .maybeSingle();
+
+          if (!yaExiste) {
+            const { error: errProf } = await supabase.from("profesionales").insert({
+              user_id: editing.id,
+              nombre: editing.nombre ?? "",
+              apellido: editing.apellido ?? "",
+              activo: true,
+            });
+            if (errProf) {
+              toast.warning("Rol asignado pero no se pudo crear el perfil profesional", {
+                description: errProf.message,
+              });
+            } else {
+              toast.info("Perfil profesional creado automáticamente");
+            }
+          }
+        }
       }
       if (toRemove.length > 0) {
         const { error } = await supabase

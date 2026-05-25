@@ -186,9 +186,13 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
                 className="h-8 text-xs text-right"
                 placeholder="0"
                 value={nuevoPago}
+                disabled={costo - pagoAcumulado <= 0}
                 onChange={(e) => setNuevoPago(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
               />
+              {costo - pagoAcumulado <= 0 && (
+                <p className="text-xs text-green-600">Orden saldada</p>
+              )}
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Saldo</Label>

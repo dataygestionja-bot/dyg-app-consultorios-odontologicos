@@ -25,6 +25,7 @@ interface Orden {
   paciente: { nombre: string; apellido: string } | null;
   profesional: { nombre: string; apellido: string } | null;
   laboratorio: { id: string; nombre: string } | null;
+  pagos_laboratorio: { importe: number }[];
 }
 
 interface Laboratorio { id: string; nombre: string; }
@@ -86,7 +87,8 @@ export default function OrdenesTrabajoPage() {
         costo_presupuestado, costo_final, created_at,
         paciente:pacientes(nombre, apellido),
         profesional:profesionales(nombre, apellido),
-        laboratorio:laboratorios(id, nombre)
+        laboratorio:laboratorios(id, nombre),
+        pagos_laboratorio(importe)
       `).order("created_at", { ascending: false }),
       supabase.from("laboratorios").select("id, nombre").eq("activo", true).order("nombre"),
       supabase.from("profesionales").select("id, nombre, apellido").eq("activo", true).order("apellido"),
@@ -180,14 +182,15 @@ export default function OrdenesTrabajoPage() {
                   <TableHead>Entrega estimada</TableHead>
                   <TableHead>Retraso</TableHead>
                   <TableHead className="text-right">Costo</TableHead>
+                  <TableHead>Pago</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">Sin órdenes</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">Sin órdenes</TableCell></TableRow>
                 ) : filtered.map((o) => (
                   <TableRow key={o.id}>
                     <TableCell className="whitespace-nowrap text-xs">
@@ -221,6 +224,16 @@ export default function OrdenesTrabajoPage() {
                     </TableCell>
                     <TableCell className="text-right text-xs font-mono">
                       ${(o.costo_final || o.costo_presupuestado).toLocaleString("es-AR")}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const costo = o.costo_final || o.costo_presupuestado;
+                        const pagado = (o.pagos_laboratorio ?? []).reduce((s, p) => s + p.importe, 0);
+                        if (costo === 0) return <span className="text-xs text-muted-foreground">—</span>;
+                        if (pagado >= costo) return <Badge className="text-xs bg-green-500 text-white">Saldada</Badge>;
+                        if (pagado === 0) return <Badge variant="destructive" className="text-xs">Impaga</Badge>;
+                        return <Badge className="text-xs bg-amber-500 text-white">Pago parcial</Badge>;
+                      })()}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="sm" onClick={() => setOrdenEditar(o)}>
