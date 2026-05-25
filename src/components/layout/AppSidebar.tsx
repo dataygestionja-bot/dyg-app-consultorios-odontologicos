@@ -20,6 +20,10 @@ import {
   MessageSquare,
   Inbox,
   Plug,
+  FlaskConical,
+  ClipboardCheck,
+  BookUser,
+  DollarSign,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -70,6 +74,12 @@ const itemsGestion: Item[] = [];
 // Prestaciones: accesible solo desde la ficha del paciente (solo lectura)
 // Presupuestos y Cobros: pendientes de rediseño completo
 
+const itemsLaboratorio: Item[] = [
+  { title: "Órdenes de trabajo", url: "/laboratorio/ordenes", icon: ClipboardCheck },
+  { title: "Cuenta corriente", url: "/laboratorio/cuenta-corriente", icon: DollarSign },
+  { title: "Nómina de laboratorios", url: "/laboratorio/nomina", icon: BookUser, roles: ["admin", "recepcion"] },
+];
+
 const itemsSeguridad: Item[] = [
   { title: "Usuarios", url: "/seguridad/usuarios", icon: Users, roles: ["admin"] },
   { title: "Perfiles", url: "/seguridad/perfiles", icon: UserCog, roles: ["admin"] },
@@ -94,6 +104,7 @@ export function AppSidebar() {
   const visibleOp = itemsOperatoria.filter(canSee);
   const visibleTur = itemsTurnos.filter(canSee);
   const visibleGes = itemsGestion.filter(canSee);
+  const visibleLab = itemsLaboratorio.filter(canSee);
   const visibleSeg = itemsSeguridad.filter(canSee);
 
   const segActive = location.pathname.startsWith("/seguridad") || location.pathname === "/usuarios";
@@ -102,6 +113,8 @@ export function AppSidebar() {
   const [gesOpen, setGesOpen] = useState(gesActive);
   const turActive = ["/turnos", "/bloqueos"].some((p) => location.pathname.startsWith(p));
   const [turOpen, setTurOpen] = useState(turActive);
+  const labActive = location.pathname.startsWith("/laboratorio");
+  const [labOpen, setLabOpen] = useState(labActive);
 
   return (
     <Sidebar collapsible="icon">
@@ -207,6 +220,49 @@ export function AppSidebar() {
                     <CollapsibleContent>
                       <SidebarMenuSub>
                         {visibleGes.map((item) => (
+                          <SidebarMenuSubItem key={item.title}>
+                            <SidebarMenuSubButton asChild>
+                              <NavLink
+                                to={item.url}
+                                className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                                activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                              >
+                                <item.icon className="h-4 w-4" />
+                                {!collapsed && <span>{item.title}</span>}
+                              </NavLink>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {visibleLab.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Laboratorio</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <Collapsible open={collapsed ? true : labOpen} onOpenChange={setLabOpen}>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent/50">
+                        <FlaskConical className="h-4 w-4" />
+                        {!collapsed && (
+                          <>
+                            <span className="flex-1 text-left">Laboratorio</span>
+                            <ChevronDown className={`h-4 w-4 transition-transform ${labOpen ? "rotate-180" : ""}`} />
+                          </>
+                        )}
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {visibleLab.map((item) => (
                           <SidebarMenuSubItem key={item.title}>
                             <SidebarMenuSubButton asChild>
                               <NavLink

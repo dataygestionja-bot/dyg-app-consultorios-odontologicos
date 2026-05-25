@@ -31,6 +31,8 @@ interface Laboratorio {
   nombre: string;
 }
 
+interface Paciente { id: string; nombre: string; apellido: string; }
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -41,21 +43,29 @@ interface Props {
   profesionalNombre: string;
   fecha: string;
   onSaved?: () => void;
+  standalone?: boolean;
+  profesionales?: { id: string; nombre: string; apellido: string }[];
 }
 
 export function OrdenTrabajoDialog({
   open, onOpenChange,
-  atencionId, pacienteId, pacienteNombre,
-  profesionalId, profesionalNombre,
-  fecha, onSaved,
+  atencionId, pacienteId: pacienteIdProp, pacienteNombre: pacienteNombreProp,
+  profesionalId: profesionalIdProp, profesionalNombre: profesionalNombreProp,
+  fecha: fechaProp, onSaved,
+  standalone = false,
+  profesionales: profesionalesProp = [],
 }: Props) {
   const { user } = useAuth();
   const [laboratorios, setLaboratorios] = useState<Laboratorio[]>([]);
+  const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [laboratorioId, setLaboratorioId] = useState("");
+  const [pacienteId, setPacienteId] = useState(pacienteIdProp);
+  const [profesionalId, setProfesionalId] = useState(profesionalIdProp);
   const [tipoTrabajo, setTipoTrabajo] = useState("");
   const [indicaciones, setIndicaciones] = useState("");
   const [prioridad, setPrioridad] = useState<Prioridad>("media");
   const [fechaEntrega, setFechaEntrega] = useState("");
+  const [fecha, setFecha] = useState(fechaProp);
   const [costoPresupuestado, setCostoPresupuestado] = useState("");
   const [senia, setSenia] = useState("");
   const [medioPago, setMedioPago] = useState<MedioPago>("efectivo");
@@ -65,8 +75,20 @@ export function OrdenTrabajoDialog({
   useEffect(() => {
     if (!open) return;
     resetForm();
-    supabase.from("laboratorios").select("id, nombre").eq("activo", true).order("nombre")
-      .then(({ data }) => setLaboratorios((data ?? []) as Laboratorio[]));
+    setPacienteId(pacienteIdProp);
+    setProfesionalId(profesionalIdProp);
+    setFecha(fechaProp);
+    const queries: Promise<any>[] = [
+      supabase.from("laboratorios").select("id, nombre").eq("activo", true).order("nombre")
+        .then(({ data }) => setLaboratorios((data ?? []) as Laboratorio[])),
+    ];
+    if (standalone) {
+      queries.push(
+        supabase.from("pacientes").select("id, nombre, apellido").eq("activo", true).order("apellido")
+          .then(({ data }) => setPacientes((data ?? []) as Paciente[]))
+      );
+    }
+    Promise.all(queries);
   }, [open]);
 
   function resetForm() {
@@ -84,6 +106,8 @@ export function OrdenTrabajoDialog({
   const saldo = (parseFloat(costoPresupuestado) || 0) - (parseFloat(senia) || 0);
 
   async function guardar() {
+    if (standalone && !pacienteId) return toast.error("Seleccioná un paciente");
+    if (standalone && !profesionalId) return toast.error("Seleccioná un profesional");
     if (!laboratorioId) return toast.error("Seleccioná un laboratorio");
     if (!tipoTrabajo.trim()) return toast.error("Ingresá el tipo de trabajo");
     const costo = parseFloat(costoPresupuestado) || 0;
@@ -143,12 +167,39 @@ export function OrdenTrabajoDialog({
         </DialogHeader>
 
         <div className="space-y-2 py-1">
-          {/* Datos heredados de la atención */}
-          <div className="grid grid-cols-3 gap-2 text-xs bg-muted/50 rounded-md px-3 py-2">
-            <div><span className="text-muted-foreground">Paciente</span><p className="font-medium truncate">{pacienteNombre}</p></div>
-            <div><span className="text-muted-foreground">Profesional</span><p className="font-medium truncate">{profesionalNombre}</p></div>
-            <div><span className="text-muted-foreground">Fecha</span><p className="font-medium">{fecha}</p></div>
-          </div>
+          {/* Datos heredados o seleccionables */}
+          {standalone ? (
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Paciente *</Label>
+                <Select value={pacienteId} onValueChange={setPacienteId}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>
+                    {pacientes.map((p) => <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Profesional *</Label>
+                <Select value={profesionalId} onValueChange={setProfesionalId}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>
+                    {profesionalesProp.map((p) => <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Fecha</Label>
+                <Input type="date" className="h-8 text-xs" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2 text-xs bg-muted/50 rounded-md px-3 py-2">
+              <div><span className="text-muted-foreground">Paciente</span><p className="font-medium truncate">{pacienteNombreProp}</p></div>
+              <div><span className="text-muted-foreground">Profesional</span><p className="font-medium truncate">{profesionalNombreProp}</p></div>
+              <div><span className="text-muted-foreground">Fecha</span><p className="font-medium">{fechaProp}</p></div>
+            </div>
+          )}
 
           {/* Laboratorio y tipo en la misma fila */}
           <div className="grid grid-cols-2 gap-2">
