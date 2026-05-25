@@ -23,7 +23,8 @@ import HistorialOdontograma from "@/components/paciente/HistorialOdontograma";
 import { Badge } from "@/components/ui/badge";
 import { IntegracionRctaInline } from "@/components/integraciones/IntegracionRctaInline";
 import { AgregarDocumentacionDialog, type DocPendiente } from "@/components/atenciones/AgregarDocumentacionDialog";
-import { FileUp } from "lucide-react";
+import { OrdenTrabajoDialog } from "@/components/atenciones/OrdenTrabajoDialog";
+import { FileUp, FlaskConical } from "lucide-react";
 
 interface Paciente { id: string; nombre: string; apellido: string; dni: string; alergias?: string | null; medicacion_actual?: string | null; antecedentes_medicos?: string | null; }
 interface Profesional { id: string; nombre: string; apellido: string; }
@@ -127,6 +128,7 @@ export default function AtencionForm() {
   const [agendarProximo, setAgendarProximo] = useState<boolean>(true);
   const [cargandoSlotsProx, setCargandoSlotsProx] = useState(false);
   const [docDialogOpen, setDocDialogOpen] = useState(false);
+  const [ordenDialogOpen, setOrdenDialogOpen] = useState(false);
   const [odontoPendientes, setOdontoPendientes] = useState<Map<string, PendienteCara>>(new Map());
   const [docsPendientes, setDocsPendientes] = useState<DocPendiente[]>([]);
 
@@ -916,6 +918,14 @@ export default function AtencionForm() {
                 type="button"
                 size="sm"
                 variant="outline"
+                onClick={() => setOrdenDialogOpen(true)}
+              >
+                <FlaskConical className="h-4 w-4" /> Orden de trabajo
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
                 onClick={() => setDocDialogOpen(true)}
               >
                 <FileUp className="h-4 w-4" /> Agregar documentación
@@ -1107,6 +1117,22 @@ export default function AtencionForm() {
         open={docDialogOpen}
         onOpenChange={setDocDialogOpen}
         onAgregar={(docs) => setDocsPendientes((prev) => [...prev, ...docs])}
+      />
+      <OrdenTrabajoDialog
+        open={ordenDialogOpen}
+        onOpenChange={setOrdenDialogOpen}
+        atencionId={id && id !== "nuevo" ? id : null}
+        pacienteId={form.paciente_id}
+        pacienteNombre={(() => {
+          const p = pacientes.find((x) => x.id === form.paciente_id);
+          return p ? `${p.apellido}, ${p.nombre}` : "—";
+        })()}
+        profesionalId={form.profesional_id}
+        profesionalNombre={(() => {
+          const p = profesionales.find((x) => x.id === form.profesional_id);
+          return p ? `${p.apellido}, ${p.nombre}` : "—";
+        })()}
+        fecha={form.fecha}
       />
     </div>
   );
