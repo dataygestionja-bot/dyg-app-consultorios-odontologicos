@@ -46,7 +46,20 @@ interface PracticaRow {
   cantidad: number;
   observacion: string;
   orden: number;
+  debe: number;
+  haber: number;
+  medio_pago: string;
+  referencia: string;
 }
+
+const MEDIOS_PAGO = [
+  { value: "efectivo", label: "Efectivo" },
+  { value: "transferencia", label: "Transferencia" },
+  { value: "debito", label: "Débito" },
+  { value: "credito", label: "Crédito" },
+  { value: "mercadopago", label: "MercadoPago" },
+  { value: "otro", label: "Otro" },
+];
 
 const empty = {
   paciente_id: "",
@@ -67,6 +80,10 @@ const newPractica = (orden: number): PracticaRow => ({
   cantidad: 1,
   observacion: "",
   orden,
+  debe: 0,
+  haber: 0,
+  medio_pago: "efectivo",
+  referencia: "",
 });
 
 const ESTADOS_OCUPAN = new Set([
@@ -229,6 +246,10 @@ export default function AtencionForm() {
             cantidad: p.cantidad,
             observacion: p.observacion ?? "",
             orden: p.orden,
+            debe: (p as any).debe ?? 0,
+            haber: (p as any).haber ?? 0,
+            medio_pago: "efectivo",
+            referencia: "",
           }));
         }
       } else if (turnoIdParam) {
@@ -513,9 +534,38 @@ export default function AtencionForm() {
           cantidad: p.cantidad || 1,
           observacion: p.observacion || null,
           orden: i + 1,
+          debe: p.debe || 0,
         }));
-        const { error: errIns } = await supabase.from("atencion_practicas").insert(rows);
+        const { data: practicasInsertadas, error: errIns } = await supabase
+          .from("atencion_practicas").insert(rows).select("id, debe");
         if (errIns) { setSubmitting(false); return toast.error("Atención guardada, pero falló el detalle", { description: errIns.message }); }
+
+        // Registrar cobros iniciales (haber > 0) por práctica
+        const userRes = await supabase.auth.getUser();
+        const userId = userRes.data.user?.id ?? null;
+        for (let i = 0; i < validas.length; i++) {
+          const practica = validas[i];
+          const practicaId = practicasInsertadas?.[i]?.id;
+          if (practica.haber > 0 && practicaId) {
+            const { data: cobro } = await supabase.from("cobros").insert({
+              fecha: form.fecha,
+              paciente_id: form.paciente_id,
+              importe: practica.haber,
+              medio_pago: practica.medio_pago || "efectivo",
+              referencia: practica.referencia?.trim() || null,
+              observaciones: "Pago inicial en atención",
+              usuario_registro: userId,
+            }).select("id").single();
+            if (cobro?.id) {
+              await supabase.from("cobro_aplicaciones").insert({
+                cobro_id: cobro.id,
+                atencion_id: atencionId,
+                practica_id: practicaId,
+                importe_aplicado: practica.haber,
+              });
+            }
+          }
+        }
       }
     }
 
@@ -688,7 +738,9 @@ export default function AtencionForm() {
         </div>
       </div>
 
-      <form onSubmit={guardar} className="space-y-3">
+      <form onSubmit={guardar} className="space-y-3" onKeyDown={(e) => {
+        if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault();
+      }}>
         {/* Cabecera compacta */}
         <Card>
           <CardContent className="py-3">
@@ -879,25 +931,81 @@ export default function AtencionForm() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3 pt-0">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Prestación</Label>
+            <div className="space-y-2">
+              <div className="grid grid-cols-[180px_80px_80px_80px_32px] gap-2 items-center mb-0.5">
+                <span className="text-xs text-muted-foreground px-1">Prestación</span>
+                <div className="flex justify-center"><span className="text-xs text-muted-foreground">Debe</span></div>
+                <div className="flex justify-center"><span className="text-xs text-muted-foreground">Haber</span></div>
+                <div className="flex justify-center"><span className="text-xs text-muted-foreground">Saldo</span></div>
+                <span></span>
+              </div>
               {practicas.map((p, idx) => (
-                <div key={idx} className="flex gap-2 items-center">
-                  <Select value={p.prestacion_id} onValueChange={(v) => updatePractica(idx, { prestacion_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Seleccionar prestación..." /></SelectTrigger>
-                    <SelectContent>
-                      {prestaciones.map((pr) => (
-                        <SelectItem key={pr.id} value={pr.id}>{pr.codigo} · {pr.descripcion}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button type="button" variant="ghost" size="icon" title="Crear nueva"
-                    onClick={() => openQuickPrestacion(idx)}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removePractica(idx)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                <div key={idx} className="space-y-1">
+                  <div className="grid grid-cols-[180px_80px_80px_80px_32px] gap-2 items-center">
+                    <Select value={p.prestacion_id} onValueChange={(v) => updatePractica(idx, { prestacion_id: v })}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Seleccionar...">
+                          {p.prestacion_id
+                            ? prestaciones.find((pr) => pr.id === p.prestacion_id)?.codigo ?? "—"
+                            : "Seleccionar..."}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {prestaciones.map((pr) => (
+                          <SelectItem key={pr.id} value={pr.id}>{pr.codigo} · {pr.descripcion}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number" min={0} step={1}
+                      className="h-8 text-xs text-right"
+                      placeholder="0"
+                      value={p.debe || ""}
+                      onChange={(e) => updatePractica(idx, { debe: parseFloat(e.target.value) || 0 })}
+                      onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+                    />
+                    <Input
+                      type="number" min={0} step={1}
+                      className="h-8 text-xs text-right"
+                      placeholder="0"
+                      value={p.haber || ""}
+                      onChange={(e) => updatePractica(idx, { haber: parseFloat(e.target.value) || 0 })}
+                      onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+                    />
+                    <Input
+                      readOnly
+                      className="h-8 text-xs text-right bg-muted"
+                      value={(p.debe - p.haber).toLocaleString("es-AR")}
+                    />
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8" tabIndex={-1}
+                      onClick={() => { if (window.confirm("¿Eliminar esta práctica?")) removePractica(idx); }}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {p.haber > 0 && (
+                    <div className="grid grid-cols-[180px_120px_1fr] gap-2 items-center pl-0">
+                      <span className="text-xs text-muted-foreground pl-1">Medio de pago</span>
+                      <Select value={p.medio_pago} onValueChange={(v) => updatePractica(idx, { medio_pago: v })}>
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MEDIOS_PAGO.map((m) => (
+                            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {p.medio_pago !== "efectivo" && (
+                        <Input
+                          className="h-7 text-xs"
+                          placeholder="Referencia (N° transferencia, etc.)"
+                          value={p.referencia}
+                          onChange={(e) => updatePractica(idx, { referencia: e.target.value })}
+                          onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

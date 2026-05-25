@@ -6,21 +6,28 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, ArrowUp, ArrowDown } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Eye, ArrowUp, ArrowDown, Pencil } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuth } from "@/hooks/useAuth";
+import { RegistrarCobroDialog } from "@/components/atenciones/RegistrarCobroDialog";
 
 type TipoAtencion = "con_turno" | "urgencia" | "espontanea";
+
+interface Cobro { importe_aplicado: number; }
+interface Practica { debe: number; cobro_aplicaciones: Cobro[]; }
 
 interface Row {
   id: string;
   fecha: string;
   diagnostico: string | null;
   tipo_atencion: TipoAtencion;
-  paciente: { nombre: string; apellido: string } | null;
-  profesional: { nombre: string; apellido: string } | null;
+  paciente: { id: string; nombre: string; apellido: string } | null;
+  profesional: { id: string; nombre: string; apellido: string } | null;
   turno: { motivo_consulta: string } | null;
+  atencion_practicas: Practica[];
 }
 
 const TIPO_LABEL: Record<TipoAtencion, string> = {
@@ -35,12 +42,27 @@ const TIPO_VARIANT: Record<TipoAtencion, "default" | "destructive" | "secondary"
   espontanea: "secondary",
 };
 
+function calcSaldo(practicas: Practica[]): number {
+  return practicas.reduce((acc, p) => {
+    const haber = p.cobro_aplicaciones.reduce((s, c) => s + (c.importe_aplicado ?? 0), 0);
+    return acc + (p.debe ?? 0) - haber;
+  }, 0);
+}
+
 export default function Atenciones() {
   const { can } = usePermissions();
+  const { hasAnyRole } = useAuth();
+  const esAdminRecepcion = hasAnyRole(["admin", "recepcion"]);
+
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [orden, setOrden] = useState<"desc" | "asc">("desc");
+  const [filtroProfesional, setFiltroProfesional] = useState("todos");
+  const [filtroPaciente, setFiltroPaciente] = useState("todos");
+  const [profesionales, setProfesionales] = useState<{ id: string; nombre: string; apellido: string }[]>([]);
+  const [pacientes, setPacientes] = useState<{ id: string; nombre: string; apellido: string }[]>([]);
+  const [cobroDialogRow, setCobroDialogRow] = useState<Row | null>(null);
 
   useEffect(() => {
     document.title = "Atenciones | Consultorio";
@@ -52,12 +74,31 @@ export default function Atenciones() {
     try {
       const { data, error } = await supabase
         .from("atenciones")
-        .select("id, fecha, diagnostico, tipo_atencion, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido), turno:turnos(motivo_consulta)")
+        .select(`
+          id, fecha, diagnostico, tipo_atencion,
+          paciente:pacientes(id, nombre, apellido),
+          profesional:profesionales(id, nombre, apellido),
+          turno:turnos(motivo_consulta),
+          atencion_practicas(debe, cobro_aplicaciones(importe_aplicado))
+        `)
         .order("fecha", { ascending: false });
+
       if (error) console.error("Error cargando atenciones:", error);
-      setRows((data ?? []) as unknown as Row[]);
-    } catch (e) {
-      console.error("Error inesperado cargando atenciones:", e);
+      const atenciones = (data ?? []) as unknown as Row[];
+      const filtradas = esAdminRecepcion
+        ? atenciones.filter((a) => calcSaldo(a.atencion_practicas) > 0)
+        : atenciones;
+
+      setRows(filtradas);
+
+      const profs = Array.from(
+        new Map(filtradas.map((a) => a.profesional).filter(Boolean).map((p) => [p!.id, p!])).values()
+      );
+      const pacs = Array.from(
+        new Map(filtradas.map((a) => a.paciente).filter(Boolean).map((p) => [p!.id, p!])).values()
+      );
+      setProfesionales(profs as any);
+      setPacientes(pacs as any);
     } finally {
       setLoading(false);
     }
@@ -65,10 +106,12 @@ export default function Atenciones() {
 
   const filtered = rows
     .filter((r) => {
+      if (filtroProfesional !== "todos" && r.profesional?.id !== filtroProfesional) return false;
+      if (filtroPaciente !== "todos" && r.paciente?.id !== filtroPaciente) return false;
       if (!search) return true;
       const s = search.toLowerCase();
       return (
-        (r.paciente && (`${r.paciente.apellido} ${r.paciente.nombre}`.toLowerCase().includes(s))) ||
+        (r.paciente && `${r.paciente.apellido} ${r.paciente.nombre}`.toLowerCase().includes(s)) ||
         (r.turno?.motivo_consulta ?? "").toLowerCase().includes(s) ||
         (r.diagnostico ?? "").toLowerCase().includes(s)
       );
@@ -83,9 +126,11 @@ export default function Atenciones() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Atenciones</h1>
-          <p className="text-sm text-muted-foreground">Historial de atenciones clínicas</p>
+          <p className="text-sm text-muted-foreground">
+            {esAdminRecepcion ? "Atenciones con saldo pendiente" : "Historial de atenciones clínicas"}
+          </p>
         </div>
-        {can("atenciones", "create") && (
+        {can("atenciones", "create") && !esAdminRecepcion && (
           <Button asChild>
             <Link to="/atenciones/nuevo"><Plus className="h-4 w-4" /> Nueva atención</Link>
           </Button>
@@ -93,48 +138,64 @@ export default function Atenciones() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Listado</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle className="text-base">Listado</CardTitle></CardHeader>
         <CardContent>
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap gap-3">
             <Input
               placeholder="Buscar por paciente, motivo o diagnóstico..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="max-w-md"
+              className="max-w-xs"
             />
+            <Select value={filtroProfesional} onValueChange={setFiltroProfesional}>
+              <SelectTrigger className="w-48"><SelectValue placeholder="Profesional" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los profesionales</SelectItem>
+                {profesionales.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filtroPaciente} onValueChange={setFiltroPaciente}>
+              <SelectTrigger className="w-48"><SelectValue placeholder="Paciente" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los pacientes</SelectItem>
+                {pacientes.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="whitespace-nowrap">
-                    <button
-                      type="button"
-                      onClick={() => setOrden((o) => (o === "asc" ? "desc" : "asc"))}
-                      className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-                      aria-label={`Ordenar por fecha ${orden === "asc" ? "descendente" : "ascendente"}`}
-                    >
+                    <button type="button" onClick={() => setOrden((o) => (o === "asc" ? "desc" : "asc"))}
+                      className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
                       Fecha
                       {orden === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
                     </button>
                   </TableHead>
                   <TableHead>Paciente</TableHead>
                   <TableHead className="hidden lg:table-cell">Profesional</TableHead>
-                  <TableHead className="whitespace-nowrap">Tipo</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead className="min-w-[180px]">Motivo del turno</TableHead>
                   <TableHead className="hidden md:table-cell">Diagnóstico</TableHead>
+                  {esAdminRecepcion && <TableHead className="text-right">Saldo</TableHead>}
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={esAdminRecepcion ? 8 : 7} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin atenciones</TableCell></TableRow>
-                ) : (
-                  filtered.map((a) => (
+                  <TableRow><TableCell colSpan={esAdminRecepcion ? 8 : 7} className="text-center text-muted-foreground">
+                    {esAdminRecepcion ? "No hay atenciones con saldo pendiente" : "Sin atenciones"}
+                  </TableCell></TableRow>
+                ) : filtered.map((a) => {
+                  const saldo = calcSaldo(a.atencion_practicas);
+                  return (
                     <TableRow key={a.id}>
                       <TableCell className="whitespace-nowrap">{format(parseISO(a.fecha), "dd/MM/yyyy", { locale: es })}</TableCell>
                       <TableCell className="font-medium">
@@ -152,27 +213,46 @@ export default function Atenciones() {
                         </Badge>
                       </TableCell>
                       <TableCell className="max-w-[180px] sm:max-w-[240px]">
-                        <div className="truncate" title={a.turno?.motivo_consulta ?? ""}>
-                          {a.turno?.motivo_consulta ?? (a.tipo_atencion !== "con_turno" ? TIPO_LABEL[a.tipo_atencion] : "—")}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate md:hidden" title={a.diagnostico ?? ""}>
-                          {a.diagnostico ?? ""}
-                        </div>
+                        <div className="truncate">{a.turno?.motivo_consulta ?? (a.tipo_atencion !== "con_turno" ? TIPO_LABEL[a.tipo_atencion] : "—")}</div>
+                        <div className="text-xs text-muted-foreground truncate md:hidden">{a.diagnostico ?? ""}</div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell max-w-[200px] truncate">{a.diagnostico ?? "—"}</TableCell>
+                      {esAdminRecepcion && (
+                        <TableCell className="text-right font-medium text-amber-600 whitespace-nowrap">
+                          $ {saldo.toLocaleString("es-AR")}
+                        </TableCell>
+                      )}
                       <TableCell className="text-right">
-                        <Button asChild variant="ghost" size="sm">
-                          <Link to={`/atenciones/${a.id}/ver`}><Eye className="h-4 w-4" /></Link>
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button asChild variant="ghost" size="sm">
+                            <Link to={`/atenciones/${a.id}/ver`}><Eye className="h-4 w-4" /></Link>
+                          </Button>
+                          {esAdminRecepcion && (
+                            <Button variant="ghost" size="sm" onClick={() => setCobroDialogRow(a)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
+
+      {cobroDialogRow && (
+        <RegistrarCobroDialog
+          atencionId={cobroDialogRow.id}
+          pacienteId={cobroDialogRow.paciente?.id ?? ""}
+          fecha={cobroDialogRow.fecha}
+          open={!!cobroDialogRow}
+          onOpenChange={(v) => { if (!v) setCobroDialogRow(null); }}
+          onSaved={() => { setCobroDialogRow(null); cargar(); }}
+        />
+      )}
     </div>
   );
 }

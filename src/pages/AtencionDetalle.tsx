@@ -9,6 +9,7 @@ import { ArrowLeft, Pencil } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { IntegracionRctaInline } from "@/components/integraciones/IntegracionRctaInline";
+import { useAuth } from "@/hooks/useAuth";
 
 type TipoAtencion = "con_turno" | "urgencia" | "espontanea";
 
@@ -31,7 +32,9 @@ interface Practica {
   cara_dental: string | null;
   observacion: string | null;
   orden: number;
+  debe: number;
   prestacion: { codigo: string; descripcion: string } | null;
+  cobro_aplicaciones: { importe_aplicado: number }[];
 }
 
 interface Atencion {
@@ -55,6 +58,8 @@ interface Atencion {
 export default function AtencionDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { hasAnyRole } = useAuth();
+  const esAdminRecepcion = hasAnyRole(["admin", "recepcion"]);
   const [atencion, setAtencion] = useState<Atencion | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -88,7 +93,7 @@ export default function AtencionDetalle() {
           : Promise.resolve({ data: null }),
         supabase
           .from("atencion_practicas")
-          .select("id, cantidad, pieza_dental, cara_dental, observacion, orden, prestacion:prestaciones(codigo, descripcion)")
+          .select("id, cantidad, pieza_dental, cara_dental, observacion, orden, debe, prestacion:prestaciones(codigo, descripcion), cobro_aplicaciones(importe_aplicado)")
           .eq("atencion_id", id)
           .order("orden"),
       ]);
@@ -152,11 +157,14 @@ export default function AtencionDetalle() {
           <ArrowLeft className="h-4 w-4" /> Volver
         </Button>
         <h1 className="text-lg sm:text-xl font-semibold">Detalle de atención</h1>
-        <Button asChild size="sm">
-          <Link to={`/atenciones/${atencion.id}`}>
-            <Pencil className="h-4 w-4" /> Editar
-          </Link>
-        </Button>
+        {!esAdminRecepcion && (
+          <Button asChild size="sm">
+            <Link to={`/atenciones/${atencion.id}`}>
+              <Pencil className="h-4 w-4" /> Editar
+            </Link>
+          </Button>
+        )}
+        {esAdminRecepcion && <div />}
       </div>
 
       <Card>
@@ -238,25 +246,37 @@ export default function AtencionDetalle() {
                 <TableRow>
                   <TableHead>Prestación</TableHead>
                   <TableHead>Pieza</TableHead>
+                  <TableHead className="text-right">Debe</TableHead>
+                  <TableHead className="text-right">Haber</TableHead>
+                  <TableHead className="text-right">Saldo</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {atencion.atencion_practicas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
                       Sin prácticas registradas
                     </TableCell>
                   </TableRow>
                 ) : (
-                  atencion.atencion_practicas.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell>
-                        <div className="font-medium">{p.prestacion?.codigo ?? "—"}</div>
-                        <div className="text-xs text-muted-foreground">{p.prestacion?.descripcion ?? ""}</div>
-                      </TableCell>
-                      <TableCell>{p.pieza_dental ?? "—"}</TableCell>
-                    </TableRow>
-                  ))
+                  atencion.atencion_practicas.map((p) => {
+                    const haber = p.cobro_aplicaciones.reduce((s, c) => s + (c.importe_aplicado ?? 0), 0);
+                    const saldo = (p.debe ?? 0) - haber;
+                    return (
+                      <TableRow key={p.id}>
+                        <TableCell>
+                          <div className="font-medium">{p.prestacion?.codigo ?? "—"}</div>
+                          <div className="text-xs text-muted-foreground">{p.prestacion?.descripcion ?? ""}</div>
+                        </TableCell>
+                        <TableCell>{p.pieza_dental ?? "—"}</TableCell>
+                        <TableCell className="text-right">{(p.debe ?? 0).toLocaleString("es-AR")}</TableCell>
+                        <TableCell className="text-right">{haber.toLocaleString("es-AR")}</TableCell>
+                        <TableCell className={`text-right font-medium ${saldo > 0 ? "text-amber-600" : "text-green-600"}`}>
+                          {saldo.toLocaleString("es-AR")}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

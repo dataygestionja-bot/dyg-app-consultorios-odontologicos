@@ -464,6 +464,16 @@ export default function Dashboard() {
                         {horario.label}
                       </Badge>
                     )}
+                    {!["atendido", "cancelado", "reprogramado", "ausente"].includes(t.estado) && soloMisTurnos && (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="h-7 px-2 text-xs gap-1"
+                        onClick={() => navigate(`/atenciones/nuevo?turno=${t.id}`)}
+                      >
+                        <Stethoscope className="h-3.5 w-3.5" /> Iniciar atención
+                      </Button>
+                    )}
                     {!["atendido", "cancelado", "reprogramado", "ausente"].includes(t.estado) && puedeEditarTurnos && (
                       <div className="flex items-center gap-1">
                         <Button
@@ -493,7 +503,7 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {canManagePendientes && pendientesCierreCount > 0 && (
+      {(canManagePendientes || soloMisTurnos) && pendientesCierreCount > 0 && (
         <Card
           id="pendientes-cierre"
           className="border-l-4 scroll-mt-20"
@@ -536,30 +546,36 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                    <Button
-                      size="sm"
-                      variant="default"
-                      className="h-7 px-2 text-xs gap-1.5"
-                      onClick={() => navigate(`/atenciones/nuevo?turnoId=${t.id}`)}
-                    >
-                      <Stethoscope className="h-3.5 w-3.5" /> Iniciar atención
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2 text-xs gap-1.5"
-                      onClick={() => marcarAusente(t.id)}
-                    >
-                      <UserX className="h-3.5 w-3.5" /> Marcar como ausente
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2 text-xs gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => cancelarTurno(t.id)}
-                    >
-                      <Ban className="h-3.5 w-3.5" /> Cancelar turno
-                    </Button>
+                    {soloMisTurnos && (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="h-7 px-2 text-xs gap-1.5"
+                        onClick={() => navigate(`/atenciones/nuevo?turno=${t.id}`)}
+                      >
+                        <Stethoscope className="h-3.5 w-3.5" /> Iniciar atención
+                      </Button>
+                    )}
+                    {canManagePendientes && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs gap-1.5"
+                          onClick={() => marcarAusente(t.id)}
+                        >
+                          <UserX className="h-3.5 w-3.5" /> Marcar como ausente
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => cancelarTurno(t.id)}
+                        >
+                          <Ban className="h-3.5 w-3.5" /> Cancelar turno
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </li>
               ))}
