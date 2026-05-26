@@ -81,6 +81,8 @@ export default function CajaDiaria() {
   const [nombreCaja, setNombreCaja] = useState("");
   const [saldoInicial, setSaldoInicial] = useState("");
   const [creandoCaja, setCreandoCaja] = useState(false);
+  const [cargandoSaldo, setCargandoSaldo] = useState(false);
+  const [cajaReferencia, setCajaReferencia] = useState<{ nombre: string; fecha: string; saldo: number } | null>(null);
 
   // Dialog nuevo movimiento
   const [movOpen, setMovOpen] = useState(false);
@@ -161,6 +163,79 @@ export default function CajaDiaria() {
     setNombreCaja("");
     setSaldoInicial("");
     await cargar();
+  }
+
+  async function buscarSaldoInicial(turno: string) {
+    setCargandoSaldo(true);
+    setCajaReferencia(null);
+    setSaldoInicial("");
+    const hoy = format(new Date(), "yyyy-MM-dd");
+    const ayer = format(new Date(Date.now() - 86400000), "yyyy-MM-dd");
+
+    let cajaRef: { nombre: string; fecha: string; saldo_final: number } | null = null;
+
+    if (turno === "Turno tarde") {
+      // Buscar "Turno mañana" del mismo día cerrada
+      const { data } = await supabase
+        .from("caja_diaria")
+        .select("id, nombre, fecha, saldo_inicial")
+        .eq("fecha", hoy)
+        .eq("nombre", "Turno mañana")
+        .in("estado", ["cerrada_conforme", "cerrada_no_conforme"])
+        .maybeSingle();
+      if (data) {
+        const { data: movs } = await supabase
+          .from("movimientos_caja")
+          .select("tipo, importe")
+          .eq("caja_id", data.id);
+        const ingresos = (movs ?? []).filter(m => m.tipo === "ingreso").reduce((s, m) => s + m.importe, 0);
+        const egresos = (movs ?? []).filter(m => m.tipo === "egreso").reduce((s, m) => s + m.importe, 0);
+        const saldo = data.saldo_inicial + ingresos - egresos;
+        cajaRef = { nombre: data.nombre, fecha: data.fecha, saldo_final: saldo };
+      }
+    } else {
+      // Turno mañana: buscar "Turno tarde" del día anterior
+      const { data: tarde } = await supabase
+        .from("caja_diaria")
+        .select("id, nombre, fecha, saldo_inicial")
+        .eq("fecha", ayer)
+        .eq("nombre", "Turno tarde")
+        .in("estado", ["cerrada_conforme", "cerrada_no_conforme"])
+        .maybeSingle();
+      if (tarde) {
+        const { data: movs } = await supabase
+          .from("movimientos_caja")
+          .select("tipo, importe")
+          .eq("caja_id", tarde.id);
+        const ingresos = (movs ?? []).filter(m => m.tipo === "ingreso").reduce((s, m) => s + m.importe, 0);
+        const egresos = (movs ?? []).filter(m => m.tipo === "egreso").reduce((s, m) => s + m.importe, 0);
+        cajaRef = { nombre: tarde.nombre, fecha: tarde.fecha, saldo_final: tarde.saldo_inicial + ingresos - egresos };
+      } else {
+        // Si no hay Turno tarde, buscar "Turno mañana" del día anterior
+        const { data: manana } = await supabase
+          .from("caja_diaria")
+          .select("id, nombre, fecha, saldo_inicial")
+          .eq("fecha", ayer)
+          .eq("nombre", "Turno mañana")
+          .in("estado", ["cerrada_conforme", "cerrada_no_conforme"])
+          .maybeSingle();
+        if (manana) {
+          const { data: movs } = await supabase
+            .from("movimientos_caja")
+            .select("tipo, importe")
+            .eq("caja_id", manana.id);
+          const ingresos = (movs ?? []).filter(m => m.tipo === "ingreso").reduce((s, m) => s + m.importe, 0);
+          const egresos = (movs ?? []).filter(m => m.tipo === "egreso").reduce((s, m) => s + m.importe, 0);
+          cajaRef = { nombre: manana.nombre, fecha: manana.fecha, saldo_final: manana.saldo_inicial + ingresos - egresos };
+        }
+      }
+    }
+
+    if (cajaRef) {
+      setSaldoInicial(String(cajaRef.saldo_final));
+      setCajaReferencia({ nombre: cajaRef.nombre, fecha: cajaRef.fecha, saldo: cajaRef.saldo_final });
+    }
+    setCargandoSaldo(false);
   }
 
   async function guardarMovimiento() {
@@ -356,7 +431,7 @@ export default function CajaDiaria() {
       )}
 
       {/* Dialog abrir caja */}
-      <Dialog open={nuevaCajaOpen} onOpenChange={(v) => { setNuevaCajaOpen(v); if (!v) { setNombreCaja(""); setSaldoInicial(""); } }}>
+      <Dialog open={nuevaCajaOpen} onOpenChange={(v) => { setNuevaCajaOpen(v); if (!v) { setNombreCaja(""); setSaldoInicial(""); setCajaReferencia(null); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Abrir caja</DialogTitle></DialogHeader>
           <div className="space-y-3 py-1">
@@ -369,7 +444,7 @@ export default function CajaDiaria() {
                   return <p className="text-xs text-muted-foreground py-2">No se puede abrir caja dado que ambas cajas fueron abiertas y cerradas en el día.</p>;
                 }
                 return (
-                  <Select value={nombreCaja} onValueChange={setNombreCaja}>
+                  <Select value={nombreCaja} onValueChange={(v) => { setNombreCaja(v); buscarSaldoInicial(v); }}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccionar turno..." /></SelectTrigger>
                     <SelectContent>
                       {turnosDisp.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -381,6 +456,15 @@ export default function CajaDiaria() {
             <div className="space-y-1">
               <Label className="text-xs">Saldo inicial</Label>
               <Input type="number" min={0} step={1} className="h-8 text-xs text-right" placeholder="0" value={saldoInicial} onChange={(e) => setSaldoInicial(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} />
+              {cargandoSaldo && <p className="text-xs text-muted-foreground">Buscando caja de referencia...</p>}
+              {cajaReferencia && !cargandoSaldo && (
+                <p className="text-xs text-blue-600">
+                  Precargado desde <strong>{cajaReferencia.nombre}</strong> ({format(new Date(cajaReferencia.fecha + "T12:00:00"), "dd/MM/yyyy", { locale: es })}) · Saldo final: {fmt(cajaReferencia.saldo)}
+                </p>
+              )}
+              {!cajaReferencia && !cargandoSaldo && nombreCaja && (
+                <p className="text-xs text-muted-foreground">No se encontró caja de referencia. Ingresá el saldo manualmente.</p>
+              )}
             </div>
           </div>
           <DialogFooter>
