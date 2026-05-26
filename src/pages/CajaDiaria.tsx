@@ -77,6 +77,7 @@ export default function CajaDiaria() {
 
   // Dialog nueva caja
   const [nuevaCajaOpen, setNuevaCajaOpen] = useState(false);
+  const TURNOS_FIJOS = ["Turno mañana", "Turno tarde"];
   const [nombreCaja, setNombreCaja] = useState("");
   const [saldoInicial, setSaldoInicial] = useState("");
   const [creandoCaja, setCreandoCaja] = useState(false);
@@ -237,7 +238,7 @@ export default function CajaDiaria() {
             </Select>
           )}
           <Button size="sm" onClick={() => setNuevaCajaOpen(true)}>
-            <Plus className="h-4 w-4" /> Nueva caja
+            <Plus className="h-4 w-4" /> Abrir caja
           </Button>
         </div>
       </div>
@@ -354,14 +355,28 @@ export default function CajaDiaria() {
         </>
       )}
 
-      {/* Dialog nueva caja */}
-      <Dialog open={nuevaCajaOpen} onOpenChange={setNuevaCajaOpen}>
+      {/* Dialog abrir caja */}
+      <Dialog open={nuevaCajaOpen} onOpenChange={(v) => { setNuevaCajaOpen(v); if (!v) { setNombreCaja(""); setSaldoInicial(""); } }}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Nueva caja</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Abrir caja</DialogTitle></DialogHeader>
           <div className="space-y-3 py-1">
             <div className="space-y-1">
-              <Label className="text-xs">Nombre de la caja *</Label>
-              <Input className="h-8 text-xs" placeholder="Ej: Caja mañana, Caja tarde..." value={nombreCaja} onChange={(e) => setNombreCaja(e.target.value)} />
+              <Label className="text-xs">Turno *</Label>
+              {(() => {
+                const nombresExistentes = cajas.map(c => c.nombre);
+                const turnosDisp = TURNOS_FIJOS.filter(t => !nombresExistentes.includes(t));
+                if (turnosDisp.length === 0) {
+                  return <p className="text-xs text-muted-foreground py-2">No se puede abrir caja dado que ambas cajas fueron abiertas y cerradas en el día.</p>;
+                }
+                return (
+                  <Select value={nombreCaja} onValueChange={setNombreCaja}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccionar turno..." /></SelectTrigger>
+                    <SelectContent>
+                      {turnosDisp.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Saldo inicial</Label>
@@ -370,7 +385,7 @@ export default function CajaDiaria() {
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setNuevaCajaOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={crearCaja} disabled={creandoCaja}>{creandoCaja ? "Creando..." : "Abrir caja"}</Button>
+            <Button size="sm" onClick={crearCaja} disabled={creandoCaja || !nombreCaja}>{creandoCaja ? "Abriendo..." : "Abrir caja"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
