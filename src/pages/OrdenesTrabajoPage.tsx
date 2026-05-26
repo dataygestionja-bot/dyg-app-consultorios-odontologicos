@@ -65,7 +65,7 @@ function DiasRetraso({ fechaEntrega }: { fechaEntrega: string | null }) {
 }
 
 export default function OrdenesTrabajoPage() {
-  const { hasAnyRole, hasRole } = useAuth();
+  const { hasAnyRole, hasRole, user, loading: authLoading } = useAuth();
   const esProfesional = hasRole("profesional") && !hasAnyRole(["admin", "recepcion"]);
 
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
@@ -83,38 +83,57 @@ export default function OrdenesTrabajoPage() {
 
   useEffect(() => {
     document.title = "Órdenes de trabajo | Consultorio";
-    cargarTodo();
   }, []);
+
+  // Esperar a que el auth esté listo antes de cargar
+  useEffect(() => {
+    if (authLoading) return;
+    cargarTodo();
+  }, [authLoading, esProfesional]);
 
   async function cargarTodo() {
     setLoading(true);
+
+    // Si es profesional, primero resolvemos su profesional_id
+    let profesionalId: string | null = null;
+    if (esProfesional && user?.id) {
+      const { data: prof } = await supabase
+        .from("profesionales")
+        .select("id, nombre, apellido")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (prof) {
+        setMiProfesional(prof as Profesional);
+        profesionalId = prof.id;
+      } else {
+        setOrdenes([]);
+        setLoading(false);
+        return;
+      }
+    }
+
+    let ordenesQuery = supabase.from("ordenes_trabajo").select(`
+      id, tipo_trabajo, prioridad, estado, fecha_estimada_entrega,
+      costo_presupuestado, costo_final, created_at,
+      paciente:pacientes(nombre, apellido),
+      profesional:profesionales(nombre, apellido),
+      laboratorio:laboratorios(id, nombre),
+      pagos_laboratorio(importe)
+    `).order("created_at", { ascending: false });
+
+    if (profesionalId) {
+      ordenesQuery = ordenesQuery.eq("profesional_id", profesionalId) as any;
+    }
+
     const [{ data: ords }, { data: labs }, { data: profs }] = await Promise.all([
-      supabase.from("ordenes_trabajo").select(`
-        id, tipo_trabajo, prioridad, estado, fecha_estimada_entrega,
-        costo_presupuestado, costo_final, created_at,
-        paciente:pacientes(nombre, apellido),
-        profesional:profesionales(nombre, apellido),
-        laboratorio:laboratorios(id, nombre),
-        pagos_laboratorio(importe)
-      `).order("created_at", { ascending: false }),
+      ordenesQuery,
       supabase.from("laboratorios").select("id, nombre").eq("activo", true).order("nombre"),
       supabase.from("profesionales").select("id, nombre, apellido").eq("activo", true).order("apellido"),
     ]);
 
-    const rows = (ords ?? []) as unknown as Orden[];
-    setOrdenes(rows);
+    setOrdenes((ords ?? []) as unknown as Orden[]);
     setLaboratorios((labs ?? []) as Laboratorio[]);
     setProfesionales((profs ?? []) as Profesional[]);
-
-    if (esProfesional) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: prof } = await supabase.from("profesionales")
-          .select("id, nombre, apellido").eq("user_id", user.id).maybeSingle();
-        if (prof) setMiProfesional(prof as Profesional);
-      }
-    }
-
     setLoading(false);
   }
 
