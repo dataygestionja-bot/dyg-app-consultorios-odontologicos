@@ -422,6 +422,17 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                         </div>
                         {puedeGestionar && (
                           <div className="flex items-center gap-1">
+                            {t.estado === "reservado" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs text-green-600 hover:text-green-700"
+                                onClick={() => confirmarTurno(t)}
+                              >
+                                <Check className="h-3 w-3 mr-1" />
+                                Confirmar
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="ghost"
@@ -674,6 +685,17 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
                       )}
                       {puedeGestionar && (
                         <div className="flex items-center gap-1 border-t pt-2">
+                          {t.estado === "reservado" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 text-xs h-7 text-green-600 hover:text-green-700 border-green-200"
+                              onClick={() => { confirmarTurno(t); setDetalleTurnos(null); }}
+                            >
+                              <Check className="h-3 w-3 mr-1" />
+                              Confirmar
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"
