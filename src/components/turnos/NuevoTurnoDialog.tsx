@@ -177,7 +177,7 @@ export default function NuevoTurnoDialog({
       hora_inicio,
       hora_fin,
       motivo_consulta: motivo.trim(),
-      estado: "confirmado",
+      estado: "reservado",
       es_sobreturno: sobreturno,
       origen: "interno",
       created_by: userRes.data.user?.id ?? null,

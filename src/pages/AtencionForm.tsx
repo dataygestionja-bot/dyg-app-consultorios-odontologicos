@@ -661,7 +661,7 @@ export default function AtencionForm() {
           profesional_id: form.profesional_id,
           hora_inicio: horaInicio,
           hora_fin: horaFin,
-          estado: "confirmado",
+          estado: "reservado",
         }).eq("id", existente.id);
         if (errUpd) {
           const msg = /23505|sobreturno|solapamiento|horario/i.test(errUpd.message)
@@ -679,7 +679,7 @@ export default function AtencionForm() {
           hora_inicio: horaInicio,
           hora_fin: horaFin,
           motivo_consulta: "Control / Próxima visita",
-          estado: "confirmado",
+          estado: "reservado",
           origen: "interno",
         });
         if (errTurno) {
