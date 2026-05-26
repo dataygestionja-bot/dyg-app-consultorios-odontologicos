@@ -62,6 +62,7 @@ export default function Dashboard() {
   const [whatsappUltimo, setWhatsappUltimo] = useState<string | null>(null);
   const [esFeriado, setEsFeriado] = useState(false);
   const [canceladosHoy, setCanceladosHoy] = useState<number>(0);
+  const [turnosMañana, setTurnosMañana] = useState<{ total: number; confirmados: number; cancelados: number; pendientes: number }>({ total: 0, confirmados: 0, cancelados: 0, pendientes: 0 });
 
 
 
@@ -159,6 +160,19 @@ export default function Dashboard() {
       setWhatsappUltimo(waUltimoRes.data?.created_at ?? null);
       setEsFeriado(!!feriadoRes.data);
       setCanceladosHoy(canceladosRes.count ?? 0);
+
+      // Turnos de mañana
+      const manana = format(new Date(Date.now() + 86400000), "yyyy-MM-dd");
+      const { data: turnosManana } = await supabase
+        .from("turnos")
+        .select("estado")
+        .eq("fecha", manana)
+        .not("estado", "in", "(reprogramado)");
+      const tmTotal = (turnosManana ?? []).length;
+      const tmConfirmados = (turnosManana ?? []).filter(t => t.estado === "confirmado").length;
+      const tmCancelados = (turnosManana ?? []).filter(t => t.estado === "cancelado").length;
+      const tmPendientes = (turnosManana ?? []).filter(t => t.estado === "reservado" || t.estado === "solicitado").length;
+      setTurnosMañana({ total: tmTotal, confirmados: tmConfirmados, cancelados: tmCancelados, pendientes: tmPendientes });
     }
 
     setHoy((hoyRes.data ?? []) as unknown as TurnoRow[]);
@@ -348,6 +362,22 @@ export default function Dashboard() {
             </Card>
           );
         })()}
+        {canManagePendientes && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Turnos de mañana</CardTitle>
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{turnosMañana.total}</div>
+              <div className="mt-1 space-y-0.5">
+                <p className="text-xs text-green-600 font-medium">Confirmados: {turnosMañana.confirmados}</p>
+                <p className="text-xs text-red-500 font-medium">Cancelados: {turnosMañana.cancelados}</p>
+                <p className="text-xs text-amber-500 font-medium">Ptes. de confirmar: {turnosMañana.pendientes}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {solicitudesCount > 0 && canManagePendientes && (
