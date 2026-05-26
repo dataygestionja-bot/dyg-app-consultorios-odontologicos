@@ -17,7 +17,7 @@ interface Orden {
   id: string;
   tipo_trabajo: string;
   prioridad: "alta" | "media" | "baja";
-  estado: "enviado" | "entregado";
+  estado: "gestionar_pedido" | "enviado" | "entregado";
   fecha_estimada_entrega: string | null;
   costo_presupuestado: number;
   costo_final: number;
@@ -37,9 +37,16 @@ const PRIORIDAD_COLORS = {
   baja: "bg-[#78e911] text-green-950",
 };
 
-const ESTADO_LABELS = {
+const ESTADO_LABELS: Record<string, string> = {
+  gestionar_pedido: "Gestionar pedido",
   enviado: "Enviado al lab",
   entregado: "Entregado",
+};
+
+const ESTADO_BADGE_CLASS: Record<string, string> = {
+  gestionar_pedido: "bg-purple-100 text-purple-800 border-purple-200",
+  enviado: "",
+  entregado: "",
 };
 
 function DiasRetraso({ fechaEntrega }: { fechaEntrega: string | null }) {
@@ -99,7 +106,6 @@ export default function OrdenesTrabajoPage() {
     setLaboratorios((labs ?? []) as Laboratorio[]);
     setProfesionales((profs ?? []) as Profesional[]);
 
-    // Si es profesional, buscar su registro
     if (esProfesional) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -158,9 +164,10 @@ export default function OrdenesTrabajoPage() {
               </SelectContent>
             </Select>
             <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="Estado" /></SelectTrigger>
+              <SelectTrigger className="w-44"><SelectValue placeholder="Estado" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los estados</SelectItem>
+                <SelectItem value="gestionar_pedido">Gestionar pedido</SelectItem>
                 <SelectItem value="enviado">Enviado al lab</SelectItem>
                 <SelectItem value="entregado">Entregado</SelectItem>
               </SelectContent>
@@ -211,8 +218,11 @@ export default function OrdenesTrabajoPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="text-xs">
-                        {ESTADO_LABELS[o.estado]}
+                      <Badge
+                        variant={o.estado === "gestionar_pedido" ? "outline" : "secondary"}
+                        className={`text-xs ${ESTADO_BADGE_CLASS[o.estado] ?? ""}`}
+                      >
+                        {ESTADO_LABELS[o.estado] ?? o.estado}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs whitespace-nowrap">

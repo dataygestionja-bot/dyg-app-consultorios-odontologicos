@@ -128,7 +128,7 @@ export function OrdenTrabajoDialog({
       indicaciones: indicaciones.trim() || null,
       prioridad,
       fecha_estimada_entrega: fechaEntrega || null,
-      estado: "enviado",
+      estado: "gestionar_pedido",
       costo_presupuestado: costo,
       costo_final: costo,
       created_by: user?.id ?? null,

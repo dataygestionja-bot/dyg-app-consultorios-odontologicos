@@ -21,17 +21,10 @@ const MEDIO_PAGO_LABELS: Record<MedioPago, string> = {
 
 interface Pago { importe: number; }
 
-interface PagoHoy {
-  id: string;
-  importe: number;
-  medio_pago: string;
-  referencia: string | null;
-}
-
 interface Orden {
   id: string;
   tipo_trabajo: string;
-  estado: "enviado" | "entregado";
+  estado: "gestionar_pedido" | "enviado" | "entregado";
   fecha_estimada_entrega: string | null;
   costo_presupuestado: number;
   costo_final: number;
@@ -49,7 +42,7 @@ interface Props {
 
 export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props) {
   const { user } = useAuth();
-  const [estado, setEstado] = useState<"enviado" | "entregado">("enviado");
+  const [estado, setEstado] = useState<"gestionar_pedido" | "enviado" | "entregado">("gestionar_pedido");
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [costoFinal, setCostoFinal] = useState("");
   const [nuevoPago, setNuevoPago] = useState("");
@@ -57,14 +50,6 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
   const [referencia, setReferencia] = useState("");
   const [pagoAcumulado, setPagoAcumulado] = useState(0);
   const [guardando, setGuardando] = useState(false);
-
-  // Pagos del día
-  const [pagosHoy, setPagosHoy] = useState<PagoHoy[]>([]);
-  const [pagoEditId, setPagoEditId] = useState<string | null>(null);
-  const [editImporte, setEditImporte] = useState("");
-  const [editMedio, setEditMedio] = useState<MedioPago>("efectivo");
-  const [editRef, setEditRef] = useState("");
-  const [guardandoEdit, setGuardandoEdit] = useState(false);
 
   useEffect(() => {
     if (!open || !orden) return;
@@ -74,52 +59,17 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
     setNuevoPago("");
     setMedioPago("efectivo");
     setReferencia("");
-    setPagoEditId(null);
     cargarPagos();
   }, [open, orden]);
 
   async function cargarPagos() {
     if (!orden) return;
-    const hoy = new Date().toISOString().slice(0, 10);
-    const [{ data: todos }, { data: hoyData }] = await Promise.all([
-      supabase.from("pagos_laboratorio").select("importe").eq("orden_id", orden.id),
-      supabase.from("pagos_laboratorio")
-        .select("id, importe, medio_pago, referencia")
-        .eq("orden_id", orden.id)
-        .eq("fecha", hoy)
-        .order("created_at", { ascending: false }),
-    ]);
-    const total = (todos ?? []).reduce((s, p) => s + Number(p.importe), 0);
+    const { data } = await supabase
+      .from("pagos_laboratorio")
+      .select("importe")
+      .eq("orden_id", orden.id);
+    const total = (data ?? []).reduce((s, p) => s + Number(p.importe), 0);
     setPagoAcumulado(total);
-    setPagosHoy((hoyData ?? []) as PagoHoy[]);
-    setPagoEditId(null);
-  }
-
-  function seleccionarPagoEditar(p: PagoHoy) {
-    setPagoEditId(p.id);
-    setEditImporte(String(p.importe));
-    setEditMedio(p.medio_pago as MedioPago);
-    setEditRef(p.referencia ?? "");
-  }
-
-  async function guardarEdicion() {
-    if (!pagoEditId) return;
-    if (!editImporte || parseFloat(editImporte) <= 0) return toast.error("Ingresá un importe válido");
-    if (editMedio !== "efectivo" && editMedio !== "debito" && editMedio !== "credito" && !editRef.trim()) {
-      return toast.error("Ingresá la referencia");
-    }
-    setGuardandoEdit(true);
-    const { error } = await supabase.from("pagos_laboratorio").update({
-      importe: parseFloat(editImporte),
-      medio_pago: editMedio,
-      referencia: editRef.trim() || null,
-    }).eq("id", pagoEditId);
-    setGuardandoEdit(false);
-    if (error) return toast.error("Error actualizando pago", { description: error.message });
-    toast.success("Pago actualizado");
-    setPagoEditId(null);
-    await cargarPagos();
-    onSaved();
   }
 
   const costo = parseFloat(costoFinal) || 0;
@@ -137,6 +87,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
 
     setGuardando(true);
 
+    // Actualizar orden
     const { error } = await supabase.from("ordenes_trabajo").update({
       estado,
       fecha_estimada_entrega: fechaEntrega || null,
@@ -149,6 +100,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
       return;
     }
 
+    // Registrar pago si hay importe
     if (pago > 0 && orden.laboratorio?.id) {
       await supabase.from("pagos_laboratorio").insert({
         orden_id: orden.id,
@@ -190,9 +142,10 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-xs">Estado</Label>
-              <Select value={estado} onValueChange={(v) => setEstado(v as "enviado" | "entregado")}>
+              <Select value={estado} onValueChange={(v) => setEstado(v as "gestionar_pedido" | "enviado" | "entregado")}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="gestionar_pedido">Gestionar pedido</SelectItem>
                   <SelectItem value="enviado">Enviado al lab</SelectItem>
                   <SelectItem value="entregado">Entregado</SelectItem>
                 </SelectContent>
@@ -276,67 +229,6 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
                     onChange={(e) => setReferencia(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
                   />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Pagos registrados hoy */}
-          {pagosHoy.length > 0 && (
-            <div className="space-y-2 pt-2 border-t">
-              <Label className="text-xs font-medium">Pagos registrados hoy</Label>
-              <div className="space-y-1">
-                {pagosHoy.map((p) => (
-                  <div
-                    key={p.id}
-                    className={`rounded-md border px-3 py-2 cursor-pointer text-xs ${pagoEditId === p.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}
-                    onClick={() => pagoEditId === p.id ? setPagoEditId(null) : seleccionarPagoEditar(p)}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Pago al laboratorio</span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">${p.importe.toLocaleString("es-AR")}</span>
-                        <span className="text-muted-foreground">{MEDIO_PAGO_LABELS[p.medio_pago as MedioPago] ?? p.medio_pago}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {pagoEditId && (
-                <div className="rounded-md border border-primary p-3 space-y-2 bg-primary/5">
-                  <p className="text-xs font-medium text-primary">Editando pago</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Importe</Label>
-                      <Input type="number" min={0} step={1} className="h-7 text-xs text-right"
-                        value={editImporte} onChange={(e) => setEditImporte(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Medio de pago</Label>
-                      <Select value={editMedio} onValueChange={(v) => setEditMedio(v as MedioPago)}>
-                        <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {(Object.keys(MEDIO_PAGO_LABELS) as MedioPago[]).map((m) => (
-                            <SelectItem key={m} value={m}>{MEDIO_PAGO_LABELS[m]}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {editMedio !== "efectivo" && editMedio !== "debito" && editMedio !== "credito" && (
-                      <div className="space-y-1">
-                        <Label className="text-xs">Referencia</Label>
-                        <Input className="h-7 text-xs" value={editRef} onChange={(e) => setEditRef(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setPagoEditId(null)}>Cancelar</Button>
-                    <Button size="sm" className="h-7 text-xs" onClick={guardarEdicion} disabled={guardandoEdit}>
-                      {guardandoEdit ? "Guardando..." : "Guardar cambios"}
-                    </Button>
-                  </div>
                 </div>
               )}
             </div>
