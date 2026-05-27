@@ -30,6 +30,7 @@ export const MODULES: ModuleDef[] = [
   { key: "seguridad_perfiles", label: "Seguridad – Perfiles" },
   { key: "auditoria", label: "Auditoría" },
   { key: "reportes", label: "Reportes" },
+  { key: "salud_bot", label: "Salud del Bot" },
 ];
 
 export const permKey = (module: string, action: PermissionAction) => `${module}:${action}`;
@@ -59,6 +60,7 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, Record<string, Record<Permissi
     seguridad_perfiles: { read: false, create: false, update: false, delete: false },
     auditoria: { read: false, create: false, update: false, delete: false },
     reportes: { read: true, create: false, update: false, delete: false },
+    salud_bot: { read: false, create: false, update: false, delete: false },
   },
   profesional: {
     pacientes: { read: true, create: false, update: false, delete: false },
@@ -77,5 +79,6 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, Record<string, Record<Permissi
     seguridad_perfiles: { read: false, create: false, update: false, delete: false },
     auditoria: { read: false, create: false, update: false, delete: false },
     reportes: { read: false, create: false, update: false, delete: false },
+    salud_bot: { read: false, create: false, update: false, delete: false },
   },
 };
