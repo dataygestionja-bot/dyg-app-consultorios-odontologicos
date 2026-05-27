@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Users, Plus, AlertCircle, Inbox, Globe, ArrowRight, Phone, UserX, Ban, Stethoscope, Pencil, XCircle, MessageSquare, BotOff } from "lucide-react";
+import { CalendarDays, Users, Plus, AlertCircle, Inbox, Globe, ArrowRight, Phone, UserX, Ban, Stethoscope, Pencil, XCircle, MessageSquare, BotOff,CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TURNO_ESTADO_CLASSES, TURNO_ESTADO_LABELS, type TurnoEstado } from "@/lib/constants";
 import { useAuth } from "@/hooks/useAuth";
@@ -63,6 +63,7 @@ export default function Dashboard() {
   const [esFeriado, setEsFeriado] = useState(false);
   const [canceladosHoy, setCanceladosHoy] = useState<number>(0);
   const [turnosMañana, setTurnosMañana] = useState<{ total: number; confirmados: number; cancelados: number; pendientes: number }>({ total: 0, confirmados: 0, cancelados: 0, pendientes: 0 });
+  const [turnosMananaDetalle, setTurnosMananaDetalle] = useState<TurnoRow[]>([]);
 
 
 
@@ -163,16 +164,16 @@ export default function Dashboard() {
 
       // Turnos de mañana
       const manana = format(new Date(Date.now() + 86400000), "yyyy-MM-dd");
-      const { data: turnosManana } = await supabase
-        .from("turnos")
-        .select("estado")
-        .eq("fecha", manana)
-        .not("estado", "in", "(reprogramado)");
+      const [{ data: turnosManana }, { data: turnosMananaDetRow }] = await Promise.all([
+        supabase.from("turnos").select("estado").eq("fecha", manana).not("estado", "in", "(reprogramado)"),
+        supabase.from("turnos").select("id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido, color_agenda)").eq("fecha", manana).not("estado", "in", "(reprogramado)").order("hora_inicio"),
+      ]);
       const tmTotal = (turnosManana ?? []).length;
       const tmConfirmados = (turnosManana ?? []).filter(t => t.estado === "confirmado").length;
       const tmCancelados = (turnosManana ?? []).filter(t => t.estado === "cancelado").length;
       const tmPendientes = (turnosManana ?? []).filter(t => t.estado === "reservado" || t.estado === "solicitado").length;
       setTurnosMañana({ total: tmTotal, confirmados: tmConfirmados, cancelados: tmCancelados, pendientes: tmPendientes });
+      setTurnosMananaDetalle((turnosMananaDetRow ?? []) as unknown as TurnoRow[]);
     }
 
     setHoy((hoyRes.data ?? []) as unknown as TurnoRow[]);
@@ -227,6 +228,22 @@ export default function Dashboard() {
     toast.success("Turno cancelado");
     setTurnoCancelarDash(null);
     cargar();
+  }
+
+  async function confirmarTurnoManana(id: string) {
+    const { error } = await supabase.from("turnos").update({ estado: "confirmado" }).eq("id", id);
+    if (error) { toast.error("No se pudo confirmar: " + error.message); return; }
+    toast.success("Turno confirmado");
+    cargar(miProfesionalId);
+  }
+
+  async function cancelarTurnoManana(id: string) {
+    const ok = await confirm({ title: "Cancelar turno", description: "¿Cancelar este turno de mañana?", confirmText: "Cancelar turno", cancelText: "Volver", destructive: true });
+    if (!ok) return;
+    const { error } = await supabase.from("turnos").update({ estado: "cancelado" }).eq("id", id);
+    if (error) { toast.error("No se pudo cancelar: " + error.message); return; }
+    toast.success("Turno cancelado");
+    cargar(miProfesionalId);
   }
 
   return (
@@ -373,7 +390,7 @@ export default function Dashboard() {
               <div className="mt-1 space-y-0.5">
                 <p className="text-xs text-green-600 font-medium">Confirmados: {turnosMañana.confirmados}</p>
                 <p className="text-xs text-red-500 font-medium">Cancelados: {turnosMañana.cancelados}</p>
-                <p className="text-xs text-amber-500 font-medium">Ptes. de confirmar: {turnosMañana.pendientes}</p>
+                <p className="text-xs text-amber-500 font-medium">Ptes. de confirmación: {turnosMañana.pendientes}</p>
               </div>
             </CardContent>
           </Card>
@@ -532,6 +549,61 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      {canManagePendientes && turnosMananaDetalle.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Turnos de mañana</CardTitle>
+            <CardDescription>Agenda del día siguiente — confirmá o cancelá cada turno</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y">
+              {turnosMananaDetalle.map((t) => (
+                <li key={t.id} className="py-3 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="h-9 w-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: t.profesional?.color_agenda ?? "hsl(var(--primary))" }}
+                    />
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">
+                        {t.paciente ? `${t.paciente.apellido}, ${t.paciente.nombre}` : "—"}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {t.hora_inicio.slice(0, 5)} · Dr. {t.profesional?.apellido ?? "—"}
+                        {t.motivo_consulta ? ` · ${t.motivo_consulta}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge className={TURNO_ESTADO_CLASSES[t.estado]}>
+                      {TURNO_ESTADO_LABELS[t.estado]}
+                    </Badge>
+                    {t.estado === "reservado" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-xs gap-1 text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
+                        onClick={() => confirmarTurnoManana(t.id)}
+                      >
+                        <CheckCircle2 className="h-3 w-3" /> Confirmar
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs gap-1 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => cancelarTurnoManana(t.id)}
+                    >
+                      <XCircle className="h-3 w-3" /> Cancelar
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       {(canManagePendientes || soloMisTurnos) && pendientesCierreCount > 0 && (
         <Card
