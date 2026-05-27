@@ -147,7 +147,7 @@ const App = () => (
             {/* Gestión - Caja */}
             <Route path="/caja" element={<Private><CajaDiaria /></Private>} />
             <Route path="/caja/historial" element={<Private><HistorialCajas /></Private>} />
-            <Route path="/gestion/salud-bot" element={<AdminOnly><SaludBot /></AdminOnly>} />
+            <Route path="/gestion/salud-bot" element={<RoleProtected roles={["admin", "recepcion"]}><SaludBot /></RoleProtected>} />
 
             {/* Laboratorio */}
             <Route path="/laboratorio/ordenes" element={<Private><OrdenesTrabajoPage /></Private>} />

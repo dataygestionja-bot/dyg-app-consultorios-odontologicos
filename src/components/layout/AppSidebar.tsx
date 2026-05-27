@@ -74,7 +74,7 @@ const itemsTurnos: Item[] = [
 const itemsGestion: Item[] = [
   { title: "Caja diaria", url: "/caja", icon: DollarSign },
   { title: "Historial de cajas", url: "/caja/historial", icon: ScrollText },
-  { title: "Salud del Bot", url: "/gestion/salud-bot", icon: Activity, roles: ["admin"] },
+  { title: "Salud del Bot", url: "/gestion/salud-bot", icon: Activity, roles: ["admin", "recepcion"] },
 ];
 
 const itemsLaboratorio: Item[] = [
