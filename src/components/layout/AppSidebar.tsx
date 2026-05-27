@@ -24,6 +24,7 @@ import {
   ClipboardCheck,
   BookUser,
   DollarSign,
+  Activity,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -73,6 +74,7 @@ const itemsTurnos: Item[] = [
 const itemsGestion: Item[] = [
   { title: "Caja diaria", url: "/caja", icon: DollarSign },
   { title: "Historial de cajas", url: "/caja/historial", icon: ScrollText },
+  { title: "Salud del Bot", url: "/gestion/salud-bot", icon: Activity, roles: ["admin"] },
 ];
 
 const itemsLaboratorio: Item[] = [
