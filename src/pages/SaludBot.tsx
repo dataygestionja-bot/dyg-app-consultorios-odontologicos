@@ -95,10 +95,10 @@ export default function SaludBot() {
       supabase.from("bot_logs").select("*", { count: "exact", head: true })
         .eq("tipo", "cancelacion")
         .gte("timestamp", hoy + "T00:00:00"),
-      // Pacientes nuevos hoy
-      supabase.from("bot_logs").select("*", { count: "exact", head: true })
-        .eq("tipo", "paciente_nuevo")
-        .gte("timestamp", hoy + "T00:00:00"),
+      // Pacientes nuevos hoy (directo de tabla pacientes, más confiable que bot_logs)
+      supabase.from("pacientes").select("*", { count: "exact", head: true })
+        .gte("created_at", hoy + "T00:00:00")
+        .lt("created_at", hoy + "T23:59:59"),
       // Recordatorios hoy
       supabase.from("bot_logs").select("*", { count: "exact", head: true })
         .eq("tipo", "recordatorio_enviado")
