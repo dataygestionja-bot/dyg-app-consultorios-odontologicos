@@ -58,6 +58,9 @@ export default function SaludBot() {
   // Alertas
   const [turnosFallidos, setTurnosFallidos] = useState<BotLog[]>([]);
   const [turnosSinConfirmar48h, setTurnosSinConfirmar48h] = useState<TurnoSinConfirmar[]>([]);
+  const [confirmacionesSinRegistro, setConfirmacionesSinRegistro] = useState<BotLog[]>([]);
+  const [erroresInsert, setErroresInsert] = useState<BotLog[]>([]);
+  const [turnosSinPaciente, setTurnosSinPaciente] = useState<{ id: string; fecha: string; hora_inicio: string; created_at: string }[]>([]);
 
   // Log
   const [logs, setLogs] = useState<BotLog[]>([]);
@@ -76,10 +79,15 @@ export default function SaludBot() {
       { data: fallidos },
       { data: sin48 },
       { data: logsData },
+      { data: confirmSinReg },
+      { data: errInsert },
+      { data: sinPaciente },
     ] = await Promise.all([
-      // Turnos WhatsApp hoy
+      // Turnos WhatsApp agendados hoy (creados hoy, sin importar para qué fecha son)
       supabase.from("turnos").select("*", { count: "exact", head: true })
-        .eq("origen", "whatsapp").eq("fecha", hoy),
+        .eq("origen", "whatsapp")
+        .gte("created_at", hoy + "T00:00:00")
+        .lt("created_at", hoy + "T23:59:59"),
       // Turnos reservados pendientes
       supabase.from("turnos").select("*", { count: "exact", head: true })
         .eq("estado", "reservado").eq("origen", "whatsapp"),
@@ -111,6 +119,26 @@ export default function SaludBot() {
       supabase.from("bot_logs").select("id, timestamp, tipo, telefono, detalle, nivel, paciente_id, turno_id, paciente:pacientes(nombre, apellido)")
         .order("timestamp", { ascending: false })
         .limit(50),
+      // ALERTA 1: Claude confirmó turno pero no se registró en la DB (nivel=critical)
+      supabase.from("bot_logs")
+        .select("id, timestamp, tipo, telefono, detalle, nivel, paciente_id, turno_id")
+        .eq("nivel", "critical")
+        .order("timestamp", { ascending: false })
+        .limit(20),
+      // ALERTA 2: Fallo de INSERT en Supabase (nivel=error, excluyendo turno_fallido que ya tiene su panel)
+      supabase.from("bot_logs")
+        .select("id, timestamp, tipo, telefono, detalle, nivel, paciente_id, turno_id")
+        .eq("nivel", "error")
+        .neq("tipo", "turno_fallido")
+        .order("timestamp", { ascending: false })
+        .limit(20),
+      // ALERTA 3: Turnos WhatsApp creados sin paciente_id vinculado
+      supabase.from("turnos")
+        .select("id, fecha, hora_inicio, created_at")
+        .eq("origen", "whatsapp")
+        .is("paciente_id", null)
+        .order("created_at", { ascending: false })
+        .limit(20),
     ]);
 
     setTurnosWhatsapp(twCount ?? 0);
@@ -121,6 +149,9 @@ export default function SaludBot() {
     setTurnosFallidos((fallidos ?? []) as BotLog[]);
     setTurnosSinConfirmar48h((sin48 ?? []) as unknown as TurnoSinConfirmar[]);
     setLogs((logsData ?? []) as unknown as BotLog[]);
+    setConfirmacionesSinRegistro((confirmSinReg ?? []) as BotLog[]);
+    setErroresInsert((errInsert ?? []) as BotLog[]);
+    setTurnosSinPaciente((sinPaciente ?? []) as { id: string; fecha: string; hora_inicio: string; created_at: string }[]);
     setLastRefresh(new Date());
     setLoading(false);
   }, []);
@@ -132,7 +163,12 @@ export default function SaludBot() {
     return () => clearInterval(interval);
   }, [cargar]);
 
-  const hayAlertas = turnosFallidos.length > 0 || turnosSinConfirmar48h.length > 0;
+  const hayAlertas =
+    turnosFallidos.length > 0 ||
+    turnosSinConfirmar48h.length > 0 ||
+    confirmacionesSinRegistro.length > 0 ||
+    erroresInsert.length > 0 ||
+    turnosSinPaciente.length > 0;
 
   return (
     <div className="space-y-6">
@@ -227,6 +263,99 @@ export default function SaludBot() {
                         </span>
                       </div>
                       {f.detalle && <p className="text-xs text-red-700 mt-0.5">{f.detalle}</p>}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {confirmacionesSinRegistro.length > 0 && (
+            <Card className="border-l-4 border-l-red-700 bg-red-50/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base text-red-800 flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  CRÍTICO — Claude confirmó turno sin registro en DB ({confirmacionesSinRegistro.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-red-600 mb-2">
+                  Estos eventos tienen <code className="bg-red-100 px-1 rounded">nivel=critical</code> — el bot puede haber enviado una confirmación al paciente pero el turno no quedó guardado.
+                </p>
+                <ul className="space-y-2">
+                  {confirmacionesSinRegistro.map((f) => (
+                    <li key={f.id} className="text-sm bg-red-100 rounded-md px-3 py-2 border border-red-200">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="font-medium text-red-800">
+                          {f.tipo} · {f.telefono ?? "Sin teléfono"}
+                        </span>
+                        <span className="text-xs text-red-600">
+                          {format(parseISO(f.timestamp), "dd/MM HH:mm", { locale: es })}
+                        </span>
+                      </div>
+                      {f.detalle && <p className="text-xs text-red-700 mt-0.5">{f.detalle}</p>}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {erroresInsert.length > 0 && (
+            <Card className="border-l-4 border-l-orange-500 bg-orange-50/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base text-orange-700 flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  ERROR — Fallos de INSERT en Supabase ({erroresInsert.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-orange-600 mb-2">
+                  Eventos con <code className="bg-orange-100 px-1 rounded">nivel=error</code> — operaciones de escritura fallidas en la base de datos.
+                </p>
+                <ul className="space-y-2">
+                  {erroresInsert.map((f) => (
+                    <li key={f.id} className="text-sm bg-orange-100 rounded-md px-3 py-2 border border-orange-200">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="font-medium text-orange-800">
+                          {f.tipo} · {f.telefono ?? "Sin teléfono"}
+                        </span>
+                        <span className="text-xs text-orange-600">
+                          {format(parseISO(f.timestamp), "dd/MM HH:mm", { locale: es })}
+                        </span>
+                      </div>
+                      {f.detalle && <p className="text-xs text-orange-700 mt-0.5">{f.detalle}</p>}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {turnosSinPaciente.length > 0 && (
+            <Card className="border-l-4 border-l-yellow-500 bg-yellow-50/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base text-yellow-700 flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  Turnos WhatsApp sin paciente vinculado ({turnosSinPaciente.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-yellow-700 mb-2">
+                  Turnos creados por el bot donde <code className="bg-yellow-100 px-1 rounded">paciente_id</code> es NULL — el paciente no fue identificado ni creado correctamente.
+                </p>
+                <ul className="space-y-2">
+                  {turnosSinPaciente.map((t) => (
+                    <li key={t.id} className="text-sm bg-yellow-100 rounded-md px-3 py-2 border border-yellow-200">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="font-mono text-xs text-yellow-800">ID: {t.id.slice(0, 8)}…</span>
+                        <span className="text-xs text-yellow-700">
+                          {format(parseISO(t.fecha + "T00:00:00"), "dd/MM/yyyy", { locale: es })} · {t.hora_inicio.slice(0, 5)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-yellow-600 mt-0.5">
+                        Creado {formatDistanceToNow(parseISO(t.created_at), { locale: es, addSuffix: true })}
+                      </p>
                     </li>
                   ))}
                 </ul>
