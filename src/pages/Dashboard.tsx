@@ -230,6 +230,15 @@ export default function Dashboard() {
     cargar();
   }
 
+  function linkWhatsApp(t: TurnoRow): string {
+    const tel = t.paciente?.telefono?.replace(/\D/g, "") ?? "";
+    const fecha = t.fecha ? new Date(t.fecha + "T12:00:00").toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" }) : "";
+    const hora = t.hora_inicio?.slice(0, 5) ?? "";
+    const prof = t.profesional ? `Dr./Dra. ${t.profesional.apellido}` : "";
+    const msg = encodeURIComponent(`Hola! Te recordamos tu turno en el consultorio:\n📅 ${fecha}\n🕐 ${hora} hs\n👨‍⚕️ ${prof}\n\nPor favor confirmá o cancelá respondiendo este mensaje.`);
+    return `https://wa.me/${tel}?text=${msg}`;
+  }
+
   async function confirmarTurnoManana(id: string) {
     const { error } = await supabase.from("turnos").update({ estado: "confirmado" }).eq("id", id);
     if (error) { toast.error("No se pudo confirmar: " + error.message); return; }
@@ -505,6 +514,17 @@ export default function Dashboard() {
                     <Badge className={TURNO_ESTADO_CLASSES[t.estado]}>
                       {TURNO_ESTADO_LABELS[t.estado]}
                     </Badge>
+                    {t.estado === "reservado" && t.paciente?.telefono && (
+                      <a
+                        href={linkWhatsApp(t)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center h-7 w-7 rounded-md border border-green-300 text-green-600 hover:bg-green-50 transition-colors"
+                        title="Enviar WhatsApp"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                      </a>
+                    )}
                     {horario && (
                       <Badge variant="outline" className={`gap-1 ${horario.className}`}>
                         {horario.icon && <AlertCircle className="h-3 w-3" />}
@@ -579,6 +599,17 @@ export default function Dashboard() {
                     <Badge className={TURNO_ESTADO_CLASSES[t.estado]}>
                       {TURNO_ESTADO_LABELS[t.estado]}
                     </Badge>
+                    {t.estado === "reservado" && t.paciente?.telefono && (
+                      <a
+                        href={linkWhatsApp(t)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center h-7 w-7 rounded-md border border-green-300 text-green-600 hover:bg-green-50 transition-colors"
+                        title="Enviar WhatsApp"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                      </a>
+                    )}
                     {t.estado === "reservado" && (
                       <Button
                         size="sm"
