@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { ReprogramarDialog } from "@/components/turnos/ReprogramarDialog";
+import WhatsAppTurnoButton from "@/components/turnos/WhatsAppTurnoButton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -126,7 +127,7 @@ export default function Dashboard() {
     setLoading(true);
     const today = format(new Date(), "yyyy-MM-dd");
 
-    const select = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido, telefono), profesional:profesionales(nombre, apellido, color_agenda)";
+    const select = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido, color_agenda)";
     const selectSolic = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, origen, created_at, paciente:pacientes(nombre, apellido, telefono), profesional:profesionales(nombre, apellido, color_agenda)";
 
     const aplicarFiltro = (q: any): any =>
@@ -166,7 +167,7 @@ export default function Dashboard() {
       const manana = format(new Date(Date.now() + 86400000), "yyyy-MM-dd");
       const [{ data: turnosManana }, { data: turnosMananaDetRow }] = await Promise.all([
         supabase.from("turnos").select("estado").eq("fecha", manana).not("estado", "in", "(reprogramado)"),
-        supabase.from("turnos").select("id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido, telefono), profesional:profesionales(nombre, apellido, color_agenda)").eq("fecha", manana).not("estado", "in", "(reprogramado)").order("hora_inicio"),
+        supabase.from("turnos").select("id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido, color_agenda)").eq("fecha", manana).not("estado", "in", "(reprogramado)").order("hora_inicio"),
       ]);
       const tmTotal = (turnosManana ?? []).length;
       const tmConfirmados = (turnosManana ?? []).filter(t => t.estado === "confirmado").length;
@@ -514,16 +515,15 @@ export default function Dashboard() {
                     <Badge className={TURNO_ESTADO_CLASSES[t.estado]}>
                       {TURNO_ESTADO_LABELS[t.estado]}
                     </Badge>
-                    {t.estado === "reservado" && t.paciente?.telefono && (
-                      <a
-                        href={linkWhatsApp(t)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center h-7 w-7 rounded-md border border-green-300 text-green-600 hover:bg-green-50 transition-colors"
-                        title="Enviar WhatsApp"
-                      >
-                        <MessageSquare className="h-3.5 w-3.5" />
-                      </a>
+                    {t.estado === "reservado" && (
+                      <WhatsAppTurnoButton
+                        telefono={t.paciente?.telefono ?? null}
+                        nombrePaciente={t.paciente ? `${t.paciente.nombre} ${t.paciente.apellido}`.trim() : "Paciente"}
+                        nombreProfesional={t.profesional?.apellido ?? ""}
+                        fecha={t.fecha}
+                        hora={t.hora_inicio}
+                        size="sm"
+                      />
                     )}
                     {horario && (
                       <Badge variant="outline" className={`gap-1 ${horario.className}`}>
@@ -599,16 +599,15 @@ export default function Dashboard() {
                     <Badge className={TURNO_ESTADO_CLASSES[t.estado]}>
                       {TURNO_ESTADO_LABELS[t.estado]}
                     </Badge>
-                    {t.estado === "reservado" && t.paciente?.telefono && (
-                      <a
-                        href={linkWhatsApp(t)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center h-7 w-7 rounded-md border border-green-300 text-green-600 hover:bg-green-50 transition-colors"
-                        title="Enviar WhatsApp"
-                      >
-                        <MessageSquare className="h-3.5 w-3.5" />
-                      </a>
+                    {t.estado === "reservado" && (
+                      <WhatsAppTurnoButton
+                        telefono={t.paciente?.telefono ?? null}
+                        nombrePaciente={t.paciente ? `${t.paciente.nombre} ${t.paciente.apellido}`.trim() : "Paciente"}
+                        nombreProfesional={t.profesional?.apellido ?? ""}
+                        fecha={t.fecha}
+                        hora={t.hora_inicio}
+                        size="sm"
+                      />
                     )}
                     {t.estado === "reservado" && (
                       <Button
