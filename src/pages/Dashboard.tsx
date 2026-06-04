@@ -126,7 +126,7 @@ export default function Dashboard() {
     setLoading(true);
     const today = format(new Date(), "yyyy-MM-dd");
 
-    const select = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido, color_agenda)";
+    const select = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido, telefono), profesional:profesionales(nombre, apellido, color_agenda)";
     const selectSolic = "id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, origen, created_at, paciente:pacientes(nombre, apellido, telefono), profesional:profesionales(nombre, apellido, color_agenda)";
 
     const aplicarFiltro = (q: any): any =>
@@ -166,7 +166,7 @@ export default function Dashboard() {
       const manana = format(new Date(Date.now() + 86400000), "yyyy-MM-dd");
       const [{ data: turnosManana }, { data: turnosMananaDetRow }] = await Promise.all([
         supabase.from("turnos").select("estado").eq("fecha", manana).not("estado", "in", "(reprogramado)"),
-        supabase.from("turnos").select("id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido), profesional:profesionales(nombre, apellido, color_agenda)").eq("fecha", manana).not("estado", "in", "(reprogramado)").order("hora_inicio"),
+        supabase.from("turnos").select("id, fecha, hora_inicio, hora_fin, estado, motivo_consulta, paciente:pacientes(nombre, apellido, telefono), profesional:profesionales(nombre, apellido, color_agenda)").eq("fecha", manana).not("estado", "in", "(reprogramado)").order("hora_inicio"),
       ]);
       const tmTotal = (turnosManana ?? []).length;
       const tmConfirmados = (turnosManana ?? []).filter(t => t.estado === "confirmado").length;
