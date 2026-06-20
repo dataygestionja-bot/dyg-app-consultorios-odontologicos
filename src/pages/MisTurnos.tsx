@@ -97,7 +97,7 @@ export default function MisTurnos() {
   const [miProfesionalId, setMiProfesionalId] = useState<string | null>(null);
   const [turnos, setTurnos] = useState<TurnoRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<"activos" | "finalizados" | "todos">("activos");
+  const [tab, setTab] = useState<"activos" | "finalizados">("activos");
   const [turnoEditar, setTurnoEditar] = useState<TurnoRow | null>(null);
   const [turnoACancelar, setTurnoACancelar] = useState<TurnoRow | null>(null);
   const [cancelando, setCancelando] = useState(false);
@@ -200,8 +200,7 @@ export default function MisTurnos() {
     ESTADOS_FINALIZADOS.includes(t.estado as TurnoEstado),
   );
 
-  const visibles =
-    tab === "activos" ? turnosActivos : tab === "finalizados" ? turnosFinalizados : turnos;
+  const visibles = tab === "activos" ? turnosActivos : turnosFinalizados;
 
   async function iniciarAtencion(t: TurnoRow) {
     if (t.atencion_id) {
@@ -319,10 +318,7 @@ export default function MisTurnos() {
       <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
         <TabsList>
           <TabsTrigger value="activos">Activos ({turnosActivos.length})</TabsTrigger>
-          <TabsTrigger value="finalizados">
-            Finalizados ({turnosFinalizados.length})
-          </TabsTrigger>
-          <TabsTrigger value="todos">Todos ({turnos.length})</TabsTrigger>
+          <TabsTrigger value="finalizados">Finalizados ({turnosFinalizados.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value={tab} className="mt-4">
@@ -350,11 +346,6 @@ export default function MisTurnos() {
                           {loading
                             ? "Cargando turnos..."
                             : `No hay turnos ${fecha === format(new Date(), "yyyy-MM-dd") ? "hoy" : "para esta fecha"} en este filtro.`}
-                          {!loading && tab !== "todos" && (
-                            <div className="mt-2 text-xs">
-                              Probá ver el tab <strong>Todos</strong> para más resultados.
-                            </div>
-                          )}
                         </TableCell>
                       </TableRow>
                     ) : (
