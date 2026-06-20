@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { IntegracionRctaInline } from "@/components/integraciones/IntegracionRctaInline";
@@ -157,14 +157,7 @@ export default function AtencionDetalle() {
           <ArrowLeft className="h-4 w-4" /> Volver
         </Button>
         <h1 className="text-lg sm:text-xl font-semibold">Detalle de atención</h1>
-        {!esAdminRecepcion && (
-          <Button asChild size="sm">
-            <Link to={`/atenciones/${atencion.id}`}>
-              <Pencil className="h-4 w-4" /> Editar
-            </Link>
-          </Button>
-        )}
-        {esAdminRecepcion && <div />}
+        <div />
       </div>
 
       <Card>
