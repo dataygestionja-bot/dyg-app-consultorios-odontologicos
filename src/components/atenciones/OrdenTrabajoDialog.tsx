@@ -207,8 +207,8 @@ export function OrdenTrabajoDialog({
             </div>
           )}
 
-          {/* Laboratorio y tipo en la misma fila */}
-          <div className="grid grid-cols-2 gap-2">
+          {/* Laboratorio y pieza en la misma fila */}
+          <div className="grid grid-cols-[1fr_80px] gap-2">
             <div className="space-y-1">
               <Label className="text-xs">Laboratorio *</Label>
               <Select value={laboratorioId} onValueChange={setLaboratorioId}>
@@ -221,25 +221,25 @@ export function OrdenTrabajoDialog({
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Tipo de trabajo *</Label>
+              <Label className="text-xs">Pieza/s</Label>
               <Input
-                className="h-8 text-xs"
-                placeholder="Corona, prótesis..."
-                value={tipoTrabajo}
-                onChange={(e) => setTipoTrabajo(e.target.value)}
+                className="h-8 text-xs text-center"
+                placeholder="—"
+                value={piezaDental}
+                onChange={(e) => setPiezaDental(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
               />
             </div>
           </div>
 
-          {/* Pieza/s dental/es */}
+          {/* Tipo de trabajo */}
           <div className="space-y-1">
-            <Label className="text-xs">Pieza/s dental/es</Label>
+            <Label className="text-xs">Tipo de trabajo *</Label>
             <Input
               className="h-8 text-xs"
-              placeholder="Ej: 45, 46"
-              value={piezaDental}
-              onChange={(e) => setPiezaDental(e.target.value)}
+              placeholder="Corona, prótesis..."
+              value={tipoTrabajo}
+              onChange={(e) => setTipoTrabajo(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
             />
           </div>
