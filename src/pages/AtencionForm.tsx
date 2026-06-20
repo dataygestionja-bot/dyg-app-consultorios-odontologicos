@@ -22,6 +22,7 @@ import { internoToFdi, internoToFdiTemporal } from "@/lib/odontograma";
 import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
 import HistorialOdontograma from "@/components/paciente/HistorialOdontograma";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { IntegracionRctaInline } from "@/components/integraciones/IntegracionRctaInline";
 import { AgregarDocumentacionDialog, type DocPendiente } from "@/components/atenciones/AgregarDocumentacionDialog";
 import { OrdenTrabajoDialog } from "@/components/atenciones/OrdenTrabajoDialog";
@@ -130,6 +131,8 @@ export default function AtencionForm() {
   const [cargandoSlotsProx, setCargandoSlotsProx] = useState(false);
   const [docDialogOpen, setDocDialogOpen] = useState(false);
   const [ordenDialogOpen, setOrdenDialogOpen] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; message: string; onConfirm: () => void }>({ open: false, message: "", onConfirm: () => {} });
+  const openConfirm = (message: string, onConfirm: () => void) => setConfirmDialog({ open: true, message, onConfirm });
   const [odontoPendientes, setOdontoPendientes] = useState<Map<string, PendienteCara>>(new Map());
   const [docsPendientes, setDocsPendientes] = useState<DocPendiente[]>([]);
 
@@ -727,9 +730,10 @@ export default function AtencionForm() {
           size="icon"
           onClick={() => {
             if (odontoPendientes.size > 0) {
-              if (!window.confirm("Tenés cambios en el odontograma sin guardar. ¿Querés salir de todas formas?")) return;
+              openConfirm("Tenés cambios en el odontograma sin guardar. ¿Querés salir de todas formas?", () => navigate("/atenciones"));
+            } else {
+              navigate("/atenciones");
             }
-            navigate("/atenciones");
           }}
         >
           <ArrowLeft className="h-4 w-4" />
@@ -1009,7 +1013,7 @@ export default function AtencionForm() {
                       value={(p.debe - p.haber).toLocaleString("es-AR")}
                     />
                     <Button type="button" variant="ghost" size="icon" className="h-8 w-8" tabIndex={-1}
-                      onClick={() => { if (window.confirm("¿Eliminar esta práctica?")) removePractica(idx); }}>
+                      onClick={() => openConfirm("¿Eliminar esta práctica?", () => removePractica(idx))}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -1122,9 +1126,10 @@ export default function AtencionForm() {
             variant="outline"
             onClick={() => {
               if (odontoPendientes.size > 0) {
-                if (!window.confirm("Tenés cambios en el odontograma sin guardar. ¿Querés salir de todas formas?")) return;
+                openConfirm("Tenés cambios en el odontograma sin guardar. ¿Querés salir de todas formas?", () => navigate("/atenciones"));
+              } else {
+                navigate("/atenciones");
               }
-              navigate("/atenciones");
             }}
           >
             Cancelar
@@ -1156,6 +1161,21 @@ export default function AtencionForm() {
         fecha={form.fecha}
         piezasDefault={practicas.map((p) => p.pieza_dental.trim()).filter(Boolean).join(", ")}
       />
+
+      <AlertDialog open={confirmDialog.open} onOpenChange={(v) => !v && setConfirmDialog((d) => ({ ...d, open: false }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDialog.message}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmDialog((d) => ({ ...d, open: false })); confirmDialog.onConfirm(); }}>
+              Aceptar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
