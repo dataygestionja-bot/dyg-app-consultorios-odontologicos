@@ -954,7 +954,7 @@ export default function AtencionForm() {
           </CardHeader>
           <CardContent className="space-y-3 pt-0">
             <div className="space-y-2">
-              <div className="grid grid-cols-[240px_55px_80px_80px_80px_32px] gap-2 items-center mb-0.5">
+              <div className="grid grid-cols-[1fr_55px_80px_80px_80px_32px] gap-2 items-center mb-0.5">
                 <span className="text-xs text-muted-foreground px-1">Prestación</span>
                 <div className="flex justify-center"><span className="text-xs text-muted-foreground">Pieza</span></div>
                 <div className="flex justify-center"><span className="text-xs text-muted-foreground">Debe</span></div>
@@ -964,7 +964,7 @@ export default function AtencionForm() {
               </div>
               {practicas.map((p, idx) => (
                 <div key={idx} className="space-y-1">
-                  <div className="grid grid-cols-[240px_55px_80px_80px_80px_32px] gap-2 items-center">
+                  <div className="grid grid-cols-[1fr_55px_80px_80px_80px_32px] gap-2 items-center">
                     <Select value={p.prestacion_id} onValueChange={(v) => updatePractica(idx, { prestacion_id: v })}>
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue placeholder="Seleccionar...">
