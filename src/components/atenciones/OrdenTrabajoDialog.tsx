@@ -45,6 +45,7 @@ interface Props {
   onSaved?: () => void;
   standalone?: boolean;
   profesionales?: { id: string; nombre: string; apellido: string }[];
+  piezasDefault?: string;
 }
 
 export function OrdenTrabajoDialog({
@@ -54,6 +55,7 @@ export function OrdenTrabajoDialog({
   fecha: fechaProp, onSaved,
   standalone = false,
   profesionales: profesionalesProp = [],
+  piezasDefault = "",
 }: Props) {
   const { user } = useAuth();
   const [laboratorios, setLaboratorios] = useState<Laboratorio[]>([]);
@@ -70,6 +72,7 @@ export function OrdenTrabajoDialog({
   const [senia, setSenia] = useState("");
   const [medioPago, setMedioPago] = useState<MedioPago>("efectivo");
   const [referencia, setReferencia] = useState("");
+  const [piezaDental, setPiezaDental] = useState(piezasDefault);
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
@@ -78,6 +81,7 @@ export function OrdenTrabajoDialog({
     setPacienteId(pacienteIdProp);
     setProfesionalId(profesionalIdProp);
     setFecha(fechaProp);
+    setPiezaDental(piezasDefault);
     const queries: Promise<any>[] = [
       supabase.from("laboratorios").select("id, nombre").eq("activo", true).order("nombre")
         .then(({ data }) => setLaboratorios((data ?? []) as Laboratorio[])),
@@ -101,6 +105,7 @@ export function OrdenTrabajoDialog({
     setSenia("");
     setMedioPago("efectivo");
     setReferencia("");
+    setPiezaDental(piezasDefault);
   }
 
   const saldo = (parseFloat(costoPresupuestado) || 0) - (parseFloat(senia) || 0);
@@ -131,6 +136,7 @@ export function OrdenTrabajoDialog({
       estado: "gestionar_pedido",
       costo_presupuestado: costo,
       costo_final: costo,
+      pieza_dental: piezaDental.trim() || null,
       created_by: user?.id ?? null,
     }).select("id").single();
 
@@ -224,6 +230,18 @@ export function OrdenTrabajoDialog({
                 onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
               />
             </div>
+          </div>
+
+          {/* Pieza/s dental/es */}
+          <div className="space-y-1">
+            <Label className="text-xs">Pieza/s dental/es</Label>
+            <Input
+              className="h-8 text-xs"
+              placeholder="Ej: 45, 46"
+              value={piezaDental}
+              onChange={(e) => setPiezaDental(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+            />
           </div>
 
           {/* Indicaciones */}

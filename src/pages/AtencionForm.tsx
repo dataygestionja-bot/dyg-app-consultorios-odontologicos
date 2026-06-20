@@ -942,8 +942,9 @@ export default function AtencionForm() {
           </CardHeader>
           <CardContent className="space-y-3 pt-0">
             <div className="space-y-2">
-              <div className="grid grid-cols-[180px_80px_80px_80px_32px] gap-2 items-center mb-0.5">
+              <div className="grid grid-cols-[180px_55px_80px_80px_80px_32px] gap-2 items-center mb-0.5">
                 <span className="text-xs text-muted-foreground px-1">Prestación</span>
+                <div className="flex justify-center"><span className="text-xs text-muted-foreground">Pieza</span></div>
                 <div className="flex justify-center"><span className="text-xs text-muted-foreground">Debe</span></div>
                 <div className="flex justify-center"><span className="text-xs text-muted-foreground">Haber</span></div>
                 <div className="flex justify-center"><span className="text-xs text-muted-foreground">Saldo</span></div>
@@ -951,7 +952,7 @@ export default function AtencionForm() {
               </div>
               {practicas.map((p, idx) => (
                 <div key={idx} className="space-y-1">
-                  <div className="grid grid-cols-[180px_80px_80px_80px_32px] gap-2 items-center">
+                  <div className="grid grid-cols-[180px_55px_80px_80px_80px_32px] gap-2 items-center">
                     <Select value={p.prestacion_id} onValueChange={(v) => updatePractica(idx, { prestacion_id: v })}>
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue placeholder="Seleccionar...">
@@ -966,6 +967,14 @@ export default function AtencionForm() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <Input
+                      className="h-8 text-xs text-center"
+                      placeholder="—"
+                      maxLength={3}
+                      value={p.pieza_dental}
+                      onChange={(e) => updatePractica(idx, { pieza_dental: e.target.value })}
+                      onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+                    />
                     <Input
                       type="number" min={0} step={1}
                       className="h-8 text-xs text-right"
@@ -1133,6 +1142,7 @@ export default function AtencionForm() {
           return p ? `${p.apellido}, ${p.nombre}` : "—";
         })()}
         fecha={form.fecha}
+        piezasDefault={practicas.map((p) => p.pieza_dental.trim()).filter(Boolean).join(", ")}
       />
     </div>
   );
