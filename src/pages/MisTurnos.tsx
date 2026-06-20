@@ -336,8 +336,8 @@ export default function MisTurnos() {
                       <TableHead>Paciente</TableHead>
                       {!isProfesional && <TableHead>Profesional</TableHead>}
                       <TableHead>Motivo</TableHead>
-                      <TableHead className="w-[150px]">Estado</TableHead>
-                      <TableHead className="w-[280px] text-right">Acción</TableHead>
+                      <TableHead className="w-[100px]">Estado</TableHead>
+                      <TableHead className="text-right">Acción</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -416,7 +416,7 @@ export default function MisTurnos() {
                               </div>
                             </TableCell>
                             <TableCell className="text-right">
-                              <div className="flex flex-wrap justify-end gap-1">
+                              <div className="flex flex-nowrap justify-end gap-1">
                                 {t.atencion_id ? (
                                   <Button
                                     size="sm"
@@ -440,7 +440,7 @@ export default function MisTurnos() {
                                       onClick={() => setTurnoEditar(t)}
                                     >
                                       <Pencil className="h-4 w-4" />
-                                      Editar
+                                      Editar turno
                                     </Button>
                                     <Button
                                       size="sm"
@@ -449,7 +449,7 @@ export default function MisTurnos() {
                                       onClick={() => setTurnoACancelar(t)}
                                     >
                                       <XCircle className="h-4 w-4" />
-                                      Cancelar
+                                      Cancelar turno
                                     </Button>
                                   </>
                                 )}
