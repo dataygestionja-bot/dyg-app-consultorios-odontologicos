@@ -768,7 +768,7 @@ export default function AtencionForm() {
                   <Select
                     value={form.profesional_id}
                     onValueChange={(v) => set("profesional_id", v)}
-                    disabled={camposGeneralesBloqueados}
+                    disabled={camposGeneralesBloqueados || esProfRestringido}
                   >
                     <SelectTrigger className="h-8"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                     <SelectContent>
@@ -825,7 +825,7 @@ export default function AtencionForm() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Profesional *</Label>
-                    <Select value={form.profesional_id} onValueChange={(v) => set("profesional_id", v)} required disabled={camposGeneralesBloqueados}>
+                    <Select value={form.profesional_id} onValueChange={(v) => set("profesional_id", v)} required disabled={camposGeneralesBloqueados || esProfRestringido}>
                       <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                       <SelectContent>
                         {profesionales.map((p) => (

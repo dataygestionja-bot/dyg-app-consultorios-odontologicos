@@ -270,8 +270,6 @@ export default function CajaDiaria() {
     if (cierreConforme === null) return toast.error("Seleccioná si es conforme o no conforme");
     if (!cierreConforme && !cierreComentario.trim()) return toast.error("El comentario es obligatorio para no conforme");
     if (!cierreComentario.trim()) return toast.error("Ingresá un comentario");
-    if (cajaActiva.creado_por === user?.id) return toast.error("Quien cierra la caja debe ser distinto a quien la abrió");
-
     setCerrando(true);
     const estado: EstadoCaja = cierreConforme ? "cerrada_conforme" : "cerrada_no_conforme";
     const { error } = await supabase.from("caja_diaria").update({
@@ -596,13 +594,11 @@ export default function CajaDiaria() {
                 onChange={(e) => setCierreComentario(e.target.value)}
               />
             </div>
-            {cajaActiva?.creado_por === user?.id && (
-              <p className="text-xs text-amber-600">⚠ Quien cierra la caja debe ser distinto a quien la abrió.</p>
-            )}
+
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setCierreOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={cerrarCaja} disabled={cerrando || cajaActiva?.creado_por === user?.id}>
+            <Button size="sm" onClick={cerrarCaja} disabled={cerrando}>
               {cerrando ? "Cerrando..." : "Confirmar cierre"}
             </Button>
           </DialogFooter>
