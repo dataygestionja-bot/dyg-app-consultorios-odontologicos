@@ -18,6 +18,7 @@ import { PrestacionQuickDialog } from "@/components/prestaciones/PrestacionQuick
 import { useAuth } from "@/hooks/useAuth";
 import Odontograma, { type PendienteCara } from "@/components/paciente/Odontograma";
 import type { DienteEstado } from "@/lib/constants";
+import { internoToFdi, internoToFdiTemporal } from "@/lib/odontograma";
 import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
 import HistorialOdontograma from "@/components/paciente/HistorialOdontograma";
 import { Badge } from "@/components/ui/badge";
@@ -895,6 +896,17 @@ export default function AtencionForm() {
                     const next = new Map(prev);
                     next.set(key, p);
                     return next;
+                  });
+                  setPracticas((rows) => {
+                    if (rows.length === 0) return rows;
+                    const lastIdx = rows.length - 1;
+                    if (rows[lastIdx].pieza_dental) return rows;
+                    const fdi = p.diente >= 101
+                      ? internoToFdiTemporal(p.diente)
+                      : internoToFdi(p.diente);
+                    return rows.map((r, i) =>
+                      i === lastIdx ? { ...r, pieza_dental: String(fdi) } : r
+                    );
                   });
                 }}
                 onLimpiarPendientes={() => setOdontoPendientes(new Map())}
