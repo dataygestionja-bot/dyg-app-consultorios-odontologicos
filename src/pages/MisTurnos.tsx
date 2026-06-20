@@ -103,7 +103,7 @@ export default function MisTurnos() {
   const [cancelando, setCancelando] = useState(false);
 
   useEffect(() => {
-    document.title = "Mis turnos de hoy | Consultorio";
+    document.title = "Mis turnos | Consultorio";
   }, []);
 
   // Cargar profesional logueado (si aplica) y lista de profesionales (admin/recepción)
@@ -254,7 +254,7 @@ export default function MisTurnos() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <CalendarDays className="h-6 w-6" />
-            Mis turnos de hoy
+            Mis turnos
           </h1>
           <p className="text-sm text-muted-foreground">
             Iniciá la atención del paciente con sus datos ya precargados desde el turno.
@@ -418,14 +418,24 @@ export default function MisTurnos() {
                             <TableCell className="text-right">
                               <div className="flex flex-nowrap justify-end gap-1">
                                 {t.atencion_id ? (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => navigate(`/atenciones/${t.atencion_id}/ver`)}
-                                  >
-                                    <FileText className="h-4 w-4" />
-                                    Ver atención
-                                  </Button>
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => navigate(`/atenciones/${t.atencion_id}/ver`)}
+                                    >
+                                      <FileText className="h-4 w-4" />
+                                      Ver atención
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => navigate(`/atenciones/${t.atencion_id}`)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                      Editar atención
+                                    </Button>
+                                  </>
                                 ) : puedeIniciar ? (
                                   <Button size="sm" onClick={() => iniciarAtencion(t)}>
                                     <PlayCircle className="h-4 w-4" />

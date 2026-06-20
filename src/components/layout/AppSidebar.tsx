@@ -58,8 +58,8 @@ interface Item {
 
 const itemsOperatoria: Item[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Mis turnos de hoy", url: "/mis-turnos", icon: ListTodo, roles: ["profesional"] },
-  { title: "Atenciones", url: "/atenciones", icon: ClipboardList },
+  { title: "Mis turnos", url: "/mis-turnos", icon: ListTodo, roles: ["profesional"] },
+  { title: "Atenciones", url: "/atenciones", icon: ClipboardList, roles: ["admin", "recepcion"] },
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Profesionales", url: "/profesionales", icon: Stethoscope, roles: ["admin"] },
   { title: "Obras sociales", url: "/obras-sociales", icon: BadgeCheck, roles: ["admin", "recepcion"] },
