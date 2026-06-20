@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Eye } from "lucide-react";
+import { FileText } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -115,9 +115,9 @@ export default function HistorialAtenciones({ pacienteId }: { pacienteId: string
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link to={`/atenciones/${a.id}/ver`} aria-label="Ver atención">
-                          <Eye className="h-4 w-4" />
+                      <Button asChild variant="outline" size="sm">
+                        <Link to={`/atenciones/${a.id}/ver`}>
+                          <FileText className="h-4 w-4" /> Ver atención
                         </Link>
                       </Button>
                     </TableCell>
