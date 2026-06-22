@@ -113,6 +113,7 @@ export default function AtencionForm() {
   const isEdit = id && id !== "nuevo";
   const esProfRestringido = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
   const camposGeneralesBloqueados = !!isEdit && esProfRestringido;
+  const backUrl = esProfRestringido ? "/mis-turnos" : "/atenciones";
   const [form, setForm] = useState(empty);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [profesionales, setProfesionales] = useState<Profesional[]>([]);
@@ -710,14 +711,14 @@ export default function AtencionForm() {
 
     setSubmitting(false);
     toast.success((isEdit ? "Atención actualizada" : "Atención registrada") + mensajeTurno);
-    navigate("/atenciones");
+    navigate(backUrl);
   }
 
   if (loading) {
     return (
       <div className="space-y-6 max-w-5xl">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/atenciones")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(backUrl)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -741,9 +742,9 @@ export default function AtencionForm() {
           size="icon"
           onClick={() => {
             if (odontoPendientes.size > 0) {
-              openConfirm("Tenés cambios en el odontograma sin guardar. ¿Querés salir de todas formas?", () => navigate("/atenciones"));
+              openConfirm("Tenés cambios en el odontograma sin guardar. ¿Querés salir de todas formas?", () => navigate(backUrl));
             } else {
-              navigate("/atenciones");
+              navigate(backUrl);
             }
           }}
         >
@@ -1149,9 +1150,9 @@ export default function AtencionForm() {
             variant="outline"
             onClick={() => {
               if (odontoPendientes.size > 0) {
-                openConfirm("Tenés cambios en el odontograma sin guardar. ¿Querés salir de todas formas?", () => navigate("/atenciones"));
+                openConfirm("Tenés cambios en el odontograma sin guardar. ¿Querés salir de todas formas?", () => navigate(backUrl));
               } else {
-                navigate("/atenciones");
+                navigate(backUrl);
               }
             }}
           >
