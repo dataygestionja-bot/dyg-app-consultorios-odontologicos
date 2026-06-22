@@ -54,15 +54,12 @@ interface PracticaRow {
   haber: number;
   medio_pago: string;
   referencia: string;
+  comprobante_file: File | null;
 }
 
 const MEDIOS_PAGO = [
   { value: "efectivo", label: "Efectivo" },
   { value: "transferencia", label: "Transferencia" },
-  { value: "debito", label: "Débito" },
-  { value: "credito", label: "Crédito" },
-  { value: "mercadopago", label: "MercadoPago" },
-  { value: "otro", label: "Otro" },
 ];
 
 const empty = {
@@ -89,6 +86,7 @@ const newPractica = (orden: number): PracticaRow => ({
   haber: 0,
   medio_pago: "efectivo",
   referencia: "",
+  comprobante_file: null,
 });
 
 const ESTADOS_OCUPAN = new Set([
@@ -264,6 +262,7 @@ export default function AtencionForm() {
             pieza_dental: p.pieza_dental ?? "",
             cara_dental: p.cara_dental ?? "",
             sin_pieza: (p as any).sin_pieza ?? (!p.pieza_dental),
+            comprobante_file: null,
             cantidad: p.cantidad,
             observacion: p.observacion ?? "",
             orden: p.orden,
@@ -590,6 +589,26 @@ export default function AtencionForm() {
                 practica_id: practicaId,
                 importe_aplicado: practica.haber,
               });
+            }
+            if (practica.comprobante_file && atencionId) {
+              const file = practica.comprobante_file;
+              const ext = file.name.includes(".") ? file.name.split(".").pop() : "bin";
+              const path = `${atencionId}/${crypto.randomUUID()}.${ext}`;
+              const { error: upErr } = await supabase.storage
+                .from("atencion-documentos")
+                .upload(path, file, { contentType: file.type || undefined, upsert: false });
+              if (!upErr) {
+                await supabase.from("atencion_documentos").insert({
+                  atencion_id: atencionId,
+                  referencia: `Comprobante transferencia${practica.referencia ? ` - ${practica.referencia}` : ""}`,
+                  fecha: form.fecha,
+                  archivo_path: path,
+                  archivo_nombre: file.name,
+                  archivo_mime: file.type || null,
+                  archivo_size: file.size,
+                  created_by: userId,
+                });
+              }
             }
           }
         }
@@ -1052,26 +1071,37 @@ export default function AtencionForm() {
                     </Button>
                   </div>
                   {p.haber > 0 && (
-                    <div className="grid grid-cols-[180px_120px_1fr] gap-2 items-center pl-0">
-                      <span className="text-xs text-muted-foreground pl-1">Medio de pago</span>
-                      <Select value={p.medio_pago} onValueChange={(v) => updatePractica(idx, { medio_pago: v })}>
-                        <SelectTrigger className="h-7 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {MEDIOS_PAGO.map((m) => (
-                            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {p.medio_pago !== "efectivo" && (
-                        <Input
-                          className="h-7 text-xs"
-                          placeholder="Referencia (N° transferencia, etc.)"
-                          value={p.referencia}
-                          onChange={(e) => updatePractica(idx, { referencia: e.target.value })}
-                          onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
-                        />
+                    <div className="space-y-1 pl-0">
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <span className="text-xs text-muted-foreground w-[140px]">Medio de pago</span>
+                        <Select value={p.medio_pago} onValueChange={(v) => updatePractica(idx, { medio_pago: v, referencia: "", comprobante_file: null })}>
+                          <SelectTrigger className="h-7 text-xs w-[160px]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {MEDIOS_PAGO.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {p.medio_pago === "transferencia" && (
+                        <div className="flex flex-wrap gap-2 items-center">
+                          <span className="text-xs text-muted-foreground w-[140px]">Detalle</span>
+                          <Input
+                            className="h-7 text-xs w-[240px]"
+                            placeholder="Banco, CBU, N° transferencia..."
+                            value={p.referencia}
+                            onChange={(e) => updatePractica(idx, { referencia: e.target.value })}
+                            onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+                          />
+                          <label className="flex items-center gap-2 h-7 rounded-md border border-input bg-background px-3 text-xs cursor-pointer hover:bg-accent">
+                            <Paperclip className="h-3 w-3 shrink-0" />
+                            <span className="truncate max-w-[160px]">{p.comprobante_file ? p.comprobante_file.name : "Adjuntar comprobante"}</span>
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="image/*,application/pdf"
+                              onChange={(e) => updatePractica(idx, { comprobante_file: e.target.files?.[0] ?? null })}
+                            />
+                          </label>
+                        </div>
                       )}
                     </div>
                   )}
