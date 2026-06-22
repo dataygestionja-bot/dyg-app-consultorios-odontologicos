@@ -135,6 +135,8 @@ export default function AtencionForm() {
   const [ordenDialogOpen, setOrdenDialogOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; message: string; onConfirm: () => void }>({ open: false, message: "", onConfirm: () => {} });
   const openConfirm = (message: string, onConfirm: () => void) => setConfirmDialog({ open: true, message, onConfirm });
+  const [alertDialog, setAlertDialog] = useState<{ open: boolean; message: string }>({ open: false, message: "" });
+  const openAlert = (message: string) => setAlertDialog({ open: true, message });
   const [odontoPendientes, setOdontoPendientes] = useState<Map<string, PendienteCara>>(new Map());
   const [docsPendientes, setDocsPendientes] = useState<DocPendiente[]>([]);
 
@@ -508,7 +510,8 @@ export default function AtencionForm() {
     const validas = practicas.filter((p) => p.prestacion_id);
     const sinPiezaNiExcepcion = validas.filter((p) => !p.pieza_dental && !p.sin_pieza);
     if (sinPiezaNiExcepcion.length > 0) {
-      return toast.error("Completá la pieza dental o marcá N/A en las prácticas sin pieza");
+      openAlert("Hay prácticas sin pieza dental identificada. Completá el número de pieza en el odontograma o marcá N/A si la prestación no aplica a una pieza específica.");
+      return;
     }
     setSubmitting(true);
 
@@ -1192,6 +1195,20 @@ export default function AtencionForm() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => { setConfirmDialog((d) => ({ ...d, open: false })); confirmDialog.onConfirm(); }}>
               Aceptar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={alertDialog.open} onOpenChange={(v) => !v && setAlertDialog((d) => ({ ...d, open: false }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Pieza dental requerida</AlertDialogTitle>
+            <AlertDialogDescription>{alertDialog.message}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setAlertDialog((d) => ({ ...d, open: false }))}>
+              Entendido
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
