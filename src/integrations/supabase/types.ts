@@ -70,11 +70,14 @@ export type Database = {
           cantidad: number
           cara_dental: string | null
           created_at: string
+          haber: number
           id: string
+          medio_pago: string | null
           observacion: string | null
           orden: number
           pieza_dental: string | null
           prestacion_id: string
+          referencia: string | null
           sin_pieza: boolean
           updated_at: string
         }
@@ -83,11 +86,14 @@ export type Database = {
           cantidad?: number
           cara_dental?: string | null
           created_at?: string
+          haber?: number
           id?: string
+          medio_pago?: string | null
           observacion?: string | null
           orden?: number
           pieza_dental?: string | null
           prestacion_id: string
+          referencia?: string | null
           sin_pieza?: boolean
           updated_at?: string
         }
@@ -96,11 +102,14 @@ export type Database = {
           cantidad?: number
           cara_dental?: string | null
           created_at?: string
+          haber?: number
           id?: string
+          medio_pago?: string | null
           observacion?: string | null
           orden?: number
           pieza_dental?: string | null
           prestacion_id?: string
+          referencia?: string | null
           sin_pieza?: boolean
           updated_at?: string
         }

@@ -268,8 +268,8 @@ export default function AtencionForm() {
             orden: p.orden,
             debe: (p as any).debe ?? 0,
             haber: (p as any).haber ?? 0,
-            medio_pago: "efectivo",
-            referencia: "",
+            medio_pago: (p as any).medio_pago || "efectivo",
+            referencia: (p as any).referencia || "",
           }));
         }
       } else if (turnoIdParam) {
@@ -561,18 +561,21 @@ export default function AtencionForm() {
           observacion: p.observacion || null,
           orden: i + 1,
           debe: p.debe || 0,
+          haber: p.haber || 0,
+          medio_pago: p.haber > 0 ? (p.medio_pago || "efectivo") : null,
+          referencia: p.haber > 0 ? (p.referencia?.trim() || null) : null,
         }));
         const { data: practicasInsertadas, error: errIns } = await supabase
           .from("atencion_practicas").insert(rows).select("id, debe");
         if (errIns) { setSubmitting(false); return toast.error("Atención guardada, pero falló el detalle", { description: errIns.message }); }
 
-        // Registrar cobros iniciales (haber > 0) por práctica
+        // Registrar cobros solo en atenciones nuevas (evita duplicados al re-guardar)
         const userRes = await supabase.auth.getUser();
         const userId = userRes.data.user?.id ?? null;
         for (let i = 0; i < validas.length; i++) {
           const practica = validas[i];
           const practicaId = practicasInsertadas?.[i]?.id;
-          if (practica.haber > 0 && practicaId) {
+          if (!isEdit && practica.haber > 0 && practicaId) {
             const { data: cobro } = await supabase.from("cobros").insert({
               fecha: form.fecha,
               paciente_id: form.paciente_id,
@@ -739,7 +742,8 @@ export default function AtencionForm() {
 
     setSubmitting(false);
     toast.success((isEdit ? "Atención actualizada" : "Atención registrada") + mensajeTurno);
-    navigate(backUrl);
+    // Al crear nueva atención, quedar en modo edición para poder generar orden de trabajo
+    navigate(isEdit ? backUrl : `/atenciones/${atencionId}`);
   }
 
   if (loading) {
