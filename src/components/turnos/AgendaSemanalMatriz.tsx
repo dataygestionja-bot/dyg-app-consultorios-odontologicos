@@ -30,6 +30,7 @@ import { TURNO_ESTADO_LABELS, TURNO_ESTADO_CLASSES, type TurnoEstado } from "@/l
 import NuevoTurnoDialog from "./NuevoTurnoDialog";
 import { ReprogramarDialog } from "./ReprogramarDialog";
 import WhatsAppTurnoButton from "./WhatsAppTurnoButton";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Profesional {
   id: string;
@@ -116,6 +117,16 @@ interface Props {
 }
 
 export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }: Props) {
+  const { hasRole, hasAnyRole, user } = useAuth();
+  const esProfesional = hasRole("profesional") && !hasAnyRole(["admin", "recepcion"]);
+  const [miProfesionalId, setMiProfesionalId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!esProfesional || !user?.id) return;
+    supabase.from("profesionales").select("id").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => setMiProfesionalId(data?.id ?? null));
+  }, [esProfesional, user?.id]);
+
   const [loading, setLoading] = useState(true);
   const [profesionales, setProfesionales] = useState<Profesional[]>([]);
   const [horarios, setHorarios] = useState<Horario[]>([]);
@@ -207,6 +218,10 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
 
   const filas = useMemo(() => {
     let list = profesionales;
+    // Profesional solo ve su propia fila
+    if (esProfesional && miProfesionalId) {
+      return list.filter((p) => p.id === miProfesionalId);
+    }
     if (filtroProfesional) list = list.filter((p) => p.id === filtroProfesional);
     if (search) {
       const s = search.toLowerCase();
@@ -218,7 +233,7 @@ export function AgendaSemanalMatriz({ semanaInicio, filtroProfesional, search }:
       );
     }
     return list;
-  }, [profesionales, filtroProfesional, search]);
+  }, [profesionales, filtroProfesional, search, esProfesional, miProfesionalId]);
 
   function cellFor(prof: Profesional, dia: Date): CellInfo {
     const fechaStr = format(dia, "yyyy-MM-dd");

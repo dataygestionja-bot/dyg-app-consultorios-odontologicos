@@ -7,6 +7,7 @@ import { addDays, format, startOfWeek, isValid, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { AgendaSemanalMatriz } from "@/components/turnos/AgendaSemanalMatriz";
 import ListadoPorPacienteDialog from "@/components/turnos/ListadoPorPacienteDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 const safeFormat = (d: Date | null | undefined, fmt: string, opts?: Parameters<typeof format>[2]) => {
   if (!d || !isValid(d)) return "";
@@ -19,6 +20,8 @@ const safeParseISO = (s: string | null | undefined): Date | null => {
 };
 
 export default function Turnos() {
+  const { hasRole, hasAnyRole } = useAuth();
+  const esProfesional = hasRole("profesional") && !hasAnyRole(["admin", "recepcion"]);
   const [fecha, setFecha] = useState<Date>(new Date());
   const [search, setSearch] = useState("");
   const [listadoOpen, setListadoOpen] = useState(false);
@@ -38,16 +41,20 @@ export default function Turnos() {
           <p className="text-sm text-muted-foreground">Agenda semanal por profesional</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" onClick={() => setListadoOpen(true)}>
-            <Users className="h-4 w-4 mr-2" />
-            Listar por paciente
-          </Button>
-          <Input
-            placeholder="Buscar profesional..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-[200px]"
-          />
+          {!esProfesional && (
+            <Button size="sm" onClick={() => setListadoOpen(true)}>
+              <Users className="h-4 w-4 mr-2" />
+              Listar por paciente
+            </Button>
+          )}
+          {!esProfesional && (
+            <Input
+              placeholder="Buscar profesional..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-[200px]"
+            />
+          )}
           <div className="flex items-center gap-1 rounded-md border">
             <Button variant="ghost" size="icon" onClick={() => setFecha(addDays(inicio, -7))}>
               <ChevronLeft className="h-4 w-4" />
