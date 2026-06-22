@@ -688,7 +688,7 @@ export default function Dashboard() {
                         <Stethoscope className="h-3.5 w-3.5" /> Iniciar atención
                       </Button>
                     )}
-                    {canManagePendientes && (
+                    {(canManagePendientes || soloMisTurnos) && (
                       <>
                         <Button
                           size="sm"
