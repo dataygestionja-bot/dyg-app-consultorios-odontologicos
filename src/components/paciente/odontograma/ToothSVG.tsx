@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { type DienteEstado, DIENTE_ESTADO_HEX, DIENTE_ESTADO_LABELS, DIENTE_ESTADOS_SELECCIONABLES, DIENTE_ESTADO_DOT } from "@/lib/constants";
 import { type ToothType, type CaraDental, CARA_LABELS, caraOclusalLabel } from "@/lib/odontograma";
 import { cn } from "@/lib/utils";
+import type { UltimaPractica } from "../Odontograma";
 
 interface CaraRegistro {
   cara: CaraDental;
@@ -18,6 +19,7 @@ interface Props {
   disabled?: boolean;
   highlighted?: boolean;
   canCreate?: boolean;
+  ultimaPractica?: UltimaPractica;
 }
 
 const STROKE = "#475569";
@@ -195,9 +197,11 @@ export default function ToothSVG({
   disabled,
   highlighted,
   canCreate,
+  ultimaPractica,
 }: Props) {
   const [popover, setPopover] = useState<{ cara: CaraDental; x: number; y: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
 
   const getType = toothTypeFn ?? ((f: number): ToothType => {
     const p = f % 10;
@@ -227,10 +231,15 @@ export default function ToothSVG({
 
   return (
     <>
-      <div className={cn(
-        "flex flex-col items-center gap-0.5",
-        highlighted && "ring-2 ring-primary rounded-md",
-      )}>
+      <div
+        className={cn(
+          "flex flex-col items-center gap-0.5",
+          highlighted && "ring-2 ring-primary rounded-md",
+        )}
+        onMouseEnter={(e) => ultimaPractica && setTooltipPos({ x: e.clientX, y: e.clientY })}
+        onMouseMove={(e) => ultimaPractica && setTooltipPos({ x: e.clientX, y: e.clientY })}
+        onMouseLeave={() => setTooltipPos(null)}
+      >
         {arcada === "superior" && (
           <span className="text-[9px] font-medium text-muted-foreground leading-none">{fdi}</span>
         )}
@@ -245,6 +254,17 @@ export default function ToothSVG({
           <span className="text-[9px] font-medium text-muted-foreground leading-none">{fdi}</span>
         )}
       </div>
+
+      {tooltipPos && ultimaPractica && (
+        <div
+          className="fixed z-50 rounded-md border bg-popover text-popover-foreground shadow-md p-2.5 text-xs pointer-events-none max-w-[220px]"
+          style={{ left: tooltipPos.x + 14, top: tooltipPos.y - 10 }}
+        >
+          <div className="font-semibold leading-tight">{ultimaPractica.codigo} · {ultimaPractica.descripcion}</div>
+          <div className="text-muted-foreground mt-1">{ultimaPractica.fecha}</div>
+          <div className="text-muted-foreground">{ultimaPractica.profesional}</div>
+        </div>
+      )}
 
       {popover && (
         <EstadoPopover

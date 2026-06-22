@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import ToothSVG from "./odontograma/ToothSVG";
+import type { UltimaPractica } from "./Odontograma";
 import {
   FDI_SUPERIOR,
   FDI_INFERIOR,
@@ -29,7 +30,8 @@ interface Props {
   disabled?: boolean;
   piezaResaltada?: number | null;
   canCreate?: boolean;
-  pendientesKeys?: Set<string>; // keys "diente-cara" pendientes
+  pendientesKeys?: Set<string>;
+  ultimasPracticas?: Map<string, UltimaPractica>;
 }
 
 export default function OdontogramaAnatomico({
@@ -39,6 +41,7 @@ export default function OdontogramaAnatomico({
   piezaResaltada,
   canCreate,
   pendientesKeys = new Set(),
+  ultimasPracticas,
 }: Props) {
   const [denticion, setDenticion] = useState<"permanente" | "temporal">("permanente");
 
@@ -105,6 +108,7 @@ export default function OdontogramaAnatomico({
         canCreate={canCreate}
         toothTypeFn={getToothTypeFn}
         onCaraEstado={(cara, estado) => onCaraEstado?.(interno, cara, estado)}
+        ultimaPractica={ultimasPracticas?.get(String(fdi))}
       />
     );
   }

@@ -13,8 +13,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
 import OdontogramaAnatomico from "./OdontogramaAnatomico";
+export interface UltimaPractica {
+  codigo: string;
+  descripcion: string;
+  fecha: string;
+  profesional: string;
+}
 import { internoToFdi, type CaraDental } from "@/lib/odontograma";
 
 export interface PendienteCara {
@@ -57,16 +64,39 @@ export default function Odontograma({
   const { can } = usePermissions();
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [loading, setLoading] = useState(false);
+  const [ultimasPracticas, setUltimasPracticas] = useState<Map<string, UltimaPractica>>(new Map());
 
   async function cargar() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("odontograma_registros")
-      .select("*, profesionales(nombre, apellido)")
-      .eq("paciente_id", pacienteId)
-      .order("fecha", { ascending: false });
-    if (error) toast.error("No se pudo cargar el odontograma", { description: error.message });
-    setRegistros((data ?? []) as Registro[]);
+    const [odonto, practicas] = await Promise.all([
+      supabase
+        .from("odontograma_registros")
+        .select("*, profesionales(nombre, apellido)")
+        .eq("paciente_id", pacienteId)
+        .order("fecha", { ascending: false }),
+      supabase
+        .from("atenciones")
+        .select("fecha, profesional:profesionales(nombre, apellido), practicas:atencion_practicas(pieza_dental, prestacion:prestaciones(codigo, descripcion))")
+        .eq("paciente_id", pacienteId)
+        .order("fecha", { ascending: false }),
+    ]);
+    if (odonto.error) toast.error("No se pudo cargar el odontograma", { description: odonto.error.message });
+    setRegistros((odonto.data ?? []) as Registro[]);
+
+    const map = new Map<string, UltimaPractica>();
+    for (const a of (practicas.data ?? []) as any[]) {
+      for (const p of a.practicas ?? []) {
+        if (!p.pieza_dental || map.has(p.pieza_dental)) continue;
+        const prof = a.profesional;
+        map.set(p.pieza_dental, {
+          codigo: p.prestacion?.codigo ?? "",
+          descripcion: p.prestacion?.descripcion ?? "",
+          fecha: format(parseISO(a.fecha), "dd/MM/yyyy", { locale: es }),
+          profesional: prof ? `${prof.apellido}, ${prof.nombre}` : "—",
+        });
+      }
+    }
+    setUltimasPracticas(map);
     setLoading(false);
   }
 
@@ -151,6 +181,7 @@ export default function Odontograma({
             disabled={mode === "full" || (mode === "inline" && !profesionalId)}
             canCreate={modoDiferido && puedeAgregar && !!profesionalId}
             onCaraEstado={handleCaraEstado}
+            ultimasPracticas={ultimasPracticas}
           />
           <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 px-3 text-[11px] text-muted-foreground">
             {DIENTE_ESTADOS_SELECCIONABLES.map((e) => (
