@@ -25,6 +25,7 @@ interface CobroRow {
 interface PagoLabRow {
   id: string;
   importe: number;
+  medio_pago: string | null;
   created_at: string;
   nro_orden: string | null;
   orden: {
@@ -103,7 +104,7 @@ export default function CobrosYPagos() {
         pagosQuery = supabase
           .from("pagos_laboratorio")
           .select(
-            `id, importe, created_at, nro_orden,
+            `id, importe, medio_pago, created_at, nro_orden,
              orden:ordenes_trabajo(
                id, created_at, fecha_estimada_entrega,
                paciente:pacientes(nombre, apellido)
@@ -227,7 +228,7 @@ export default function CobrosYPagos() {
                     <TableHead>Paciente</TableHead>
                     <TableHead>Práctica</TableHead>
                     <TableHead className="text-right">Importe</TableHead>
-                    <TableHead>Quien efectuó el cobro</TableHead>
+                    <TableHead>Cobró</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -240,8 +241,11 @@ export default function CobrosYPagos() {
                           : "—"}
                       </TableCell>
                       <TableCell className="text-sm">{getPractica(c)}</TableCell>
-                      <TableCell className="text-right font-medium">
-                        {fmt(c.importe)}
+                      <TableCell className="text-right">
+                        <span className="font-medium">{fmt(c.importe)}</span>
+                        {c.medio_pago && (
+                          <p className="text-xs text-muted-foreground capitalize">{c.medio_pago}</p>
+                        )}
                       </TableCell>
                       <TableCell>
                         {c.usuario_registro ? (perfiles[c.usuario_registro] ?? "—") : "—"}
@@ -272,8 +276,8 @@ export default function CobrosYPagos() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Fecha pedido</TableHead>
-                    <TableHead>Fecha vencimiento</TableHead>
+                    <TableHead>Pedido</TableHead>
+                    <TableHead>Vencimiento</TableHead>
                     <TableHead>Paciente</TableHead>
                     <TableHead className="text-right">Importe</TableHead>
                     <TableHead>Nro de orden</TableHead>
@@ -295,8 +299,11 @@ export default function CobrosYPagos() {
                           ? `${p.orden.paciente.apellido}, ${p.orden.paciente.nombre}`
                           : "—"}
                       </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {fmt(p.importe)}
+                      <TableCell className="text-right">
+                        <span className="font-medium">{fmt(p.importe)}</span>
+                        {p.medio_pago && (
+                          <p className="text-xs text-muted-foreground capitalize">{p.medio_pago}</p>
+                        )}
                       </TableCell>
                       <TableCell className="font-mono text-xs">
                         {p.nro_orden ?? "—"}
