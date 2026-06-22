@@ -43,6 +43,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
   const [costoFinal, setCostoFinal] = useState("");
   const [nuevoPago, setNuevoPago] = useState("");
   const [medioPago, setMedioPago] = useState<MedioPago>("efectivo");
+  const [nroOrden, setNroOrden] = useState("");
   const [referencia, setReferencia] = useState("");
   const [comprobanteFile, setComprobanteFile] = useState<File | null>(null);
   const [pagoAcumulado, setPagoAcumulado] = useState(0);
@@ -55,6 +56,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
     setCostoFinal(String(orden.costo_final || orden.costo_presupuestado));
     setNuevoPago("");
     setMedioPago("efectivo");
+    setNroOrden("");
     setReferencia("");
     setComprobanteFile(null);
     cargarPagos();
@@ -76,6 +78,9 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
 
   async function guardar() {
     if (!orden) return;
+    if (pago > 0 && !nroOrden.trim()) {
+      return toast.error("Ingresá el número de orden del pago");
+    }
     if (pago > 0 && medioPago === "transferencia" && !referencia.trim()) {
       return toast.error("Ingresá la referencia del pago");
     }
@@ -107,6 +112,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
           laboratorio_id: orden.laboratorio.id,
           importe: pago,
           medio_pago: medioPago,
+          nro_orden: nroOrden.trim() || null,
           referencia: referencia.trim() || null,
           fecha: new Date().toISOString().slice(0, 10),
           usuario_registro: user?.id ?? null,
@@ -225,6 +231,16 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
           {/* Medio de pago — solo si hay nuevo pago */}
           {pago > 0 && (
             <div className="space-y-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Nro. de orden *</Label>
+                <Input
+                  className="h-8 text-xs"
+                  placeholder="Ej: 0001"
+                  value={nroOrden}
+                  onChange={(e) => setNroOrden(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+                />
+              </div>
               <div className="space-y-1">
                 <Label className="text-xs">Medio de pago *</Label>
                 <Select value={medioPago} onValueChange={(v) => { setMedioPago(v as MedioPago); setComprobanteFile(null); }}>
