@@ -934,6 +934,8 @@ export default function AtencionForm() {
                 type="button"
                 size="sm"
                 variant="outline"
+                disabled={!isEdit}
+                title={!isEdit ? "Guardá la atención primero para crear una orden de trabajo" : undefined}
                 onClick={() => setOrdenDialogOpen(true)}
               >
                 <FlaskConical className="h-4 w-4" /> Orden de trabajo
