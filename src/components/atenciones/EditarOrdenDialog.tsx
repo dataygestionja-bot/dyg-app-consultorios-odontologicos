@@ -112,7 +112,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
           laboratorio_id: orden.laboratorio.id,
           importe: pago,
           medio_pago: medioPago,
-          nro_orden: nroOrden.trim() || null,
+          nro_orden: nroOrden ? nroOrden.padStart(9, "0") : null,
           referencia: referencia.trim() || null,
           fecha: new Date().toISOString().slice(0, 10),
           usuario_registro: user?.id ?? null,
@@ -234,10 +234,13 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
               <div className="space-y-1">
                 <Label className="text-xs">Nro. de orden *</Label>
                 <Input
-                  className="h-8 text-xs"
-                  placeholder="Ej: 0001"
+                  className="h-8 text-xs font-mono"
+                  placeholder="000000000"
+                  inputMode="numeric"
+                  maxLength={9}
                   value={nroOrden}
-                  onChange={(e) => setNroOrden(e.target.value)}
+                  onChange={(e) => setNroOrden(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                  onBlur={() => nroOrden && setNroOrden(nroOrden.padStart(9, "0"))}
                   onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
                 />
               </div>
