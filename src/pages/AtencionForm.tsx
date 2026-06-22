@@ -108,12 +108,21 @@ export default function AtencionForm() {
   const { id } = useParams();
   const [params] = useSearchParams();
   const turnoIdParam = params.get("turno");
+  const estadoPrevParam = params.get("estadoPrev");
   const navigate = useNavigate();
   const { hasRole } = useAuth();
   const isEdit = id && id !== "nuevo";
   const esProfRestringido = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
   const camposGeneralesBloqueados = !!isEdit && esProfRestringido;
   const backUrl = esProfRestringido ? "/mis-turnos" : "/atenciones";
+
+  async function cancelarYVolver() {
+    // Si es atención nueva con turno, revertir el estado del turno al original
+    if (!isEdit && turnoIdParam && estadoPrevParam) {
+      await supabase.from("turnos").update({ estado: estadoPrevParam as any }).eq("id", turnoIdParam);
+    }
+    navigate(backUrl);
+  }
   const [form, setForm] = useState(empty);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [profesionales, setProfesionales] = useState<Profesional[]>([]);
@@ -718,7 +727,7 @@ export default function AtencionForm() {
     return (
       <div className="space-y-6 max-w-5xl">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(backUrl)}>
+          <Button variant="ghost" size="icon" onClick={cancelarYVolver}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -742,9 +751,9 @@ export default function AtencionForm() {
           size="icon"
           onClick={() => {
             if (odontoPendientes.size > 0) {
-              openConfirm("Tenés cambios en el odontograma sin guardar. ¿Querés salir de todas formas?", () => navigate(backUrl));
+              openConfirm("Tenés cambios en el odontograma sin guardar. ¿Querés salir de todas formas?", cancelarYVolver);
             } else {
-              navigate(backUrl);
+              cancelarYVolver();
             }
           }}
         >
@@ -1150,9 +1159,9 @@ export default function AtencionForm() {
             variant="outline"
             onClick={() => {
               if (odontoPendientes.size > 0) {
-                openConfirm("Tenés cambios en el odontograma sin guardar. ¿Querés salir de todas formas?", () => navigate(backUrl));
+                openConfirm("Tenés cambios en el odontograma sin guardar. ¿Querés salir de todas formas?", cancelarYVolver);
               } else {
-                navigate(backUrl);
+                cancelarYVolver();
               }
             }}
           >

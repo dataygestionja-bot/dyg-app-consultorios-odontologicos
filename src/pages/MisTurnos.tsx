@@ -227,7 +227,7 @@ export default function MisTurnos() {
         .eq("id", t.id);
       // si falla por RLS, no rompemos el flujo
     }
-    navigate(`/atenciones/nuevo?turno=${t.id}`);
+    navigate(`/atenciones/nuevo?turno=${t.id}&estadoPrev=${t.estado}`);
   }
 
   async function confirmarCancelacion() {
