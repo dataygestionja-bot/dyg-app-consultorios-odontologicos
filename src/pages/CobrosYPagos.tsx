@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Banknote, FlaskConical } from "lucide-react";
+import { Banknote, FlaskConical, Download } from "lucide-react";
 import { format, parseISO, startOfMonth } from "date-fns";
+import * as XLSX from "xlsx";
 import { es } from "date-fns/locale";
 
 interface CobroRow {
@@ -141,6 +142,33 @@ export default function CobrosYPagos() {
   const totalCobros = cobros.reduce((s, c) => s + (c.importe ?? 0), 0);
   const totalPagos = pagosLab.reduce((s, p) => s + (p.importe ?? 0), 0);
 
+  function descargarExcel() {
+    const wb = XLSX.utils.book_new();
+
+    const cobrosData = cobros.map((c) => ({
+      Fecha: fmtFecha(c.fecha),
+      Paciente: c.paciente ? `${c.paciente.apellido}, ${c.paciente.nombre}` : "—",
+      Práctica: getPractica(c),
+      Importe: c.importe,
+      "Medio de pago": c.medio_pago ?? "—",
+      Cobró: c.usuario_registro ? (perfiles[c.usuario_registro] ?? "—") : "—",
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cobrosData), "Cobros");
+
+    const pagosData = pagosLab.map((p) => ({
+      "Fecha pedido": p.orden?.created_at ? fmtFecha(p.orden.created_at) : "—",
+      Vencimiento: p.orden?.fecha_estimada_entrega ? fmtFecha(p.orden.fecha_estimada_entrega) : "—",
+      Paciente: p.orden?.paciente ? `${p.orden.paciente.apellido}, ${p.orden.paciente.nombre}` : "—",
+      Importe: p.importe,
+      "Medio de pago": p.medio_pago ?? "—",
+      "Nro de orden": p.nro_orden ?? "—",
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pagosData), "Pagos lab");
+
+    const nombreArchivo = `cobros-pagos_${desde}_${hasta}.xlsx`;
+    XLSX.writeFile(wb, nombreArchivo);
+  }
+
   function getPractica(c: CobroRow): string {
     const prest = c.aplicaciones?.[0]?.practica?.prestacion;
     if (!prest) return "—";
@@ -173,6 +201,16 @@ export default function CobrosYPagos() {
         />
         <Button variant="outline" size="sm" onClick={cargar}>
           Aplicar
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={descargarExcel}
+          disabled={cobros.length === 0 && pagosLab.length === 0}
+          className="ml-auto"
+        >
+          <Download className="h-4 w-4 mr-1" />
+          Exportar Excel
         </Button>
       </div>
 
