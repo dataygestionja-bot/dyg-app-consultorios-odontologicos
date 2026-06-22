@@ -26,6 +26,7 @@ interface PagoLabRow {
   id: string;
   importe: number;
   created_at: string;
+  nro_orden: string | null;
   orden: {
     id: string;
     created_at: string;
@@ -102,7 +103,7 @@ export default function CobrosYPagos() {
         pagosQuery = supabase
           .from("pagos_laboratorio")
           .select(
-            `id, importe, created_at,
+            `id, importe, created_at, nro_orden,
              orden:ordenes_trabajo(
                id, created_at, fecha_estimada_entrega,
                paciente:pacientes(nombre, apellido)
@@ -298,7 +299,7 @@ export default function CobrosYPagos() {
                         {fmt(p.importe)}
                       </TableCell>
                       <TableCell className="font-mono text-xs">
-                        {p.orden ? p.orden.id.slice(0, 8).toUpperCase() : "—"}
+                        {p.nro_orden ?? "—"}
                       </TableCell>
                     </TableRow>
                   ))}
