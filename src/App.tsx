@@ -43,6 +43,7 @@ import CuentaCorrienteLaboratorio from "./pages/CuentaCorrienteLaboratorio";
 import NominaLaboratorios from "./pages/NominaLaboratorios";
 import CajaDiaria from "./pages/CajaDiaria";
 import HistorialCajas from "./pages/HistorialCajas";
+import CobrosYPagos from "./pages/CobrosYPagos";
 import SaludBot from "./pages/SaludBot";
 
 const queryClient = new QueryClient();
@@ -147,6 +148,7 @@ const App = () => (
             {/* Gestión - Caja */}
             <Route path="/caja" element={<Private><CajaDiaria /></Private>} />
             <Route path="/caja/historial" element={<Private><HistorialCajas /></Private>} />
+            <Route path="/gestion/cobros-pagos" element={<RoleProtected roles={["profesional"]}><CobrosYPagos /></RoleProtected>} />
             <Route path="/gestion/salud-bot" element={<RoleProtected roles={["admin", "recepcion"]}><SaludBot /></RoleProtected>} />
 
             {/* Laboratorio */}

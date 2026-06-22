@@ -12,6 +12,7 @@ import {
   FileBarChart,
   ScrollText,
   ChevronDown,
+  ArrowLeftRight,
   Briefcase,
   ListChecks,
   FileText,
@@ -72,8 +73,9 @@ const itemsTurnos: Item[] = [
 ];
 
 const itemsGestion: Item[] = [
-  { title: "Caja diaria", url: "/caja", icon: DollarSign },
-  { title: "Historial de cajas", url: "/caja/historial", icon: ScrollText },
+  { title: "Caja diaria", url: "/caja", icon: DollarSign, roles: ["admin", "recepcion"] },
+  { title: "Historial de cajas", url: "/caja/historial", icon: ScrollText, roles: ["admin", "recepcion"] },
+  { title: "Cobros y pagos", url: "/gestion/cobros-pagos", icon: ArrowLeftRight, roles: ["profesional"] },
   { title: "Salud del Bot", url: "/gestion/salud-bot", icon: Activity, roles: ["admin", "recepcion"] },
 ];
 
