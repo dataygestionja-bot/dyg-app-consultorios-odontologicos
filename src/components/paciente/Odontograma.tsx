@@ -68,7 +68,9 @@ export default function Odontograma({
 
   async function cargar() {
     setLoading(true);
-    const [odonto, practicas] = await Promise.all([
+
+    // Paso 1: odontograma + atenciones del paciente en paralelo
+    const [odonto, atencionesRes] = await Promise.all([
       supabase
         .from("odontograma_registros")
         .select("*, profesionales(nombre, apellido)")
@@ -76,27 +78,61 @@ export default function Odontograma({
         .order("fecha", { ascending: false }),
       supabase
         .from("atenciones")
-        .select("fecha, profesional:profesionales(nombre, apellido), practicas:atencion_practicas(pieza_dental, prestacion:prestaciones(codigo, descripcion))")
+        .select("id, fecha, profesional:profesionales(nombre, apellido)")
         .eq("paciente_id", pacienteId)
         .order("fecha", { ascending: false }),
     ]);
+
     if (odonto.error) toast.error("No se pudo cargar el odontograma", { description: odonto.error.message });
     setRegistros((odonto.data ?? []) as Registro[]);
 
-    const map = new Map<string, UltimaPractica>();
-    for (const a of (practicas.data ?? []) as any[]) {
-      for (const p of a.practicas ?? []) {
-        if (!p.pieza_dental || map.has(p.pieza_dental)) continue;
-        const prof = a.profesional;
-        map.set(p.pieza_dental, {
-          codigo: p.prestacion?.codigo ?? "",
-          descripcion: p.prestacion?.descripcion ?? "",
-          fecha: format(parseISO(a.fecha), "dd/MM/yyyy", { locale: es }),
-          profesional: prof ? `${prof.apellido}, ${prof.nombre}` : "—",
-        });
+    // Paso 2: prácticas de esas atenciones (patrón probado en AtencionDetalle)
+    const atencionIds = (atencionesRes.data ?? []).map((a: any) => a.id);
+    if (atencionIds.length > 0) {
+      const { data: practs } = await supabase
+        .from("atencion_practicas")
+        .select("atencion_id, pieza_dental, prestacion:prestaciones(codigo, descripcion)")
+        .in("atencion_id", atencionIds)
+        .not("pieza_dental", "is", null);
+
+      // Mapa atencion_id → metadata de la atención
+      const atencionMeta = new Map<string, { fecha: string; profesional: string }>(
+        (atencionesRes.data ?? []).map((a: any) => [
+          a.id,
+          {
+            fecha: format(parseISO(a.fecha), "dd/MM/yyyy", { locale: es }),
+            profesional: a.profesional
+              ? `${a.profesional.apellido}, ${a.profesional.nombre}`
+              : "—",
+          },
+        ])
+      );
+
+      // Agrupar prácticas por atencion_id
+      const practsPorAtencion = new Map<string, any[]>();
+      for (const p of (practs ?? []) as any[]) {
+        if (!practsPorAtencion.has(p.atencion_id)) practsPorAtencion.set(p.atencion_id, []);
+        practsPorAtencion.get(p.atencion_id)!.push(p);
       }
+
+      // Iterar atenciones en orden desc para que la primera aparición de cada pieza sea la más reciente
+      const map = new Map<string, UltimaPractica>();
+      for (const a of (atencionesRes.data ?? []) as any[]) {
+        const meta = atencionMeta.get(a.id);
+        if (!meta) continue;
+        for (const p of practsPorAtencion.get(a.id) ?? []) {
+          if (!p.pieza_dental || map.has(p.pieza_dental)) continue;
+          map.set(p.pieza_dental, {
+            codigo: p.prestacion?.codigo ?? "",
+            descripcion: p.prestacion?.descripcion ?? "",
+            fecha: meta.fecha,
+            profesional: meta.profesional,
+          });
+        }
+      }
+      setUltimasPracticas(map);
     }
-    setUltimasPracticas(map);
+
     setLoading(false);
   }
 
