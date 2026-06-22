@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DIENTE_ESTADO_LABELS, DIENTE_ESTADO_DOT, type DienteEstado } from "@/lib/constants";
+import { internoToFdi, internoToFdiTemporal } from "@/lib/odontograma";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 
@@ -10,6 +11,7 @@ interface Registro {
   estado: DienteEstado;
   fecha: string;
   observaciones: string | null;
+  tipo_denticion?: string | null;
   profesionales?: { nombre: string; apellido: string } | null;
 }
 
@@ -22,7 +24,7 @@ export default function HistorialOdontograma({ pacienteId }: { pacienteId: strin
     setLoading(true);
     supabase
       .from("odontograma_registros")
-      .select("id, diente, estado, fecha, observaciones, profesionales(nombre, apellido)")
+      .select("id, diente, estado, fecha, observaciones, tipo_denticion, profesionales(nombre, apellido)")
       .eq("paciente_id", pacienteId)
       .order("fecha", { ascending: false })
       .then(({ data }) => {
@@ -54,7 +56,11 @@ export default function HistorialOdontograma({ pacienteId }: { pacienteId: strin
           {registros.map((r) => (
             <TableRow key={r.id}>
               <TableCell>{format(new Date(r.fecha), "dd/MM/yyyy HH:mm")}</TableCell>
-              <TableCell>{r.diente}</TableCell>
+              <TableCell>
+                {r.tipo_denticion === "temporal"
+                  ? internoToFdiTemporal(r.diente)
+                  : internoToFdi(r.diente)}
+              </TableCell>
               <TableCell>
                 <span className="inline-flex items-center gap-2">
                   <span className={`inline-block h-2.5 w-2.5 rounded-full ${DIENTE_ESTADO_DOT[r.estado]}`} />
