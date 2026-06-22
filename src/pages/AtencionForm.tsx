@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -147,6 +147,8 @@ export default function AtencionForm() {
   const openAlert = (message: string) => setAlertDialog({ open: true, message });
   const [odontoPendientes, setOdontoPendientes] = useState<Map<string, PendienteCara>>(new Map());
   const [docsPendientes, setDocsPendientes] = useState<DocPendiente[]>([]);
+  const formRef = useRef<HTMLFormElement>(null);
+  const pendingOrdenRef = useRef(false);
 
   useEffect(() => {
     if (odontoPendientes.size === 0) return;
@@ -371,6 +373,13 @@ export default function AtencionForm() {
     };
   }, [id, isEdit, turnoIdParam]);
 
+  // Auto-abrir dialog de orden de trabajo cuando se navega con ?abrir_orden=1
+  useEffect(() => {
+    if (!loading && params.get("abrir_orden") === "1") {
+      setOrdenDialogOpen(true);
+    }
+  }, [loading]);
+
   // Cargar turnos disponibles del paciente cuando es "con_turno".
   // Importante: solo corre después de que terminó la fase 2 (loading=false),
   // así no pisa el turno vinculado que se cargó en la fase inicial.
@@ -442,6 +451,20 @@ export default function AtencionForm() {
     setPrestaciones((list) => [...list, p].sort((a, b) => a.codigo.localeCompare(b.codigo)));
     if (quickTargetIdx !== null) updatePractica(quickTargetIdx, { prestacion_id: p.id });
     setQuickTargetIdx(null);
+  }
+
+  function handleAbrirOrden() {
+    if (isEdit) {
+      setOrdenDialogOpen(true);
+      return;
+    }
+    const tienesPractica = practicas.some((p) => p.prestacion_id);
+    if (!tienesPractica) {
+      toast.error("Agregá al menos una práctica antes de crear una orden de trabajo");
+      return;
+    }
+    pendingOrdenRef.current = true;
+    formRef.current?.requestSubmit();
   }
 
   async function guardar(e: React.FormEvent) {
@@ -741,9 +764,16 @@ export default function AtencionForm() {
     }
 
     setSubmitting(false);
-    toast.success((isEdit ? "Atención actualizada" : "Atención registrada") + mensajeTurno);
-    // Al crear nueva atención, quedar en modo edición para poder generar orden de trabajo
-    navigate(isEdit ? backUrl : `/atenciones/${atencionId}`);
+    const abrirOrden = pendingOrdenRef.current;
+    pendingOrdenRef.current = false;
+    if (!abrirOrden) {
+      toast.success((isEdit ? "Atención actualizada" : "Atención registrada") + mensajeTurno);
+    }
+    if (isEdit) {
+      if (abrirOrden) setOrdenDialogOpen(true);
+    } else {
+      navigate(`/atenciones/${atencionId}${abrirOrden ? "?abrir_orden=1" : ""}`);
+    }
   }
 
   if (loading) {
@@ -789,7 +819,7 @@ export default function AtencionForm() {
         </div>
       </div>
 
-      <form onSubmit={guardar} className="space-y-3" onKeyDown={(e) => {
+      <form ref={formRef} onSubmit={guardar} className="space-y-3" onKeyDown={(e) => {
         if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault();
       }}>
         {/* Cabecera compacta */}
@@ -974,17 +1004,14 @@ export default function AtencionForm() {
                   return p ? `${p.apellido}, ${p.nombre}` : undefined;
                 })()}
               />
-              <span title={!isEdit ? "Guardá la atención primero para crear una orden de trabajo" : undefined}>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={!isEdit}
-                  onClick={() => setOrdenDialogOpen(true)}
-                >
-                  <FlaskConical className="h-4 w-4" /> Orden de trabajo
-                </Button>
-              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleAbrirOrden}
+              >
+                <FlaskConical className="h-4 w-4" /> Orden de trabajo
+              </Button>
               <Button
                 type="button"
                 size="sm"
