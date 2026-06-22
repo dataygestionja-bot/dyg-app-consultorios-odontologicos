@@ -105,26 +105,24 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
 
     // Registrar pago si hay importe
     if (pago > 0 && orden.laboratorio?.id) {
-      const { data: pagoInsertado, error: errPago } = await supabase
-        .from("pagos_laboratorio")
-        .insert({
-          orden_id: orden.id,
-          laboratorio_id: orden.laboratorio.id,
-          importe: pago,
-          medio_pago: medioPago,
-          nro_orden: nroOrden ? nroOrden.padStart(9, "0") : null,
-          referencia: referencia.trim() || null,
-          fecha: new Date().toISOString().slice(0, 10),
-          usuario_registro: user?.id ?? null,
-        })
-        .select("id")
-        .single();
+      const { data: pagoId, error: errPago } = await supabase.rpc("insertar_pago_laboratorio", {
+        p_orden_id: orden.id,
+        p_laboratorio_id: orden.laboratorio.id,
+        p_importe: pago,
+        p_medio_pago: medioPago,
+        p_nro_orden: nroOrden ? nroOrden.padStart(9, "0") : null,
+        p_referencia: referencia.trim() || null,
+        p_fecha: new Date().toISOString().slice(0, 10),
+        p_usuario_registro: user?.id ?? null,
+      });
 
       if (errPago) {
         toast.error("Error registrando el pago", { description: errPago.message });
         setGuardando(false);
         return;
       }
+
+      const pagoInsertado = pagoId ? { id: pagoId as string } : null;
 
       // Subir comprobante si hay archivo
       if (comprobanteFile && pagoInsertado?.id) {
