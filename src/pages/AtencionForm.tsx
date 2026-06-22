@@ -26,7 +26,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { IntegracionRctaInline } from "@/components/integraciones/IntegracionRctaInline";
 import { AgregarDocumentacionDialog, type DocPendiente } from "@/components/atenciones/AgregarDocumentacionDialog";
 import { OrdenTrabajoDialog } from "@/components/atenciones/OrdenTrabajoDialog";
-import { FileUp, FlaskConical } from "lucide-react";
+import { FileUp, FlaskConical, Paperclip } from "lucide-react";
 
 interface Paciente { id: string; nombre: string; apellido: string; dni: string; alergias?: string | null; medicacion_actual?: string | null; antecedentes_medicos?: string | null; }
 interface Profesional { id: string; nombre: string; apellido: string; }
