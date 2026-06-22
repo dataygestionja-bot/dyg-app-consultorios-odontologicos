@@ -8,15 +8,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
-type MedioPago = "efectivo" | "transferencia" | "debito" | "credito" | "mercadopago" | "otro";
+type MedioPago = "efectivo" | "transferencia";
 
 const MEDIO_PAGO_LABELS: Record<MedioPago, string> = {
   efectivo: "Efectivo",
   transferencia: "Transferencia",
-  debito: "Débito",
-  credito: "Crédito",
-  mercadopago: "MercadoPago",
-  otro: "Otro",
 };
 
 interface Pago { importe: number; }
@@ -48,6 +44,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
   const [nuevoPago, setNuevoPago] = useState("");
   const [medioPago, setMedioPago] = useState<MedioPago>("efectivo");
   const [referencia, setReferencia] = useState("");
+  const [comprobanteFile, setComprobanteFile] = useState<File | null>(null);
   const [pagoAcumulado, setPagoAcumulado] = useState(0);
   const [guardando, setGuardando] = useState(false);
 
@@ -59,6 +56,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
     setNuevoPago("");
     setMedioPago("efectivo");
     setReferencia("");
+    setComprobanteFile(null);
     cargarPagos();
   }, [open, orden]);
 
@@ -78,7 +76,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
 
   async function guardar() {
     if (!orden) return;
-    if (pago > 0 && medioPago !== "efectivo" && medioPago !== "debito" && medioPago !== "credito" && !referencia.trim()) {
+    if (pago > 0 && medioPago === "transferencia" && !referencia.trim()) {
       return toast.error("Ingresá la referencia del pago");
     }
     if (pago > 0 && pago > (costo - pagoAcumulado)) {
@@ -102,15 +100,34 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
 
     // Registrar pago si hay importe
     if (pago > 0 && orden.laboratorio?.id) {
-      await supabase.from("pagos_laboratorio").insert({
-        orden_id: orden.id,
-        laboratorio_id: orden.laboratorio.id,
-        importe: pago,
-        medio_pago: medioPago,
-        referencia: referencia.trim() || null,
-        fecha: new Date().toISOString().slice(0, 10),
-        usuario_registro: user?.id ?? null,
-      });
+      const { data: pagoInsertado } = await supabase
+        .from("pagos_laboratorio")
+        .insert({
+          orden_id: orden.id,
+          laboratorio_id: orden.laboratorio.id,
+          importe: pago,
+          medio_pago: medioPago,
+          referencia: referencia.trim() || null,
+          fecha: new Date().toISOString().slice(0, 10),
+          usuario_registro: user?.id ?? null,
+        })
+        .select("id")
+        .single();
+
+      // Subir comprobante si hay archivo
+      if (comprobanteFile && pagoInsertado?.id) {
+        const ext = comprobanteFile.name.includes(".") ? comprobanteFile.name.split(".").pop() : "bin";
+        const path = `laboratorio/${pagoInsertado.id}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("atencion-documentos")
+          .upload(path, comprobanteFile, { contentType: comprobanteFile.type || undefined, upsert: false });
+        if (!upErr) {
+          await supabase
+            .from("pagos_laboratorio")
+            .update({ comprobante_path: path, comprobante_nombre: comprobanteFile.name })
+            .eq("id", pagoInsertado.id);
+        }
+      }
     }
 
     setGuardando(false);
@@ -207,10 +224,10 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
 
           {/* Medio de pago — solo si hay nuevo pago */}
           {pago > 0 && (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
               <div className="space-y-1">
                 <Label className="text-xs">Medio de pago *</Label>
-                <Select value={medioPago} onValueChange={(v) => setMedioPago(v as MedioPago)}>
+                <Select value={medioPago} onValueChange={(v) => { setMedioPago(v as MedioPago); setComprobanteFile(null); }}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {(Object.keys(MEDIO_PAGO_LABELS) as MedioPago[]).map((m) => (
@@ -219,17 +236,31 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
                   </SelectContent>
                 </Select>
               </div>
-              {medioPago !== "efectivo" && medioPago !== "debito" && medioPago !== "credito" && (
-                <div className="space-y-1">
-                  <Label className="text-xs">Referencia *</Label>
-                  <Input
-                    className="h-8 text-xs"
-                    placeholder="N° transferencia, etc."
-                    value={referencia}
-                    onChange={(e) => setReferencia(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
-                  />
-                </div>
+              {medioPago === "transferencia" && (
+                <>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Referencia *</Label>
+                    <Input
+                      className="h-8 text-xs"
+                      placeholder="N° transferencia, etc."
+                      value={referencia}
+                      onChange={(e) => setReferencia(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Comprobante (opcional)</Label>
+                    <Input
+                      type="file"
+                      accept="image/*,.pdf"
+                      className="h-8 text-xs"
+                      onChange={(e) => setComprobanteFile(e.target.files?.[0] ?? null)}
+                    />
+                    {comprobanteFile && (
+                      <p className="text-xs text-muted-foreground">{comprobanteFile.name}</p>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           )}
