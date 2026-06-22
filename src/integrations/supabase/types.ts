@@ -75,6 +75,7 @@ export type Database = {
           orden: number
           pieza_dental: string | null
           prestacion_id: string
+          sin_pieza: boolean
           updated_at: string
         }
         Insert: {
@@ -87,6 +88,7 @@ export type Database = {
           orden?: number
           pieza_dental?: string | null
           prestacion_id: string
+          sin_pieza?: boolean
           updated_at?: string
         }
         Update: {
@@ -99,6 +101,7 @@ export type Database = {
           orden?: number
           pieza_dental?: string | null
           prestacion_id?: string
+          sin_pieza?: boolean
           updated_at?: string
         }
         Relationships: [

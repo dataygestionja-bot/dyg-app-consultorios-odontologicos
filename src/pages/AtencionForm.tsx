@@ -46,6 +46,7 @@ interface PracticaRow {
   prestacion_id: string;
   pieza_dental: string;
   cara_dental: string;
+  sin_pieza: boolean;
   cantidad: number;
   observacion: string;
   orden: number;
@@ -80,6 +81,7 @@ const newPractica = (orden: number): PracticaRow => ({
   prestacion_id: "",
   pieza_dental: "",
   cara_dental: "",
+  sin_pieza: false,
   cantidad: 1,
   observacion: "",
   orden,
@@ -249,6 +251,7 @@ export default function AtencionForm() {
             prestacion_id: p.prestacion_id,
             pieza_dental: p.pieza_dental ?? "",
             cara_dental: p.cara_dental ?? "",
+            sin_pieza: (p as any).sin_pieza ?? (!p.pieza_dental),
             cantidad: p.cantidad,
             observacion: p.observacion ?? "",
             orden: p.orden,
@@ -503,6 +506,10 @@ export default function AtencionForm() {
     }
 
     const validas = practicas.filter((p) => p.prestacion_id);
+    const sinPiezaNiExcepcion = validas.filter((p) => !p.pieza_dental && !p.sin_pieza);
+    if (sinPiezaNiExcepcion.length > 0) {
+      return toast.error("Completá la pieza dental o marcá N/A en las prácticas sin pieza");
+    }
     setSubmitting(true);
 
     const payload: any = {
@@ -537,6 +544,7 @@ export default function AtencionForm() {
           prestacion_id: p.prestacion_id,
           pieza_dental: p.pieza_dental || null,
           cara_dental: p.cara_dental || null,
+          sin_pieza: p.sin_pieza,
           cantidad: p.cantidad || 1,
           observacion: p.observacion || null,
           orden: i + 1,
@@ -961,9 +969,10 @@ export default function AtencionForm() {
           </CardHeader>
           <CardContent className="space-y-3 pt-0">
             <div className="space-y-2">
-              <div className="grid grid-cols-[1fr_55px_80px_80px_80px_32px] gap-2 items-center mb-0.5">
+              <div className="grid grid-cols-[1fr_55px_32px_80px_80px_80px_32px] gap-2 items-center mb-0.5">
                 <span className="text-xs text-muted-foreground px-1">Prestación</span>
                 <div className="flex justify-center"><span className="text-xs text-muted-foreground">Pieza</span></div>
+                <div className="flex justify-center"><span className="text-xs text-muted-foreground">N/A</span></div>
                 <div className="flex justify-center"><span className="text-xs text-muted-foreground">Debe</span></div>
                 <div className="flex justify-center"><span className="text-xs text-muted-foreground">Haber</span></div>
                 <div className="flex justify-center"><span className="text-xs text-muted-foreground">Saldo</span></div>
@@ -971,7 +980,7 @@ export default function AtencionForm() {
               </div>
               {practicas.map((p, idx) => (
                 <div key={idx} className="space-y-1">
-                  <div className="grid grid-cols-[1fr_55px_80px_80px_80px_32px] gap-2 items-center">
+                  <div className="grid grid-cols-[1fr_55px_32px_80px_80px_80px_32px] gap-2 items-center">
                     <Select value={p.prestacion_id} onValueChange={(v) => updatePractica(idx, { prestacion_id: v })}>
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue placeholder="Seleccionar...">
@@ -994,6 +1003,14 @@ export default function AtencionForm() {
                       onChange={(e) => updatePractica(idx, { pieza_dental: e.target.value })}
                       onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
                     />
+                    <div className="flex justify-center items-center" title="Marcar si la práctica no aplica a una pieza dental específica">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 cursor-pointer"
+                        checked={p.sin_pieza}
+                        onChange={(e) => updatePractica(idx, { sin_pieza: e.target.checked })}
+                      />
+                    </div>
                     <Input
                       type="number" min={0} step={1}
                       className="h-8 text-xs text-right"
