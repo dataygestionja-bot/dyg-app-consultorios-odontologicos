@@ -1016,11 +1016,12 @@ export default function AtencionForm() {
                       onChange={(e) => updatePractica(idx, { pieza_dental: e.target.value })}
                       onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
                     />
-                    <div className="flex justify-center items-center" title="Marcar si la práctica no aplica a una pieza dental específica">
+                    <div className="flex justify-center items-center" title={p.pieza_dental ? "No aplica cuando hay pieza cargada" : "Marcar si la práctica no aplica a una pieza dental específica"}>
                       <input
                         type="checkbox"
-                        className="h-4 w-4 cursor-pointer"
+                        className={`h-4 w-4 ${p.pieza_dental ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
                         checked={p.sin_pieza}
+                        disabled={!!p.pieza_dental}
                         onChange={(e) => updatePractica(idx, { sin_pieza: e.target.checked })}
                       />
                     </div>
