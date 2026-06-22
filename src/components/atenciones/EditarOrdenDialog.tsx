@@ -105,7 +105,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
 
     // Registrar pago si hay importe
     if (pago > 0 && orden.laboratorio?.id) {
-      const { data: pagoInsertado } = await supabase
+      const { data: pagoInsertado, error: errPago } = await supabase
         .from("pagos_laboratorio")
         .insert({
           orden_id: orden.id,
@@ -119,6 +119,12 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
         })
         .select("id")
         .single();
+
+      if (errPago) {
+        toast.error("Error registrando el pago", { description: errPago.message });
+        setGuardando(false);
+        return;
+      }
 
       // Subir comprobante si hay archivo
       if (comprobanteFile && pagoInsertado?.id) {
