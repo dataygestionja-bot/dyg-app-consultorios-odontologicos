@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ const fmtFecha = (s: string) => {
 };
 
 export default function CobrosYPagos() {
+  const { user } = useAuth();
   const hoy = format(new Date(), "yyyy-MM-dd");
   const primeroDeMes = format(startOfMonth(new Date()), "yyyy-MM-dd");
 
@@ -57,38 +59,69 @@ export default function CobrosYPagos() {
 
   useEffect(() => {
     document.title = "Cobros y pagos | Consultorio";
-    cargar();
-  }, []);
+    if (user) cargar();
+  }, [user]);
 
   async function cargar() {
     setLoading(true);
+
+    // Obtener el profesional_id del usuario logueado
+    const { data: profData } = await supabase
+      .from("profesionales")
+      .select("id")
+      .eq("user_id", user!.id)
+      .maybeSingle();
+    const profesionalId = profData?.id ?? null;
+
+    // Cobros: filtrar por usuario_registro (quien registró el cobro)
+    let cobrosQuery = supabase
+      .from("cobros")
+      .select(
+        `id, fecha, importe, usuario_registro,
+         paciente:pacientes(nombre, apellido),
+         aplicaciones:cobro_aplicaciones(
+           practica:atencion_practicas(
+             prestacion:prestaciones(codigo, descripcion)
+           )
+         )`
+      )
+      .eq("usuario_registro", user!.id)
+      .gte("fecha", desde)
+      .lte("fecha", hasta)
+      .order("fecha", { ascending: false });
+
+    // Pagos lab: filtrar por profesional a través de ordenes_trabajo
+    let pagosQuery: Promise<any>;
+    if (profesionalId) {
+      const { data: ordenIds } = await supabase
+        .from("ordenes_trabajo")
+        .select("id")
+        .eq("profesional_id", profesionalId);
+      const ids = (ordenIds ?? []).map((o: any) => o.id);
+      if (ids.length > 0) {
+        pagosQuery = supabase
+          .from("pagos_laboratorio")
+          .select(
+            `id, importe, created_at,
+             orden:ordenes_trabajo(
+               id, created_at, fecha_estimada_entrega,
+               paciente:pacientes(nombre, apellido)
+             )`
+          )
+          .in("orden_id", ids)
+          .gte("created_at", desde + "T00:00:00")
+          .lte("created_at", hasta + "T23:59:59")
+          .order("created_at", { ascending: false });
+      } else {
+        pagosQuery = Promise.resolve({ data: [] });
+      }
+    } else {
+      pagosQuery = Promise.resolve({ data: [] });
+    }
+
     const [cobrosRes, pagosRes, profsRes] = await Promise.all([
-      supabase
-        .from("cobros")
-        .select(
-          `id, fecha, importe, usuario_registro,
-           paciente:pacientes(nombre, apellido),
-           aplicaciones:cobro_aplicaciones(
-             practica:atencion_practicas(
-               prestacion:prestaciones(codigo, descripcion)
-             )
-           )`
-        )
-        .gte("fecha", desde)
-        .lte("fecha", hasta)
-        .order("fecha", { ascending: false }),
-      supabase
-        .from("pagos_laboratorio")
-        .select(
-          `id, importe, created_at,
-           orden:ordenes_trabajo(
-             id, created_at, fecha_estimada_entrega,
-             paciente:pacientes(nombre, apellido)
-           )`
-        )
-        .gte("created_at", desde + "T00:00:00")
-        .lte("created_at", hasta + "T23:59:59")
-        .order("created_at", { ascending: false }),
+      cobrosQuery,
+      pagosQuery,
       supabase.from("profiles").select("id, nombre, apellido"),
     ]);
 
