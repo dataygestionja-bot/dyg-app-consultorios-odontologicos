@@ -13,6 +13,7 @@ interface CobroRow {
   id: string;
   fecha: string;
   importe: number;
+  medio_pago: string | null;
   usuario_registro: string | null;
   paciente: { nombre: string; apellido: string } | null;
   aplicaciones: {
@@ -79,7 +80,7 @@ export default function CobrosYPagos() {
     let cobrosQuery = supabase
       .from("cobros")
       .select(
-        `id, fecha, importe, usuario_registro,
+        `id, fecha, importe, medio_pago, usuario_registro,
          paciente:pacientes(nombre, apellido),
          aplicaciones:cobro_aplicaciones(
            practica:atencion_practicas(
