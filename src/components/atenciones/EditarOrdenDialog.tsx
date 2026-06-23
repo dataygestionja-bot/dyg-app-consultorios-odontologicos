@@ -235,29 +235,31 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
           {/* Medio de pago — solo si hay nuevo pago */}
           {pago > 0 && (
             <div className="space-y-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Nro. de orden *</Label>
-                <Input
-                  className="h-8 text-xs font-mono"
-                  placeholder="000000000"
-                  inputMode="numeric"
-                  maxLength={9}
-                  value={nroOrden}
-                  onChange={(e) => setNroOrden(e.target.value.replace(/\D/g, "").slice(0, 9))}
-                  onBlur={() => nroOrden && setNroOrden(nroOrden.padStart(9, "0"))}
-                  onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Medio de pago *</Label>
-                <Select value={medioPago} onValueChange={(v) => { setMedioPago(v as MedioPago); setComprobanteFile(null); }}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(MEDIO_PAGO_LABELS) as MedioPago[]).map((m) => (
-                      <SelectItem key={m} value={m}>{MEDIO_PAGO_LABELS[m]}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Nro. de orden *</Label>
+                  <Input
+                    className="h-8 text-xs font-mono"
+                    placeholder="000000000"
+                    inputMode="numeric"
+                    maxLength={9}
+                    value={nroOrden}
+                    onChange={(e) => setNroOrden(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                    onBlur={() => nroOrden && setNroOrden(nroOrden.padStart(9, "0"))}
+                    onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Medio de pago *</Label>
+                  <Select value={medioPago} onValueChange={(v) => { setMedioPago(v as MedioPago); setComprobanteFile(null); }}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(MEDIO_PAGO_LABELS) as MedioPago[]).map((m) => (
+                        <SelectItem key={m} value={m}>{MEDIO_PAGO_LABELS[m]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               {medioPago === "transferencia" && (
                 <>
