@@ -447,7 +447,11 @@ export default function CuentaCorrienteLaboratorio() {
                                 </TableCell>
                                 <TableCell className="text-xs">{m.paciente}</TableCell>
                                 <TableCell className="text-right text-xs font-mono">
-                                  {m.debe > 0 ? <span className="text-foreground">{fmt(m.debe)}</span> : <span className="text-muted-foreground/40">—</span>}
+                                  {m.debe > 0
+                                    ? <span className="text-foreground">{fmt(m.debe)}</span>
+                                    : m.tipo === "orden"
+                                      ? <span className="text-[11px] text-amber-500 italic">Sin presupuesto</span>
+                                      : <span className="text-muted-foreground/40">—</span>}
                                 </TableCell>
                                 <TableCell className="text-right text-xs font-mono text-green-600">
                                   {m.haber > 0 ? fmt(m.haber) : <span className="text-muted-foreground/40">—</span>}
