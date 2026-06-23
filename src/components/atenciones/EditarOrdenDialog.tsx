@@ -22,6 +22,7 @@ interface Orden {
   tipo_trabajo: string;
   estado: "gestionar_pedido" | "enviado" | "entregado";
   fecha_estimada_entrega: string | null;
+  fecha_pedido: string | null;
   costo_presupuestado: number;
   costo_final: number;
   laboratorio: { id: string; nombre: string } | null;
@@ -39,6 +40,7 @@ interface Props {
 export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props) {
   const { user } = useAuth();
   const [estado, setEstado] = useState<"gestionar_pedido" | "enviado" | "entregado">("gestionar_pedido");
+  const [fechaPedido, setFechaPedido] = useState("");
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [costoFinal, setCostoFinal] = useState("");
   const [nuevoPago, setNuevoPago] = useState("");
@@ -52,6 +54,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
   useEffect(() => {
     if (!open || !orden) return;
     setEstado(orden.estado);
+    setFechaPedido(orden.fecha_pedido ?? "");
     setFechaEntrega(orden.fecha_estimada_entrega ?? "");
     setCostoFinal(String(orden.costo_final || orden.costo_presupuestado));
     setNuevoPago("");
@@ -93,6 +96,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
     // Actualizar orden
     const { error } = await supabase.from("ordenes_trabajo").update({
       estado,
+      fecha_pedido: estado === "enviado" ? (fechaPedido || null) : null,
       fecha_estimada_entrega: fechaEntrega || null,
       costo_final: costo,
     }).eq("id", orden.id);
@@ -165,11 +169,20 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
             </p>
           </div>
 
-          {/* Estado y fecha */}
-          <div className="grid grid-cols-2 gap-2">
+          {/* Estado, Fecha de pedido y Fecha estimada entrega */}
+          <div className={`grid gap-2 ${estado === "enviado" ? "grid-cols-3" : "grid-cols-2"}`}>
             <div className="space-y-1">
               <Label className="text-xs">Estado</Label>
-              <Select value={estado} onValueChange={(v) => setEstado(v as "gestionar_pedido" | "enviado" | "entregado")}>
+              <Select
+                value={estado}
+                onValueChange={(v) => {
+                  const nuevo = v as "gestionar_pedido" | "enviado" | "entregado";
+                  setEstado(nuevo);
+                  if (nuevo === "enviado" && !fechaPedido) {
+                    setFechaPedido(new Date().toISOString().slice(0, 10));
+                  }
+                }}
+              >
                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="gestionar_pedido">Gestionar pedido</SelectItem>
@@ -178,8 +191,19 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
                 </SelectContent>
               </Select>
             </div>
+            {estado === "enviado" && (
+              <div className="space-y-1">
+                <Label className="text-xs">Fecha de pedido</Label>
+                <Input
+                  type="date"
+                  className="h-8 text-xs"
+                  value={fechaPedido}
+                  onChange={(e) => setFechaPedido(e.target.value)}
+                />
+              </div>
+            )}
             <div className="space-y-1">
-              <Label className="text-xs">Fecha estimada entrega</Label>
+              <Label className="text-xs">Fecha est. entrega</Label>
               <Input
                 type="date"
                 className="h-8 text-xs"

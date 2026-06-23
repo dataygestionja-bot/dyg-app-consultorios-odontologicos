@@ -19,6 +19,7 @@ interface Orden {
   prioridad: "alta" | "media" | "baja";
   estado: "gestionar_pedido" | "enviado" | "entregado";
   fecha_estimada_entrega: string | null;
+  fecha_pedido: string | null;
   costo_presupuestado: number;
   costo_final: number;
   created_at: string;
@@ -115,7 +116,7 @@ export default function OrdenesTrabajoPage() {
     }
 
     let ordenesQuery = supabase.from("ordenes_trabajo").select(`
-      id, tipo_trabajo, prioridad, estado, fecha_estimada_entrega,
+      id, tipo_trabajo, prioridad, estado, fecha_estimada_entrega, fecha_pedido,
       costo_presupuestado, costo_final, created_at, profesional_id,
       paciente:pacientes(nombre, apellido),
       profesional:profesionales(nombre, apellido),
