@@ -22,6 +22,7 @@ interface Orden {
   costo_presupuestado: number;
   costo_final: number;
   created_at: string;
+  profesional_id: string | null;
   paciente: { nombre: string; apellido: string } | null;
   profesional: { nombre: string; apellido: string } | null;
   laboratorio: { id: string; nombre: string } | null;
@@ -72,8 +73,9 @@ export default function OrdenesTrabajoPage() {
   const [laboratorios, setLaboratorios] = useState<Laboratorio[]>([]);
   const [profesionales, setProfesionales] = useState<Profesional[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtroLab, setFiltroLab] = useState("todos");
+  const [filtroProfesional, setFiltroProfesional] = useState("todos");
   const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [filtroLab, setFiltroLab] = useState("todos");
   const [filtroFechaDesde, setFiltroFechaDesde] = useState("");
   const [filtroFechaHasta, setFiltroFechaHasta] = useState("");
   const [search, setSearch] = useState("");
@@ -114,7 +116,7 @@ export default function OrdenesTrabajoPage() {
 
     let ordenesQuery = supabase.from("ordenes_trabajo").select(`
       id, tipo_trabajo, prioridad, estado, fecha_estimada_entrega,
-      costo_presupuestado, costo_final, created_at,
+      costo_presupuestado, costo_final, created_at, profesional_id,
       paciente:pacientes(nombre, apellido),
       profesional:profesionales(nombre, apellido),
       laboratorio:laboratorios(id, nombre),
@@ -138,16 +140,17 @@ export default function OrdenesTrabajoPage() {
   }
 
   const filtered = ordenes.filter((o) => {
-    if (filtroLab !== "todos" && o.laboratorio?.id !== filtroLab) return false;
+    if (!esProfesional && filtroProfesional !== "todos" && o.profesional_id !== filtroProfesional) return false;
     if (filtroEstado !== "todos" && o.estado !== filtroEstado) return false;
+    if (filtroLab !== "todos" && o.laboratorio?.id !== filtroLab) return false;
     if (filtroFechaDesde && o.created_at < filtroFechaDesde) return false;
     if (filtroFechaHasta && o.created_at > filtroFechaHasta + "T23:59:59") return false;
     if (search) {
       const s = search.toLowerCase();
       return (
-        o.tipo_trabajo.toLowerCase().includes(s) ||
         `${o.paciente?.apellido} ${o.paciente?.nombre}`.toLowerCase().includes(s) ||
-        (o.laboratorio?.nombre.toLowerCase().includes(s) ?? false)
+        (o.paciente?.nombre ?? "").toLowerCase().includes(s) ||
+        (o.paciente?.apellido ?? "").toLowerCase().includes(s)
       );
     }
     return true;
@@ -168,22 +171,23 @@ export default function OrdenesTrabajoPage() {
       <Card>
         <CardHeader><CardTitle className="text-base">Listado</CardTitle></CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-3 mb-4">
-            <Input
-              placeholder="Buscar por paciente, tipo o laboratorio..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="max-w-xs"
-            />
-            <Select value={filtroLab} onValueChange={setFiltroLab}>
-              <SelectTrigger className="w-44"><SelectValue placeholder="Laboratorio" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los laboratorios</SelectItem>
-                {laboratorios.map((l) => <SelectItem key={l.id} value={l.id}>{l.nombre}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          <div className="flex flex-wrap gap-2 mb-4 items-center">
+            {/* 1. Profesional (solo para admin/recepción) */}
+            {!esProfesional && (
+              <Select value={filtroProfesional} onValueChange={setFiltroProfesional}>
+                <SelectTrigger className="w-48"><SelectValue placeholder="Todos los profesionales" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los profesionales</SelectItem>
+                  {profesionales.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.apellido}, {p.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* 2. Estado */}
             <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-              <SelectTrigger className="w-44"><SelectValue placeholder="Estado" /></SelectTrigger>
+              <SelectTrigger className="w-44"><SelectValue placeholder="Todos los estados" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los estados</SelectItem>
                 <SelectItem value="gestionar_pedido">Gestionar pedido</SelectItem>
@@ -191,8 +195,28 @@ export default function OrdenesTrabajoPage() {
                 <SelectItem value="entregado">Entregado</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* 3. Laboratorio */}
+            <Select value={filtroLab} onValueChange={setFiltroLab}>
+              <SelectTrigger className="w-44"><SelectValue placeholder="Todos los laboratorios" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los laboratorios</SelectItem>
+                {laboratorios.map((l) => <SelectItem key={l.id} value={l.id}>{l.nombre}</SelectItem>)}
+              </SelectContent>
+            </Select>
+
+            {/* 4. Fecha desde / hasta */}
             <Input type="date" className="w-36" value={filtroFechaDesde} onChange={(e) => setFiltroFechaDesde(e.target.value)} />
+            <span className="text-sm text-muted-foreground">hasta</span>
             <Input type="date" className="w-36" value={filtroFechaHasta} onChange={(e) => setFiltroFechaHasta(e.target.value)} />
+
+            {/* 5. Paciente */}
+            <Input
+              placeholder="Buscar paciente..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-44"
+            />
           </div>
 
           <div className="overflow-x-auto">
