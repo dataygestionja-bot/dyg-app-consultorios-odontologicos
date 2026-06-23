@@ -139,19 +139,26 @@ export default function OrdenesTrabajoPage() {
     setLoading(false);
   }
 
+  // Pacientes únicos presentes en las órdenes cargadas
+  const pacientesEnOrdenes = Array.from(
+    new Map(
+      ordenes
+        .filter((o) => o.paciente)
+        .map((o) => [`${o.paciente!.apellido}|${o.paciente!.nombre}`, o.paciente!])
+    ).entries()
+  )
+    .map(([key, p]) => ({ key, nombre: p.nombre, apellido: p.apellido }))
+    .sort((a, b) => a.apellido.localeCompare(b.apellido));
+
   const filtered = ordenes.filter((o) => {
     if (!esProfesional && filtroProfesional !== "todos" && o.profesional_id !== filtroProfesional) return false;
     if (filtroEstado !== "todos" && o.estado !== filtroEstado) return false;
     if (filtroLab !== "todos" && o.laboratorio?.id !== filtroLab) return false;
     if (filtroFechaDesde && o.created_at < filtroFechaDesde) return false;
     if (filtroFechaHasta && o.created_at > filtroFechaHasta + "T23:59:59") return false;
-    if (search) {
-      const s = search.toLowerCase();
-      return (
-        `${o.paciente?.apellido} ${o.paciente?.nombre}`.toLowerCase().includes(s) ||
-        (o.paciente?.nombre ?? "").toLowerCase().includes(s) ||
-        (o.paciente?.apellido ?? "").toLowerCase().includes(s)
-      );
+    if (search !== "todos" && search !== "") {
+      const key = `${o.paciente?.apellido}|${o.paciente?.nombre}`;
+      return key === search;
     }
     return true;
   });
@@ -211,12 +218,15 @@ export default function OrdenesTrabajoPage() {
             <Input type="date" className="w-36" value={filtroFechaHasta} onChange={(e) => setFiltroFechaHasta(e.target.value)} />
 
             {/* 5. Paciente */}
-            <Input
-              placeholder="Buscar paciente..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-44"
-            />
+            <Select value={search || "todos"} onValueChange={(v) => setSearch(v === "todos" ? "" : v)}>
+              <SelectTrigger className="w-48"><SelectValue placeholder="Todos los pacientes" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los pacientes</SelectItem>
+                {pacientesEnOrdenes.map((p) => (
+                  <SelectItem key={p.key} value={p.key}>{p.apellido}, {p.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="overflow-x-auto">
