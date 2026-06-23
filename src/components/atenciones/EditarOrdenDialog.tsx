@@ -150,7 +150,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Editar orden de trabajo</DialogTitle>
         </DialogHeader>
@@ -272,7 +272,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Comprobante (opcional)</Label>
+                    <Label className="text-xs">Adjuntar comprobante (opcional)</Label>
                     <Input
                       type="file"
                       accept="image/*,.pdf"
