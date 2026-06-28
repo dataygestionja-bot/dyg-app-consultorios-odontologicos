@@ -171,9 +171,11 @@ export default function OrdenesTrabajoPage() {
           <h1 className="text-2xl font-bold tracking-tight">Órdenes de trabajo</h1>
           <p className="text-sm text-muted-foreground">Trabajos enviados a laboratorios</p>
         </div>
-        <Button size="sm" onClick={() => setNuevaOrdenOpen(true)}>
-          <Plus className="h-4 w-4" /> Nueva orden
-        </Button>
+        {!hasAnyRole(["recepcion"]) && (
+          <Button size="sm" onClick={() => setNuevaOrdenOpen(true)}>
+            <Plus className="h-4 w-4" /> Nueva orden
+          </Button>
+        )}
       </div>
 
       <Card>
