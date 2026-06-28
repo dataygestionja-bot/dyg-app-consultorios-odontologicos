@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Eye, ArrowUp, ArrowDown, Pencil } from "lucide-react";
+import { Plus, Eye, ArrowUp, ArrowDown } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -294,7 +294,7 @@ export default function Atenciones() {
                           )}
                           {esAdminRecepcion && (
                             <Button variant="ghost" size="sm" onClick={() => setCobroDialogRow(a)}>
-                              <Pencil className="h-4 w-4 mr-1" /> Registrar cobro
+                              Registrar cobro
                             </Button>
                           )}
                         </div>
