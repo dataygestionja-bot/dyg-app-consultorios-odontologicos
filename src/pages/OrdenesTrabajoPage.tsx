@@ -299,8 +299,8 @@ export default function OrdenesTrabajoPage() {
                         return <Badge className="text-xs bg-amber-500 text-white">Pago parcial</Badge>;
                       })()}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => setOrdenEditar(o)}>
+                    <TableCell>
+                      <Button variant="outline" size="sm" className="whitespace-normal h-auto w-20 text-xs leading-tight text-center" onClick={() => setOrdenEditar(o)}>
                         Gestionar orden
                       </Button>
                     </TableCell>
