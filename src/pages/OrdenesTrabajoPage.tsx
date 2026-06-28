@@ -45,11 +45,6 @@ const ESTADO_LABELS: Record<string, string> = {
   entregado: "Entregado",
 };
 
-const ESTADO_BADGE_CLASS: Record<string, string> = {
-  gestionar_pedido: "bg-purple-100 text-purple-800 border-purple-200",
-  enviado: "",
-  entregado: "",
-};
 
 function DiasRetraso({ fechaEntrega }: { fechaEntrega: string | null }) {
   if (!fechaEntrega) return <span className="text-muted-foreground text-xs">—</span>;
@@ -270,13 +265,8 @@ export default function OrdenesTrabajoPage() {
                         {o.prioridad.charAt(0).toUpperCase() + o.prioridad.slice(1)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={o.estado === "gestionar_pedido" ? "outline" : "secondary"}
-                        className={`text-xs ${ESTADO_BADGE_CLASS[o.estado] ?? ""}`}
-                      >
-                        {ESTADO_LABELS[o.estado] ?? o.estado}
-                      </Badge>
+                    <TableCell className={`text-xs ${o.estado === "gestionar_pedido" ? "text-red-600" : ""}`}>
+                      {ESTADO_LABELS[o.estado] ?? o.estado}
                     </TableCell>
                     <TableCell className="text-xs whitespace-nowrap">
                       {o.fecha_estimada_entrega
