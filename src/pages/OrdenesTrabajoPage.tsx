@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, AlertCircle, CheckCircle2, Pencil } from "lucide-react";
+import { Plus, AlertCircle, CheckCircle2 } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
@@ -238,23 +238,21 @@ export default function OrdenesTrabajoPage() {
                 <TableRow>
                   <TableHead>Fecha</TableHead>
                   <TableHead>Paciente</TableHead>
-                  <TableHead>Profesional</TableHead>
+                  <TableHead className="hidden lg:table-cell">Profesional</TableHead>
                   <TableHead>Laboratorio</TableHead>
-                  <TableHead>Tipo de trabajo</TableHead>
                   <TableHead>Prioridad</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Entrega estimada</TableHead>
+                  <TableHead className="whitespace-nowrap">Entrega est.</TableHead>
                   <TableHead>Retraso</TableHead>
-                  <TableHead className="text-right">Costo</TableHead>
                   <TableHead>Pago</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground">Sin órdenes</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">Sin órdenes</TableCell></TableRow>
                 ) : filtered.map((o) => (
                   <TableRow key={o.id}>
                     <TableCell className="whitespace-nowrap text-xs">
@@ -263,11 +261,10 @@ export default function OrdenesTrabajoPage() {
                     <TableCell className="text-xs">
                       {o.paciente ? `${o.paciente.apellido}, ${o.paciente.nombre}` : "—"}
                     </TableCell>
-                    <TableCell className="text-xs">
+                    <TableCell className="hidden lg:table-cell text-xs">
                       {o.profesional ? `${o.profesional.apellido}, ${o.profesional.nombre}` : "—"}
                     </TableCell>
                     <TableCell className="text-xs">{o.laboratorio?.nombre ?? "—"}</TableCell>
-                    <TableCell className="text-xs">{o.tipo_trabajo}</TableCell>
                     <TableCell>
                       <Badge className={`text-xs ${PRIORIDAD_COLORS[o.prioridad]}`}>
                         {o.prioridad.charAt(0).toUpperCase() + o.prioridad.slice(1)}
@@ -292,9 +289,6 @@ export default function OrdenesTrabajoPage() {
                         : <DiasRetraso fechaEntrega={o.fecha_estimada_entrega} />
                       }
                     </TableCell>
-                    <TableCell className="text-right text-xs font-mono">
-                      ${(o.costo_final || o.costo_presupuestado).toLocaleString("es-AR")}
-                    </TableCell>
                     <TableCell>
                       {(() => {
                         const costo = o.costo_final || o.costo_presupuestado;
@@ -307,7 +301,7 @@ export default function OrdenesTrabajoPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="sm" onClick={() => setOrdenEditar(o)}>
-                        <Pencil className="h-4 w-4" />
+                        Gestionar orden
                       </Button>
                     </TableCell>
                   </TableRow>
