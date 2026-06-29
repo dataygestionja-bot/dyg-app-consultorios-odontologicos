@@ -25,6 +25,7 @@ import {
   BookUser,
   DollarSign,
   Activity,
+  Bot,
   Receipt,
   BarChart3,
 } from "lucide-react";
@@ -77,7 +78,7 @@ const itemsGestion: Item[] = [
   { title: "Historial de cajas", url: "/caja/historial", icon: ScrollText, roles: ["admin"] },
   { title: "Panel financiero", url: "/manager/financiero", icon: BarChart3, roles: ["manager", "admin"] },
   { title: "Cobros y pagos", url: "/gestion/cobros-pagos", icon: ArrowLeftRight, roles: ["profesional"] },
-  { title: "Salud del Bot", url: "/gestion/salud-bot", icon: Activity, roles: ["admin", "recepcion"] },
+  { title: "Salud del Bot", url: "/gestion/salud-bot", icon: Bot, roles: ["admin", "recepcion"] },
 ];
 
 const itemsLaboratorio: Item[] = [
