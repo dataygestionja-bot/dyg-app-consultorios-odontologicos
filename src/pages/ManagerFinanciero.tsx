@@ -252,9 +252,6 @@ export default function ManagerFinanciero() {
                 <div key={prof.nombre} className="bg-muted rounded-lg px-4 py-3 min-w-[160px]">
                   <p className="text-xs text-muted-foreground mb-1">{prof.nombre}</p>
                   <p className="font-semibold text-green-600">{formatMoney(prof.total)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {prof.cantidad} cobro{prof.cantidad !== 1 ? "s" : ""}
-                  </p>
                 </div>
               ))}
             </div>
@@ -310,9 +307,6 @@ export default function ManagerFinanciero() {
                 <div key={prof.nombre} className="bg-muted rounded-lg px-4 py-3 min-w-[160px]">
                   <p className="text-xs text-muted-foreground mb-1">{prof.nombre}</p>
                   <p className="font-semibold text-red-500">{formatMoney(prof.total)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {prof.cantidad} pago{prof.cantidad !== 1 ? "s" : ""}
-                  </p>
                 </div>
               ))}
             </div>
