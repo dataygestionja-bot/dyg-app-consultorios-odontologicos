@@ -6,11 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
-import { OrdenTrabajoDialog } from "@/components/atenciones/OrdenTrabajoDialog";
 import { EditarOrdenDialog } from "@/components/atenciones/EditarOrdenDialog";
 
 interface Orden {
@@ -75,7 +74,6 @@ export default function OrdenesTrabajoPage() {
   const [filtroFechaDesde, setFiltroFechaDesde] = useState("");
   const [filtroFechaHasta, setFiltroFechaHasta] = useState("");
   const [search, setSearch] = useState("");
-  const [nuevaOrdenOpen, setNuevaOrdenOpen] = useState(false);
   const [ordenEditar, setOrdenEditar] = useState<Orden | null>(null);
   const [miProfesional, setMiProfesional] = useState<Profesional | null>(null);
 
@@ -166,11 +164,6 @@ export default function OrdenesTrabajoPage() {
           <h1 className="text-2xl font-bold tracking-tight">Órdenes de trabajo</h1>
           <p className="text-sm text-muted-foreground">Trabajos enviados a laboratorios</p>
         </div>
-        {!hasAnyRole(["recepcion"]) && (
-          <Button size="sm" onClick={() => setNuevaOrdenOpen(true)}>
-            <Plus className="h-4 w-4" /> Nueva orden
-          </Button>
-        )}
       </div>
 
       <Card>
@@ -302,21 +295,7 @@ export default function OrdenesTrabajoPage() {
         </CardContent>
       </Card>
 
-      <OrdenTrabajoDialog
-        open={nuevaOrdenOpen}
-        onOpenChange={setNuevaOrdenOpen}
-        atencionId={null}
-        pacienteId=""
-        pacienteNombre=""
-        profesionalId={miProfesional?.id ?? ""}
-        profesionalNombre={miProfesional ? `${miProfesional.apellido}, ${miProfesional.nombre}` : ""}
-        fecha={format(new Date(), "yyyy-MM-dd")}
-        onSaved={cargarTodo}
-        standalone
-        profesionales={profesionales}
-      />
-
-      <EditarOrdenDialog
+<EditarOrdenDialog
         orden={ordenEditar}
         open={!!ordenEditar}
         onOpenChange={(v) => { if (!v) setOrdenEditar(null); }}
