@@ -76,9 +76,12 @@ const itemsGestion: Item[] = [
   { title: "Atenciones", url: "/atenciones", icon: ClipboardList, roles: ["admin", "recepcion"] },
   { title: "Registrar gasto", url: "/caja", icon: Receipt, roles: ["admin", "recepcion"] },
   { title: "Historial de cajas", url: "/caja/historial", icon: ScrollText, roles: ["admin"] },
-  { title: "Panel financiero", url: "/manager/financiero", icon: BarChart3, roles: ["manager", "admin"] },
   { title: "Cobros y pagos", url: "/gestion/cobros-pagos", icon: ArrowLeftRight, roles: ["profesional"] },
   { title: "Salud del Bot", url: "/gestion/salud-bot", icon: Bot, roles: ["admin", "recepcion"] },
+];
+
+const itemsManager: Item[] = [
+  { title: "Indicadores financieros", url: "/manager/financiero", icon: BarChart3, roles: ["manager", "admin"] },
 ];
 
 const itemsLaboratorio: Item[] = [
@@ -115,6 +118,7 @@ export function AppSidebar() {
   const visibleGes = itemsGestion.filter(canSee);
   const visibleLab = itemsLaboratorio.filter(canSee);
   const visibleSeg = itemsSeguridad.filter(canSee);
+  const visibleManager = itemsManager.filter(canSee);
 
   const segActive = location.pathname.startsWith("/seguridad") || location.pathname === "/usuarios";
   const [segOpen, setSegOpen] = useState(segActive);
@@ -208,6 +212,29 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
+
+        {visibleManager.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {visibleManager.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
 
         {visibleGes.length > 0 && (

@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { LogOut, Check } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,23 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <h1 className="text-sm font-medium text-muted-foreground hidden sm:block">
                 Gestión de consultorio
               </h1>
+              {roles.length > 1 && (
+                <div className="flex items-center gap-1 rounded-lg border bg-muted p-1 ml-2">
+                  {roles.map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setActiveRole(r)}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                        activeRole === r
+                          ? "bg-background shadow-sm text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {ROLE_LABELS[r]}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -58,20 +75,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     <span className="text-xs text-muted-foreground">{rolesText}</span>
                   </div>
                 </DropdownMenuLabel>
-                {roles.length > 1 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-                      Vista activa
-                    </DropdownMenuLabel>
-                    {roles.map((r) => (
-                      <DropdownMenuItem key={r} onClick={() => setActiveRole(r)} className="gap-2">
-                        <Check className={`h-4 w-4 ${activeRole === r ? "opacity-100" : "opacity-0"}`} />
-                        {ROLE_LABELS[r]}
-                      </DropdownMenuItem>
-                    ))}
-                  </>
-                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut} className="text-destructive">
                   <LogOut className="h-4 w-4 mr-2" /> Cerrar sesión
