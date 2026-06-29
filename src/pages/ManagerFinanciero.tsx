@@ -16,7 +16,10 @@ interface Cobro {
   medio_pago: string;
   referencia: string | null;
   paciente: { nombre: string; apellido: string } | null;
-  atencion: { profesional: { nombre: string; apellido: string } | null } | null;
+  cobro_aplicaciones: Array<{
+    importe_aplicado: number;
+    atencion: { profesional: { nombre: string; apellido: string } | null } | null;
+  }>;
 }
 
 interface Egreso {
@@ -63,7 +66,7 @@ export default function ManagerFinanciero() {
     const [{ data: cobrosData }, cajaResult] = await Promise.all([
       supabase
         .from("cobros")
-        .select("id, fecha, importe, medio_pago, referencia, paciente:pacientes(nombre, apellido), atencion:atenciones(profesional:profesionales(nombre, apellido))")
+        .select("id, fecha, importe, medio_pago, referencia, paciente:pacientes(nombre, apellido), cobro_aplicaciones(importe_aplicado, atencion:atenciones(profesional:profesionales(nombre, apellido)))")
         .gte("fecha", fechaDesde)
         .lte("fecha", fechaHasta)
         .order("fecha", { ascending: false }),
@@ -109,10 +112,10 @@ export default function ManagerFinanciero() {
     return acc;
   }, {});
 
-  // Agrupación de cobros por profesional
+  // Agrupación de cobros por profesional (via cobro_aplicaciones → atenciones → profesionales)
   const cobrosPorProfesional = Object.values(
     cobros.reduce<Record<string, { nombre: string; total: number; cantidad: number }>>((acc, c) => {
-      const prof = (c.atencion as any)?.profesional;
+      const prof = c.cobro_aplicaciones?.[0]?.atencion?.profesional;
       const key = prof ? `${prof.apellido}, ${prof.nombre}` : "Sin profesional asignado";
       if (!acc[key]) acc[key] = { nombre: key, total: 0, cantidad: 0 };
       acc[key].total += c.importe;
