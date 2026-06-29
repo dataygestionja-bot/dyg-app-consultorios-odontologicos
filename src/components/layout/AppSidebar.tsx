@@ -60,9 +60,9 @@ interface Item {
 }
 
 const itemsOperatoria: Item[] = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ["admin", "recepcion", "profesional"] },
   { title: "Mis turnos", url: "/mis-turnos", icon: ListTodo, roles: ["profesional"] },
-  { title: "Pacientes", url: "/pacientes", icon: Users },
+  { title: "Pacientes", url: "/pacientes", icon: Users, roles: ["admin", "recepcion", "profesional"] },
   { title: "Profesionales", url: "/profesionales", icon: Stethoscope, roles: ["admin"] },
 ];
 
@@ -82,8 +82,8 @@ const itemsGestion: Item[] = [
 ];
 
 const itemsLaboratorio: Item[] = [
-  { title: "Órdenes de trabajo", url: "/laboratorio/ordenes", icon: ClipboardCheck },
-  { title: "Cuenta corriente", url: "/laboratorio/cuenta-corriente", icon: DollarSign },
+  { title: "Órdenes de trabajo", url: "/laboratorio/ordenes", icon: ClipboardCheck, roles: ["admin", "recepcion", "profesional"] },
+  { title: "Cuenta corriente", url: "/laboratorio/cuenta-corriente", icon: DollarSign, roles: ["admin", "recepcion", "profesional"] },
   { title: "Nómina de laboratorios", url: "/laboratorio/nomina", icon: BookUser, roles: ["admin", "recepcion"] },
 ];
 
@@ -145,6 +145,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
+        {visibleOp.length > 0 && (
         <SidebarGroup>
           <SidebarGroupLabel>Operatoria</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -205,6 +206,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
 
         {visibleGes.length > 0 && (
           <SidebarGroup>
