@@ -39,11 +39,6 @@ interface PagoLab {
   orden: { profesional: { nombre: string; apellido: string } | null } | null;
 }
 
-interface Atencion {
-  id: string;
-  fecha: string;
-  profesional: { nombre: string; apellido: string } | null;
-}
 
 const MEDIO_LABEL: Record<string, string> = {
   efectivo: "Efectivo",
@@ -69,7 +64,6 @@ export default function ManagerFinanciero() {
   const [cobros, setCobros] = useState<Cobro[]>([]);
   const [egresos, setEgresos] = useState<Egreso[]>([]);
   const [pagosLab, setPagosLab] = useState<PagoLab[]>([]);
-  const [atenciones, setAtenciones] = useState<Atencion[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -80,7 +74,7 @@ export default function ManagerFinanciero() {
   async function cargar() {
     setLoading(true);
 
-    const [{ data: cobrosData }, cajaResult, { data: labData }, { data: atencionesData }] = await Promise.all([
+    const [{ data: cobrosData }, cajaResult, { data: labData }] = await Promise.all([
       supabase
         .from("cobros")
         .select("id, fecha, importe, medio_pago, referencia, paciente:pacientes(nombre, apellido), cobro_aplicaciones(importe_aplicado, atencion:atenciones(profesional:profesionales(nombre, apellido)))")
@@ -100,16 +94,10 @@ export default function ManagerFinanciero() {
         .gte("fecha", fechaDesde)
         .lte("fecha", fechaHasta),
 
-      supabase
-        .from("atenciones" as any)
-        .select("id, fecha, profesional:profesionales(nombre, apellido)")
-        .gte("fecha", fechaDesde)
-        .lte("fecha", fechaHasta),
     ]);
 
     setCobros((cobrosData ?? []) as unknown as Cobro[]);
     setPagosLab((labData ?? []) as unknown as PagoLab[]);
-    setAtenciones((atencionesData ?? []) as unknown as Atencion[]);
 
     const cajaIds = ((cajaResult.data ?? []) as any[]).map((c) => c.id);
     if (cajaIds.length > 0) {
@@ -152,27 +140,16 @@ export default function ManagerFinanciero() {
     }, {})
   ).sort((a, b) => b.total - a.total);
 
-  // Estructura de gastos por categoría (para el pie chart)
+  // Estructura de gastos por concepto (para el pie chart)
   const gastosEstructura = Object.entries(
     egresos.reduce<Record<string, number>>((acc, e) => {
-      const cat = e.categoria ?? "Sin categoría";
-      acc[cat] = (acc[cat] ?? 0) + e.importe;
+      const key = e.concepto ?? "Sin concepto";
+      acc[key] = (acc[key] ?? 0) + e.importe;
       return acc;
     }, {})
   )
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value);
-
-  // Atenciones por profesional
-  const atencionesPorProfesional = Object.values(
-    atenciones.reduce<Record<string, { nombre: string; cantidad: number }>>((acc, a) => {
-      const prof = (a as any).profesional;
-      const key = prof ? `${prof.apellido}, ${prof.nombre}` : "Sin profesional";
-      if (!acc[key]) acc[key] = { nombre: key, cantidad: 0 };
-      acc[key].cantidad += 1;
-      return acc;
-    }, {})
-  ).sort((a, b) => b.cantidad - a.cantidad);
 
   // Pagos de laboratorio por profesional
   const labPorProfesional = Object.values(
@@ -262,28 +239,6 @@ export default function ManagerFinanciero() {
           </CardContent>
         </Card>
       )}
-
-      {/* Atenciones por profesional */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Atenciones por profesional</CardTitle></CardHeader>
-        <CardContent>
-          {loading ? (
-            <p className="text-sm text-muted-foreground">Cargando...</p>
-          ) : atencionesPorProfesional.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sin atenciones en el período</p>
-          ) : (
-            <div className="flex flex-wrap gap-4">
-              {atencionesPorProfesional.map((prof) => (
-                <div key={prof.nombre} className="bg-muted rounded-lg px-4 py-3 min-w-[160px]">
-                  <p className="text-xs text-muted-foreground mb-1">{prof.nombre}</p>
-                  <p className="font-semibold text-2xl">{prof.cantidad}</p>
-                  <p className="text-xs text-muted-foreground mt-1">atención{prof.cantidad !== 1 ? "es" : ""}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Facturado por profesional */}
       <Card>
