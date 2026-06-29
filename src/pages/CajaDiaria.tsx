@@ -51,9 +51,9 @@ export default function CajaDiaria() {
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
-  const [cajaId, setCajaId] = useState<string | null>(null);
 
   // Campos del formulario
+  const [fechaGasto, setFechaGasto] = useState(format(new Date(), "yyyy-MM-dd"));
   const [conceptoIdx, setConceptoIdx] = useState<string>("");
   const [importe, setImporte] = useState("");
   const [medio, setMedio] = useState<MedioPago>("efectivo");
@@ -61,15 +61,17 @@ export default function CajaDiaria() {
 
   useEffect(() => {
     document.title = "Caja | Consultorio";
-    cargarEgresosHoy();
   }, []);
 
-  async function getOrCreateCajaHoy(): Promise<string> {
-    const today = format(new Date(), "yyyy-MM-dd");
+  useEffect(() => {
+    cargarEgresos(fechaGasto);
+  }, [fechaGasto]);
+
+  async function getOrCreateCaja(fecha: string): Promise<string> {
     const { data } = await supabase
       .from("caja_diaria" as any)
       .select("id")
-      .eq("fecha", today)
+      .eq("fecha", fecha)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -78,7 +80,7 @@ export default function CajaDiaria() {
     const { data: nueva } = await supabase
       .from("caja_diaria" as any)
       .insert({
-        fecha: today,
+        fecha,
         nombre: "Caja del día",
         saldo_inicial: 0,
         estado: "abierta",
@@ -89,30 +91,26 @@ export default function CajaDiaria() {
     return (nueva as any).id;
   }
 
-  async function cargarEgresosHoy() {
+  async function cargarEgresos(fecha: string) {
     setLoading(true);
-    const today = format(new Date(), "yyyy-MM-dd");
-    const { data: cajaHoy } = await supabase
+    const { data: cajaFecha } = await supabase
       .from("caja_diaria" as any)
       .select("id")
-      .eq("fecha", today)
+      .eq("fecha", fecha)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (!cajaHoy) {
+    if (!cajaFecha) {
       setMovimientos([]);
       setLoading(false);
       return;
     }
 
-    const id = (cajaHoy as any).id;
-    setCajaId(id);
-
     const { data } = await supabase
       .from("movimientos_caja" as any)
       .select("id, concepto, categoria, importe, medio_pago, referencia, created_at")
-      .eq("caja_id", id)
+      .eq("caja_id", (cajaFecha as any).id)
       .eq("tipo", "egreso")
       .order("created_at", { ascending: false });
 
@@ -125,9 +123,7 @@ export default function CajaDiaria() {
 
     setGuardando(true);
     const item = CATEGORIAS_EGRESO[Number(conceptoIdx)];
-
-    const id = cajaId ?? await getOrCreateCajaHoy();
-    if (!cajaId) setCajaId(id);
+    const id = await getOrCreateCaja(fechaGasto);
 
     await supabase.from("movimientos_caja" as any).insert({
       caja_id: id,
@@ -146,7 +142,7 @@ export default function CajaDiaria() {
     setMedio("efectivo");
     setReferencia("");
     setGuardando(false);
-    cargarEgresosHoy();
+    cargarEgresos(fechaGasto);
   }
 
   const totalEgresos = movimientos.reduce((s, m) => s + m.importe, 0);
@@ -163,7 +159,16 @@ export default function CajaDiaria() {
       <Card>
         <CardHeader><CardTitle className="text-base">Nuevo gasto</CardTitle></CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+            <div className="space-y-1">
+              <Label>Fecha</Label>
+              <Input
+                type="date"
+                value={fechaGasto}
+                max={format(new Date(), "yyyy-MM-dd")}
+                onChange={(e) => setFechaGasto(e.target.value)}
+              />
+            </div>
             <div className="space-y-1 lg:col-span-1">
               <Label>Concepto</Label>
               <Select value={conceptoIdx} onValueChange={setConceptoIdx}>
@@ -226,7 +231,12 @@ export default function CajaDiaria() {
       {/* Listado del día */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Gastos del día</CardTitle>
+          <CardTitle className="text-base">
+            Gastos del {format(parseISO(fechaGasto), "dd/MM/yyyy")}
+            {fechaGasto === format(new Date(), "yyyy-MM-dd") && (
+              <span className="ml-2 text-xs font-normal text-muted-foreground">(hoy)</span>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -244,7 +254,7 @@ export default function CajaDiaria() {
               {loading ? (
                 <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
               ) : movimientos.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin gastos registrados hoy</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin gastos registrados para esta fecha</TableCell></TableRow>
               ) : (
                 <>
                   {movimientos.map((m) => (
