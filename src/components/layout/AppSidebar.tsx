@@ -26,6 +26,8 @@ import {
   BookUser,
   DollarSign,
   Activity,
+  TrendingDown,
+  BarChart3,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -73,8 +75,9 @@ const itemsTurnos: Item[] = [
 ];
 
 const itemsGestion: Item[] = [
-  { title: "Caja diaria", url: "/caja", icon: DollarSign, roles: ["admin", "recepcion"] },
-  { title: "Historial de cajas", url: "/caja/historial", icon: ScrollText, roles: ["admin", "recepcion"] },
+  { title: "Registrar gasto", url: "/caja", icon: TrendingDown, roles: ["admin", "recepcion"] },
+  { title: "Historial de cajas", url: "/caja/historial", icon: ScrollText, roles: ["admin"] },
+  { title: "Panel financiero", url: "/manager/financiero", icon: BarChart3, roles: ["manager", "admin"] },
   { title: "Cobros y pagos", url: "/gestion/cobros-pagos", icon: ArrowLeftRight, roles: ["profesional"] },
   { title: "Salud del Bot", url: "/gestion/salud-bot", icon: Activity, roles: ["admin", "recepcion"] },
 ];

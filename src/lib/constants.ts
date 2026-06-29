@@ -2,6 +2,7 @@ export const ROLES = {
   ADMIN: "admin",
   RECEPCION: "recepcion",
   PROFESIONAL: "profesional",
+  MANAGER: "manager",
 } as const;
 
 export type AppRole = (typeof ROLES)[keyof typeof ROLES];
@@ -10,6 +11,7 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   admin: "Administrador",
   recepcion: "Recepción",
   profesional: "Profesional",
+  manager: "Gerente",
 };
 
 export const TURNO_ESTADOS = [

@@ -43,8 +43,10 @@ import CuentaCorrienteLaboratorio from "./pages/CuentaCorrienteLaboratorio";
 import NominaLaboratorios from "./pages/NominaLaboratorios";
 import CajaDiaria from "./pages/CajaDiaria";
 import HistorialCajas from "./pages/HistorialCajas";
+import ManagerFinanciero from "./pages/ManagerFinanciero";
 import CobrosYPagos from "./pages/CobrosYPagos";
 import SaludBot from "./pages/SaludBot";
+import type { AppRole } from "@/lib/constants";
 
 const queryClient = new QueryClient();
 
@@ -69,7 +71,7 @@ const RoleProtected = ({
   roles,
   children,
 }: {
-  roles: ("admin" | "recepcion" | "profesional")[];
+  roles: AppRole[];
   children: React.ReactNode;
 }) => (
   <ProtectedRoute roles={roles}>
@@ -146,8 +148,9 @@ const App = () => (
             } />
 
             {/* Gestión - Caja */}
-            <Route path="/caja" element={<Private><CajaDiaria /></Private>} />
-            <Route path="/caja/historial" element={<Private><HistorialCajas /></Private>} />
+            <Route path="/caja" element={<RoleProtected roles={["admin", "recepcion"]}><CajaDiaria /></RoleProtected>} />
+            <Route path="/caja/historial" element={<RoleProtected roles={["admin"]}><HistorialCajas /></RoleProtected>} />
+            <Route path="/manager/financiero" element={<RoleProtected roles={["manager", "admin"]}><ManagerFinanciero /></RoleProtected>} />
             <Route path="/gestion/cobros-pagos" element={<RoleProtected roles={["profesional"]}><CobrosYPagos /></RoleProtected>} />
             <Route path="/gestion/salud-bot" element={<RoleProtected roles={["admin", "recepcion"]}><SaludBot /></RoleProtected>} />
 

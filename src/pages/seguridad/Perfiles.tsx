@@ -18,7 +18,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 
 type Matrix = Record<string, Record<PermissionAction, boolean>>;
 
-const ROLE_TABS: AppRole[] = [ROLES.ADMIN, ROLES.RECEPCION, ROLES.PROFESIONAL];
+const ROLE_TABS: AppRole[] = [ROLES.ADMIN, ROLES.RECEPCION, ROLES.PROFESIONAL, ROLES.MANAGER];
 
 function emptyMatrix(): Matrix {
   return Object.fromEntries(
@@ -33,6 +33,7 @@ export default function Perfiles() {
     admin: emptyMatrix(),
     recepcion: emptyMatrix(),
     profesional: emptyMatrix(),
+    manager: emptyMatrix(),
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -56,6 +57,7 @@ export default function Perfiles() {
       admin: emptyMatrix(),
       recepcion: emptyMatrix(),
       profesional: emptyMatrix(),
+      manager: emptyMatrix(),
     };
     (data ?? []).forEach((r) => {
       const role = r.role as AppRole;

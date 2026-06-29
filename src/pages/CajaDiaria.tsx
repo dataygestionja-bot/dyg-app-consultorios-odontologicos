@@ -2,46 +2,41 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { Plus, TrendingUp, TrendingDown, DollarSign, Lock, CheckCircle2, XCircle } from "lucide-react";
-import { format } from "date-fns";
+import { Label } from "@/components/ui/label";
+import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 
-type EstadoCaja = "abierta" | "cerrada_conforme" | "cerrada_no_conforme";
-type TipoMov = "ingreso" | "egreso";
-type OrigenMov = "cobro_prestacion" | "aporte" | "egreso_manual" | "pago_laboratorio";
-
 const CATEGORIAS_EGRESO = [
-  { categoria: "Costo directo", concepto: "Materiales clínicos" },
-  { categoria: "Gasto operativo", concepto: "Insumos descartables" },
-  { categoria: "Gasto operativo", concepto: "Gastos comunes" },
-  { categoria: "Gasto operativo", concepto: "Personal administrativo" },
-  { categoria: "Gasto operativo", concepto: "Servicios" },
-  { categoria: "Gasto operativo", concepto: "Alquiler" },
+  { categoria: "Costo directo",            concepto: "Materiales clínicos" },
+  { categoria: "Gasto operativo",          concepto: "Insumos descartables" },
+  { categoria: "Gasto operativo",          concepto: "Gastos comunes" },
+  { categoria: "Gasto operativo",          concepto: "Personal administrativo" },
+  { categoria: "Gasto operativo",          concepto: "Servicios" },
+  { categoria: "Gasto operativo",          concepto: "Alquiler" },
   { categoria: "Gestión y administración", concepto: "Impuestos y tasas" },
   { categoria: "Gestión y administración", concepto: "Seguros" },
   { categoria: "Gestión y administración", concepto: "Honorarios externos" },
   { categoria: "Gestión y administración", concepto: "Gastos financieros" },
 ];
 
-const MEDIOS_PAGO = ["efectivo", "transferencia", "debito", "credito", "mercadopago", "otro"];
-const MEDIO_LABELS: Record<string, string> = {
-  efectivo: "Efectivo", transferencia: "Transferencia", debito: "Débito",
-  credito: "Crédito", mercadopago: "MercadoPago", otro: "Otro",
+const MEDIOS_PAGO = ["efectivo", "transferencia", "debito", "credito", "mercadopago", "otro"] as const;
+type MedioPago = (typeof MEDIOS_PAGO)[number];
+
+const MEDIO_LABEL: Record<MedioPago, string> = {
+  efectivo: "Efectivo",
+  transferencia: "Transferencia",
+  debito: "Débito",
+  credito: "Crédito",
+  mercadopago: "MercadoPago",
+  otro: "Otro",
 };
 
 interface Movimiento {
   id: string;
-  tipo: TipoMov;
-  origen: OrigenMov;
   concepto: string;
   categoria: string | null;
   importe: number;
@@ -50,560 +45,234 @@ interface Movimiento {
   created_at: string;
 }
 
-interface Caja {
-  id: string;
-  fecha: string;
-  nombre: string;
-  saldo_inicial: number;
-  estado: EstadoCaja;
-  comentario_cierre: string | null;
-  creado_por: string | null;
-}
-
-const ESTADO_INFO: Record<EstadoCaja, { label: string; color: string }> = {
-  abierta: { label: "Abierta", color: "bg-green-500" },
-  cerrada_conforme: { label: "Cerrada conforme", color: "bg-blue-500" },
-  cerrada_no_conforme: { label: "Cerrada no conforme", color: "bg-red-500" },
-};
-
-const fmt = (n: number) => `$\u00A0${Number(n).toLocaleString("es-AR", { minimumFractionDigits: 0 })}`;
-
 export default function CajaDiaria() {
   const { user } = useAuth();
-  const [cajas, setCajas] = useState<Caja[]>([]);
-  const [cajaActiva, setCajaActiva] = useState<Caja | null>(null);
+
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [loading, setLoading] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [cajaId, setCajaId] = useState<string | null>(null);
 
-  // Dialog nueva caja
-  const [nuevaCajaOpen, setNuevaCajaOpen] = useState(false);
-  const TURNOS_FIJOS = ["Turno mañana", "Turno tarde"];
-  const [nombreCaja, setNombreCaja] = useState("");
-  const [saldoInicial, setSaldoInicial] = useState("");
-  const [creandoCaja, setCreandoCaja] = useState(false);
-  const [cargandoSaldo, setCargandoSaldo] = useState(false);
-  const [cajaReferencia, setCajaReferencia] = useState<{ nombre: string; fecha: string; saldo: number } | null>(null);
-
-  // Dialog nuevo movimiento
-  const [movOpen, setMovOpen] = useState(false);
-  const [movTipo, setMovTipo] = useState<TipoMov>("egreso");
-  const [movConcepto, setMovConcepto] = useState("");
-  const [movCategoria, setMovCategoria] = useState("");
-  const [movImporte, setMovImporte] = useState("");
-  const [movMedio, setMovMedio] = useState("efectivo");
-  const [movRef, setMovRef] = useState("");
-  const [guardandoMov, setGuardandoMov] = useState(false);
-
-  // Dialog cierre
-  const [cierreOpen, setCierreOpen] = useState(false);
-  const [cierreConforme, setCierreConforme] = useState<boolean | null>(null);
-  const [cierreComentario, setCierreComentario] = useState("");
-  const [cerrando, setCerrando] = useState(false);
-
-  // Selector de caja activa
-  const [cajaSelId, setCajaSelId] = useState<string | null>(null);
+  // Campos del formulario
+  const [conceptoIdx, setConceptoIdx] = useState<string>("");
+  const [importe, setImporte] = useState("");
+  const [medio, setMedio] = useState<MedioPago>("efectivo");
+  const [referencia, setReferencia] = useState("");
 
   useEffect(() => {
-    document.title = "Caja diaria | Consultorio";
-    cargar();
+    document.title = "Caja | Consultorio";
+    cargarEgresosHoy();
   }, []);
 
-  async function cargar() {
-    setLoading(true);
+  async function getOrCreateCajaHoy(): Promise<string> {
     const today = format(new Date(), "yyyy-MM-dd");
     const { data } = await supabase
-      .from("caja_diaria")
-      .select("*")
+      .from("caja_diaria" as any)
+      .select("id")
       .eq("fecha", today)
-      .order("created_at", { ascending: false });
-    const rows = (data ?? []) as Caja[];
-    setCajas(rows);
-    const activa = rows.find(c => c.estado === "abierta") ?? rows[0] ?? null;
-    setCajaActiva(activa);
-    if (activa) {
-      setCajaSelId(activa.id);
-      await cargarMovimientos(activa.id);
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data) return (data as any).id;
+
+    const { data: nueva } = await supabase
+      .from("caja_diaria" as any)
+      .insert({
+        fecha: today,
+        nombre: "Caja del día",
+        saldo_inicial: 0,
+        estado: "abierta",
+        creado_por: user?.id ?? null,
+      })
+      .select("id")
+      .single();
+    return (nueva as any).id;
+  }
+
+  async function cargarEgresosHoy() {
+    setLoading(true);
+    const today = format(new Date(), "yyyy-MM-dd");
+    const { data: cajaHoy } = await supabase
+      .from("caja_diaria" as any)
+      .select("id")
+      .eq("fecha", today)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!cajaHoy) {
+      setMovimientos([]);
+      setLoading(false);
+      return;
     }
+
+    const id = (cajaHoy as any).id;
+    setCajaId(id);
+
+    const { data } = await supabase
+      .from("movimientos_caja" as any)
+      .select("id, concepto, categoria, importe, medio_pago, referencia, created_at")
+      .eq("caja_id", id)
+      .eq("tipo", "egreso")
+      .order("created_at", { ascending: false });
+
+    setMovimientos((data ?? []) as unknown as Movimiento[]);
     setLoading(false);
   }
 
-  async function cargarMovimientos(cajaId: string) {
-    const { data } = await supabase
-      .from("movimientos_caja")
-      .select("*")
-      .eq("caja_id", cajaId)
-      .order("created_at");
-    setMovimientos((data ?? []) as Movimiento[]);
-  }
+  async function registrarGasto() {
+    if (!conceptoIdx || !importe || isNaN(Number(importe)) || Number(importe) <= 0) return;
 
-  async function cambiarCaja(id: string) {
-    setCajaSelId(id);
-    const caja = cajas.find(c => c.id === id) ?? null;
-    setCajaActiva(caja);
-    if (caja) await cargarMovimientos(caja.id);
-  }
+    setGuardando(true);
+    const item = CATEGORIAS_EGRESO[Number(conceptoIdx)];
 
-  async function crearCaja() {
-    if (!nombreCaja.trim()) return toast.error("Ingresá un nombre para la caja");
-    // Verificar si ya hay una caja abierta hoy
-    const yaAbierta = cajas.some(c => c.estado === "abierta");
-    if (yaAbierta) return toast.error("Ya hay una caja abierta hoy. Cerrala antes de abrir una nueva.");
-    setCreandoCaja(true);
-    const { data, error } = await supabase.from("caja_diaria").insert({
-      fecha: format(new Date(), "yyyy-MM-dd"),
-      nombre: nombreCaja.trim(),
-      saldo_inicial: parseFloat(saldoInicial) || 0,
-      estado: "abierta",
-      creado_por: user?.id ?? null,
-    }).select().single();
-    setCreandoCaja(false);
-    if (error) return toast.error("Error creando caja", { description: error.message });
-    toast.success("Caja abierta");
-    setNuevaCajaOpen(false);
-    setNombreCaja("");
-    setSaldoInicial("");
-    await cargar();
-  }
+    const id = cajaId ?? await getOrCreateCajaHoy();
+    if (!cajaId) setCajaId(id);
 
-  async function buscarSaldoInicial(turno: string) {
-    setCargandoSaldo(true);
-    setCajaReferencia(null);
-    setSaldoInicial("");
-    const hoy = format(new Date(), "yyyy-MM-dd");
-    const ayer = format(new Date(Date.now() - 86400000), "yyyy-MM-dd");
-
-    let cajaRef: { nombre: string; fecha: string; saldo_final: number } | null = null;
-
-    if (turno === "Turno tarde") {
-      // Buscar "Turno mañana" del mismo día cerrada
-      const { data } = await supabase
-        .from("caja_diaria")
-        .select("id, nombre, fecha, saldo_inicial")
-        .eq("fecha", hoy)
-        .eq("nombre", "Turno mañana")
-        .in("estado", ["cerrada_conforme", "cerrada_no_conforme"])
-        .maybeSingle();
-      if (data) {
-        const { data: movs } = await supabase
-          .from("movimientos_caja")
-          .select("tipo, importe")
-          .eq("caja_id", data.id);
-        const ingresos = (movs ?? []).filter(m => m.tipo === "ingreso").reduce((s, m) => s + m.importe, 0);
-        const egresos = (movs ?? []).filter(m => m.tipo === "egreso").reduce((s, m) => s + m.importe, 0);
-        const saldo = data.saldo_inicial + ingresos - egresos;
-        cajaRef = { nombre: data.nombre, fecha: data.fecha, saldo_final: saldo };
-      }
-    } else {
-      // Turno mañana: buscar "Turno tarde" del día anterior
-      const { data: tarde } = await supabase
-        .from("caja_diaria")
-        .select("id, nombre, fecha, saldo_inicial")
-        .eq("fecha", ayer)
-        .eq("nombre", "Turno tarde")
-        .in("estado", ["cerrada_conforme", "cerrada_no_conforme"])
-        .maybeSingle();
-      if (tarde) {
-        const { data: movs } = await supabase
-          .from("movimientos_caja")
-          .select("tipo, importe")
-          .eq("caja_id", tarde.id);
-        const ingresos = (movs ?? []).filter(m => m.tipo === "ingreso").reduce((s, m) => s + m.importe, 0);
-        const egresos = (movs ?? []).filter(m => m.tipo === "egreso").reduce((s, m) => s + m.importe, 0);
-        cajaRef = { nombre: tarde.nombre, fecha: tarde.fecha, saldo_final: tarde.saldo_inicial + ingresos - egresos };
-      } else {
-        // Si no hay Turno tarde, buscar "Turno mañana" del día anterior
-        const { data: manana } = await supabase
-          .from("caja_diaria")
-          .select("id, nombre, fecha, saldo_inicial")
-          .eq("fecha", ayer)
-          .eq("nombre", "Turno mañana")
-          .in("estado", ["cerrada_conforme", "cerrada_no_conforme"])
-          .maybeSingle();
-        if (manana) {
-          const { data: movs } = await supabase
-            .from("movimientos_caja")
-            .select("tipo, importe")
-            .eq("caja_id", manana.id);
-          const ingresos = (movs ?? []).filter(m => m.tipo === "ingreso").reduce((s, m) => s + m.importe, 0);
-          const egresos = (movs ?? []).filter(m => m.tipo === "egreso").reduce((s, m) => s + m.importe, 0);
-          cajaRef = { nombre: manana.nombre, fecha: manana.fecha, saldo_final: manana.saldo_inicial + ingresos - egresos };
-        }
-      }
-    }
-
-    if (cajaRef) {
-      setSaldoInicial(String(cajaRef.saldo_final));
-      setCajaReferencia({ nombre: cajaRef.nombre, fecha: cajaRef.fecha, saldo: cajaRef.saldo_final });
-    }
-    setCargandoSaldo(false);
-  }
-
-  async function guardarMovimiento() {
-    if (!cajaActiva) return;
-    if (!movConcepto.trim()) return toast.error("Ingresá el concepto");
-    if (!movImporte || parseFloat(movImporte) <= 0) return toast.error("Ingresá un importe válido");
-    if (movMedio !== "efectivo" && movMedio !== "debito" && movMedio !== "credito" && !movRef.trim()) {
-      return toast.error("Ingresá la referencia del pago");
-    }
-    setGuardandoMov(true);
-    const { error } = await supabase.from("movimientos_caja").insert({
-      caja_id: cajaActiva.id,
-      tipo: movTipo,
-      origen: movTipo === "ingreso" ? "aporte" : "egreso_manual",
-      concepto: movConcepto.trim(),
-      categoria: movCategoria || null,
-      importe: parseFloat(movImporte),
-      medio_pago: movMedio,
-      referencia: movRef.trim() || null,
+    await supabase.from("movimientos_caja" as any).insert({
+      caja_id: id,
+      tipo: "egreso",
+      origen: "egreso_manual",
+      concepto: item.concepto,
+      categoria: item.categoria,
+      importe: Number(importe),
+      medio_pago: medio,
+      referencia: referencia.trim() || null,
       usuario_registro: user?.id ?? null,
     });
-    setGuardandoMov(false);
-    if (error) return toast.error("Error guardando movimiento", { description: error.message });
-    toast.success("Movimiento registrado");
-    setMovOpen(false);
-    setMovConcepto(""); setMovCategoria(""); setMovImporte(""); setMovMedio("efectivo"); setMovRef("");
-    await cargarMovimientos(cajaActiva.id);
+
+    setConceptoIdx("");
+    setImporte("");
+    setMedio("efectivo");
+    setReferencia("");
+    setGuardando(false);
+    cargarEgresosHoy();
   }
 
-  async function cerrarCaja() {
-    if (!cajaActiva) return;
-    if (cierreConforme === null) return toast.error("Seleccioná si es conforme o no conforme");
-    if (!cierreConforme && !cierreComentario.trim()) return toast.error("El comentario es obligatorio para no conforme");
-    if (!cierreComentario.trim()) return toast.error("Ingresá un comentario");
-    setCerrando(true);
-    const estado: EstadoCaja = cierreConforme ? "cerrada_conforme" : "cerrada_no_conforme";
-    const { error } = await supabase.from("caja_diaria").update({
-      estado,
-      comentario_cierre: cierreComentario.trim(),
-      cerrado_por: user?.id ?? null,
-    }).eq("id", cajaActiva.id);
-    setCerrando(false);
-    if (error) return toast.error("Error cerrando caja", { description: error.message });
-    toast.success(`Caja ${cierreConforme ? "cerrada conforme" : "cerrada no conforme"}`);
-    setCierreOpen(false);
-    setCierreConforme(null);
-    setCierreComentario("");
-    await cargar();
-  }
-
-  // Cálculos
-  const totalIngresos = movimientos.filter(m => m.tipo === "ingreso").reduce((s, m) => s + m.importe, 0);
-  const totalEgresos = movimientos.filter(m => m.tipo === "egreso").reduce((s, m) => s + m.importe, 0);
-  const saldoFinal = (cajaActiva?.saldo_inicial ?? 0) + totalIngresos - totalEgresos;
-  const estaAbierta = cajaActiva?.estado === "abierta";
-
-  if (loading) return <div className="text-muted-foreground">Cargando caja...</div>;
+  const totalEgresos = movimientos.reduce((s, m) => s + m.importe, 0);
+  const hoy = format(new Date(), "EEEE dd 'de' MMMM yyyy", { locale: es });
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Caja diaria</h1>
-          <p className="text-sm text-muted-foreground">{format(new Date(), "EEEE d 'de' MMMM yyyy", { locale: es })}</p>
-        </div>
-        <div className="flex gap-2">
-          {cajas.length > 0 && (
-            <Select value={cajaSelId ?? ""} onValueChange={cambiarCaja}>
-              <SelectTrigger className="w-48"><SelectValue placeholder="Seleccionar caja" /></SelectTrigger>
-              <SelectContent>
-                {cajas.map(c => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          )}
-          <Button size="sm" onClick={() => setNuevaCajaOpen(true)}>
-            <Plus className="h-4 w-4" /> Abrir caja
-          </Button>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Registrar gasto</h1>
+        <p className="text-sm text-muted-foreground capitalize">{hoy}</p>
       </div>
 
-      {!cajaActiva ? (
-        <Card>
-          <CardContent className="py-16 text-center text-muted-foreground">
-            No hay cajas abiertas hoy. Creá una nueva caja para comenzar.
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          {/* Header caja */}
-          <Card>
-            <CardContent className="pt-4 pb-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <Badge className={`${ESTADO_INFO[cajaActiva.estado].color} text-white`}>
-                    {ESTADO_INFO[cajaActiva.estado].label}
-                  </Badge>
-                  <span className="font-semibold">{cajaActiva.nombre}</span>
-                </div>
-                {estaAbierta && (
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => { setMovTipo("ingreso"); setMovOpen(true); }}>
-                      <TrendingUp className="h-4 w-4" /> Ingreso
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => { setMovTipo("egreso"); setMovOpen(true); }}>
-                      <TrendingDown className="h-4 w-4" /> Egreso
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => setCierreOpen(true)}>
-                      <Lock className="h-4 w-4" /> Cerrar caja
-                    </Button>
-                  </div>
-                )}
-              </div>
-              {cajaActiva.comentario_cierre && (
-                <p className="text-xs text-muted-foreground mt-2">Comentario: {cajaActiva.comentario_cierre}</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Resumen */}
-          <div className="grid grid-cols-4 gap-3">
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">Saldo inicial</div>
-                <div className="text-xl font-bold font-mono mt-1">{fmt(cajaActiva.saldo_inicial)}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">Ingresos</div>
-                <div className="text-xl font-bold font-mono mt-1 text-green-600">{fmt(totalIngresos)}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">Egresos</div>
-                <div className="text-xl font-bold font-mono mt-1 text-red-500">{fmt(totalEgresos)}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">Saldo final</div>
-                <div className={`text-xl font-bold font-mono mt-1 ${saldoFinal >= 0 ? "text-blue-600" : "text-red-500"}`}>
-                  {fmt(saldoFinal)}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Movimientos */}
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-base">Movimientos</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Hora</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Concepto</TableHead>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead>Medio</TableHead>
-                    <TableHead className="text-right">Importe</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {movimientos.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin movimientos</TableCell></TableRow>
-                  ) : movimientos.map((m) => (
-                    <TableRow key={m.id}>
-                      <TableCell className="text-xs">{new Date(m.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</TableCell>
-                      <TableCell>
-                        {m.tipo === "ingreso"
-                          ? <span className="text-xs text-green-600 font-medium flex items-center gap-1"><TrendingUp className="h-3 w-3" />Ingreso</span>
-                          : <span className="text-xs text-red-500 font-medium flex items-center gap-1"><TrendingDown className="h-3 w-3" />Egreso</span>
-                        }
-                      </TableCell>
-                      <TableCell className="text-xs">{m.concepto}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{m.categoria ?? "—"}</TableCell>
-                      <TableCell className="text-xs">{MEDIO_LABELS[m.medio_pago] ?? m.medio_pago}</TableCell>
-                      <TableCell className={`text-right text-xs font-mono font-medium ${m.tipo === "ingreso" ? "text-green-600" : "text-red-500"}`}>
-                        {m.tipo === "egreso" ? "-" : "+"}{fmt(m.importe)}
-                      </TableCell>
-                    </TableRow>
+      {/* Formulario de gasto */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Nuevo gasto</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <div className="space-y-1 lg:col-span-1">
+              <Label>Concepto</Label>
+              <Select value={conceptoIdx} onValueChange={setConceptoIdx}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar concepto..." /></SelectTrigger>
+                <SelectContent>
+                  {CATEGORIAS_EGRESO.map((c, i) => (
+                    <SelectItem key={i} value={String(i)}>
+                      {c.concepto}
+                      <span className="text-xs text-muted-foreground ml-1">({c.categoria})</span>
+                    </SelectItem>
                   ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {/* Dialog abrir caja */}
-      <Dialog open={nuevaCajaOpen} onOpenChange={(v) => { setNuevaCajaOpen(v); if (!v) { setNombreCaja(""); setSaldoInicial(""); setCajaReferencia(null); } }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Abrir caja</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-1">
-            <div className="space-y-1">
-              <Label className="text-xs">Turno *</Label>
-              {(() => {
-                const nombresExistentes = cajas.map(c => c.nombre);
-                const turnosDisp = TURNOS_FIJOS.filter(t => !nombresExistentes.includes(t));
-                if (turnosDisp.length === 0) {
-                  return <p className="text-xs text-muted-foreground py-2">No se puede abrir caja dado que ambas cajas fueron abiertas y cerradas en el día.</p>;
-                }
-                return (
-                  <Select value={nombreCaja} onValueChange={(v) => { setNombreCaja(v); buscarSaldoInicial(v); }}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccionar turno..." /></SelectTrigger>
-                    <SelectContent>
-                      {turnosDisp.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                );
-              })()}
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Saldo inicial</Label>
-              <Input type="number" min={0} step={1} className="h-8 text-xs text-right" placeholder="0" value={saldoInicial} onChange={(e) => setSaldoInicial(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} />
-              {cargandoSaldo && <p className="text-xs text-muted-foreground">Buscando caja de referencia...</p>}
-              {cajaReferencia && !cargandoSaldo && (
-                <p className="text-xs text-blue-600">
-                  Precargado desde <strong>{cajaReferencia.nombre}</strong> ({format(new Date(cajaReferencia.fecha + "T12:00:00"), "dd/MM/yyyy", { locale: es })}) · Saldo final: {fmt(cajaReferencia.saldo)}
-                </p>
-              )}
-              {!cajaReferencia && !cargandoSaldo && nombreCaja && (
-                <p className="text-xs text-muted-foreground">No se encontró caja de referencia. Ingresá el saldo manualmente.</p>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setNuevaCajaOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={crearCaja} disabled={creandoCaja || !nombreCaja}>{creandoCaja ? "Abriendo..." : "Abrir caja"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog movimiento */}
-      <Dialog open={movOpen} onOpenChange={setMovOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{movTipo === "ingreso" ? "Registrar ingreso" : "Registrar egreso"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-1">
-            {movTipo === "egreso" ? (
-              <div className="space-y-1">
-                <Label className="text-xs">Concepto *</Label>
-                <Select value={movConcepto} onValueChange={(v) => {
-                  const cat = CATEGORIAS_EGRESO.find(c => c.concepto === v);
-                  setMovConcepto(v);
-                  setMovCategoria(cat?.categoria ?? "");
-                }}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccionar concepto..." /></SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIAS_EGRESO.map(c => <SelectItem key={c.concepto} value={c.concepto}>{c.concepto}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                {movCategoria && <p className="text-xs text-muted-foreground">Categoría: {movCategoria}</p>}
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <Label className="text-xs">Concepto *</Label>
-                <Input className="h-8 text-xs" placeholder="Ej: Aporte integrante..." value={movConcepto} onChange={(e) => setMovConcepto(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} />
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Importe *</Label>
-                <Input type="number" min={0} step={1} className="h-8 text-xs text-right" placeholder="0" value={movImporte} onChange={(e) => setMovImporte(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Medio de pago</Label>
-                <Select value={movMedio} onValueChange={setMovMedio}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {MEDIOS_PAGO.map(m => <SelectItem key={m} value={m}>{MEDIO_LABELS[m]}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            {movMedio !== "efectivo" && movMedio !== "debito" && movMedio !== "credito" && (
-              <div className="space-y-1">
-                <Label className="text-xs">Referencia *</Label>
-                <Input className="h-8 text-xs" placeholder="N° transferencia, etc." value={movRef} onChange={(e) => setMovRef(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} />
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setMovOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={guardarMovimiento} disabled={guardandoMov}>{guardandoMov ? "Guardando..." : "Registrar"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog cierre */}
-      <Dialog open={cierreOpen} onOpenChange={setCierreOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Cerrar caja</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-1">
-            {/* Resumen general */}
-            <div className="grid grid-cols-3 gap-2 text-xs bg-muted/50 rounded-md px-3 py-2">
-              <div><span className="text-muted-foreground">Ingresos</span><p className="font-medium text-green-600">{fmt(totalIngresos)}</p></div>
-              <div><span className="text-muted-foreground">Egresos</span><p className="font-medium text-red-500">{fmt(totalEgresos)}</p></div>
-              <div><span className="text-muted-foreground">Saldo final</span><p className="font-medium">{fmt(saldoFinal)}</p></div>
-            </div>
-
-            {/* Desglose por medio de pago */}
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Desglose por medio de pago</p>
-              <div className="rounded-md border divide-y text-xs">
-                {(() => {
-                  const medios: Record<string, { ingresos: number; egresos: number }> = {
-                    efectivo: { ingresos: cajaActiva?.saldo_inicial ?? 0, egresos: 0 }
-                  };
-                  movimientos.forEach(m => {
-                    if (!medios[m.medio_pago]) medios[m.medio_pago] = { ingresos: 0, egresos: 0 };
-                    if (m.tipo === "ingreso") medios[m.medio_pago].ingresos += m.importe;
-                    else medios[m.medio_pago].egresos += m.importe;
-                  });
-                  return Object.entries(medios).map(([medio, vals]) => (
-                    <div key={medio} className="flex items-center justify-between px-3 py-1.5">
-                      <span className="font-medium">{MEDIO_LABELS[medio] ?? medio}</span>
-                      <span className={`font-medium ${(vals.ingresos - vals.egresos) >= 0 ? "" : "text-red-500"}`}>
-                        {fmt(vals.ingresos - vals.egresos)}
-                      </span>
-                    </div>
-                  ));
-                })()}
-              </div>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">¿Conforme? *</Label>
-              <div className="flex gap-2">
-                <Button
-                  type="button" size="sm" variant={cierreConforme === true ? "default" : "outline"}
-                  className={cierreConforme === true ? "bg-green-600 hover:bg-green-700" : ""}
-                  onClick={() => setCierreConforme(true)}
-                >
-                  <CheckCircle2 className="h-4 w-4" /> Conforme
-                </Button>
-                <Button
-                  type="button" size="sm" variant={cierreConforme === false ? "default" : "outline"}
-                  className={cierreConforme === false ? "bg-red-500 hover:bg-red-600" : ""}
-                  onClick={() => setCierreConforme(false)}
-                >
-                  <XCircle className="h-4 w-4" /> No conforme
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Comentario {cierreConforme === false ? "*" : ""}</Label>
-              <Textarea
-                className="text-xs resize-none" rows={2}
-                placeholder={cierreConforme === false ? "Describí la discrepancia..." : "Observaciones opcionales..."}
-                value={cierreComentario}
-                onChange={(e) => setCierreComentario(e.target.value)}
+              <Label>Importe</Label>
+              <Input
+                type="number"
+                min="0"
+                placeholder="0"
+                value={importe}
+                onChange={(e) => setImporte(e.target.value)}
               />
             </div>
 
+            <div className="space-y-1">
+              <Label>Medio de pago</Label>
+              <Select value={medio} onValueChange={(v) => setMedio(v as MedioPago)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MEDIOS_PAGO.map((m) => (
+                    <SelectItem key={m} value={m}>{MEDIO_LABEL[m]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label>Referencia <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+              <Input
+                placeholder="Nro. factura, recibo..."
+                value={referencia}
+                onChange={(e) => setReferencia(e.target.value)}
+              />
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setCierreOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={cerrarCaja} disabled={cerrando}>
-              {cerrando ? "Cerrando..." : "Confirmar cierre"}
+
+          <div className="mt-4 flex justify-end">
+            <Button
+              onClick={registrarGasto}
+              disabled={guardando || !conceptoIdx || !importe || Number(importe) <= 0}
+            >
+              {guardando ? "Guardando..." : "Registrar gasto"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Listado del día */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Gastos del día</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Hora</TableHead>
+                <TableHead>Concepto</TableHead>
+                <TableHead className="hidden md:table-cell">Categoría</TableHead>
+                <TableHead>Medio</TableHead>
+                <TableHead className="hidden sm:table-cell">Referencia</TableHead>
+                <TableHead className="text-right">Importe</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
+              ) : movimientos.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin gastos registrados hoy</TableCell></TableRow>
+              ) : (
+                <>
+                  {movimientos.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell className="text-xs whitespace-nowrap text-muted-foreground">
+                        {format(parseISO(m.created_at), "HH:mm", { locale: es })}
+                      </TableCell>
+                      <TableCell className="font-medium text-sm">{m.concepto}</TableCell>
+                      <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{m.categoria ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{MEDIO_LABEL[m.medio_pago as MedioPago] ?? m.medio_pago}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">{m.referencia ?? "—"}</TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        $ {m.importe.toLocaleString("es-AR")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="border-t-2">
+                    <TableCell colSpan={5} className="font-semibold text-right text-sm">Total egresos</TableCell>
+                    <TableCell className="text-right font-mono font-semibold">
+                      $ {totalEgresos.toLocaleString("es-AR")}
+                    </TableCell>
+                  </TableRow>
+                </>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

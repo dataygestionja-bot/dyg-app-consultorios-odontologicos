@@ -20,12 +20,13 @@ interface UsuarioRow {
   roles: AppRole[];
 }
 
-const ROLES: AppRole[] = ["admin", "recepcion", "profesional"];
+const ROLES: AppRole[] = ["admin", "recepcion", "profesional", "manager"];
 
 const ROLE_LABEL: Record<AppRole, string> = {
   admin: "Administrador",
   recepcion: "Recepción",
   profesional: "Profesional",
+  manager: "Gerente",
 };
 
 export default function Usuarios() {
