@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { TrendingUp, TrendingDown, Wallet, BarChart3 } from "lucide-react";
+import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { format, parseISO, startOfMonth, differenceInCalendarDays } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -98,7 +98,6 @@ export default function ManagerFinanciero() {
 
   const totalIngresos = cobros.reduce((s, c) => s + c.importe, 0);
   const totalEgresos = egresos.reduce((s, e) => s + e.importe, 0);
-  const resultado = totalIngresos - totalEgresos;
 
   const diasEnRango = differenceInCalendarDays(
     parseISO(fechaHasta),
@@ -170,19 +169,7 @@ export default function ManagerFinanciero() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-primary mb-1">
-              <Wallet className="h-4 w-4" />
-              <span className="text-xs font-medium uppercase tracking-wide">Resultado neto</span>
-            </div>
-            <p className={`text-2xl font-bold ${resultado >= 0 ? "text-green-600" : "text-red-500"}`}>
-              {formatMoney(resultado)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
+<Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <BarChart3 className="h-4 w-4" />
