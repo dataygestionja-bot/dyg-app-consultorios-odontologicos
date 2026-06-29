@@ -293,7 +293,7 @@ export default function Atenciones() {
                             </Button>
                           )}
                           {esAdminRecepcion && (
-                            <Button variant="ghost" size="sm" onClick={() => setCobroDialogRow(a)}>
+                            <Button variant="outline" size="sm" onClick={() => setCobroDialogRow(a)}>
                               Registrar cobro
                             </Button>
                           )}
