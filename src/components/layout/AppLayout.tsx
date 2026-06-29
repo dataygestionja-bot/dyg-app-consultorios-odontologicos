@@ -1,10 +1,18 @@
 import { ReactNode } from "react";
 import { LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { ROLE_LABELS } from "@/lib/constants";
+import { ROLE_LABELS, type AppRole } from "@/lib/constants";
+
+const ROLE_HOME: Record<AppRole, string> = {
+  admin: "/dashboard",
+  recepcion: "/dashboard",
+  profesional: "/dashboard",
+  manager: "/manager/financiero",
+};
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +25,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { user, roles, activeRole, setActiveRole, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const initials = (user?.email ?? "U")
     .split("@")[0]
@@ -41,7 +50,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   {roles.map((r) => (
                     <button
                       key={r}
-                      onClick={() => setActiveRole(r)}
+                      onClick={() => { setActiveRole(r); navigate(ROLE_HOME[r]); }}
                       className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                         activeRole === r
                           ? "bg-background shadow-sm text-foreground"
