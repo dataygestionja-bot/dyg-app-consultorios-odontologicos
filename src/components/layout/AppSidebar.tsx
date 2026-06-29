@@ -62,7 +62,6 @@ interface Item {
 const itemsOperatoria: Item[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Mis turnos", url: "/mis-turnos", icon: ListTodo, roles: ["profesional"] },
-  { title: "Atenciones", url: "/atenciones", icon: ClipboardList, roles: ["admin", "recepcion"] },
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Profesionales", url: "/profesionales", icon: Stethoscope, roles: ["admin"] },
   { title: "Obras sociales", url: "/obras-sociales", icon: BadgeCheck, roles: ["admin", "recepcion"] },
@@ -75,6 +74,7 @@ const itemsTurnos: Item[] = [
 ];
 
 const itemsGestion: Item[] = [
+  { title: "Atenciones", url: "/atenciones", icon: ClipboardList, roles: ["admin", "recepcion"] },
   { title: "Registrar gasto", url: "/caja", icon: TrendingDown, roles: ["admin", "recepcion"] },
   { title: "Historial de cajas", url: "/caja/historial", icon: ScrollText, roles: ["admin"] },
   { title: "Panel financiero", url: "/manager/financiero", icon: BarChart3, roles: ["manager", "admin"] },
@@ -117,7 +117,7 @@ export function AppSidebar() {
 
   const segActive = location.pathname.startsWith("/seguridad") || location.pathname === "/usuarios";
   const [segOpen, setSegOpen] = useState(segActive);
-  const gesActive = ["/prestaciones", "/presupuestos", "/cobros"].some((p) => location.pathname.startsWith(p));
+  const gesActive = ["/atenciones", "/caja", "/prestaciones", "/presupuestos", "/cobros", "/manager"].some((p) => location.pathname.startsWith(p));
   const [gesOpen, setGesOpen] = useState(gesActive);
   const turActive = ["/turnos", "/bloqueos"].some((p) => location.pathname.startsWith(p));
   const [turOpen, setTurOpen] = useState(turActive);
