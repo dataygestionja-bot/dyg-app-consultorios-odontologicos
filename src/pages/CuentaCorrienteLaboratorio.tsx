@@ -184,7 +184,7 @@ export default function CuentaCorrienteLaboratorio() {
       movs.push({
         fecha: o.created_at,
         tipo: "orden",
-        concepto: o.tipo_trabajo || "Orden de trabajo",
+        concepto: `Solicitud - ${o.tipo_trabajo || "Orden de trabajo"}`,
         paciente: o.paciente ? `${o.paciente.apellido}, ${o.paciente.nombre}` : "—",
         debe: Number(o.costo_final || o.costo_presupuestado || 0),
         haber: 0,
