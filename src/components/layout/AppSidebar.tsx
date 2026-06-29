@@ -81,7 +81,7 @@ const itemsGestion: Item[] = [
 ];
 
 const itemsManager: Item[] = [
-  { title: "Indicadores financieros", url: "/manager/financiero", icon: BarChart3, roles: ["manager", "admin"] },
+  { title: "Indicadores Gerenciales", url: "/manager/financiero", icon: BarChart3, roles: ["manager", "admin"] },
 ];
 
 const itemsLaboratorio: Item[] = [

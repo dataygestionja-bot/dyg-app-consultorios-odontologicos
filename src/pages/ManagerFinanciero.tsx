@@ -74,7 +74,7 @@ export default function ManagerFinanciero() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    document.title = "Indicadores financieros | Consultorio";
+    document.title = "Indicadores Gerenciales | Consultorio";
     cargar();
   }, []);
 
@@ -190,8 +190,8 @@ export default function ManagerFinanciero() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Indicadores financieros</h1>
-        <p className="text-sm text-muted-foreground">Ingresos y egresos del consultorio</p>
+        <h1 className="text-2xl font-bold tracking-tight">Indicadores Gerenciales</h1>
+        <p className="text-sm text-muted-foreground">Estadísticas del consultorio</p>
       </div>
 
       {/* Filtros */}
