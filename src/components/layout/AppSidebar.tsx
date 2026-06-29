@@ -25,7 +25,7 @@ import {
   BookUser,
   DollarSign,
   Activity,
-  TrendingDown,
+  Receipt,
   BarChart3,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -73,7 +73,7 @@ const itemsTurnos: Item[] = [
 
 const itemsGestion: Item[] = [
   { title: "Atenciones", url: "/atenciones", icon: ClipboardList, roles: ["admin", "recepcion"] },
-  { title: "Registrar gasto", url: "/caja", icon: TrendingDown, roles: ["admin", "recepcion"] },
+  { title: "Registrar gasto", url: "/caja", icon: Receipt, roles: ["admin", "recepcion"] },
   { title: "Historial de cajas", url: "/caja/historial", icon: ScrollText, roles: ["admin"] },
   { title: "Panel financiero", url: "/manager/financiero", icon: BarChart3, roles: ["manager", "admin"] },
   { title: "Cobros y pagos", url: "/gestion/cobros-pagos", icon: ArrowLeftRight, roles: ["profesional"] },
