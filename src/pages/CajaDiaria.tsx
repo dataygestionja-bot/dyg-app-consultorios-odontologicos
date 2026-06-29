@@ -112,6 +112,7 @@ export default function CajaDiaria() {
       .select("id, concepto, categoria, importe, medio_pago, referencia, created_at")
       .eq("caja_id", (cajaFecha as any).id)
       .eq("tipo", "egreso")
+      .eq("origen", "egreso_manual")
       .order("created_at", { ascending: false });
 
     setMovimientos((data ?? []) as unknown as Movimiento[]);
