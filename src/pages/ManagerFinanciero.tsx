@@ -41,7 +41,6 @@ interface Atencion {
 interface PagoLab {
   id: string;
   importe: number;
-  created_at: string;
   orden: { profesional: { nombre: string; apellido: string } | null } | null;
 }
 
@@ -97,9 +96,7 @@ export default function ManagerFinanciero() {
 
       supabase
         .from("pagos_laboratorio" as any)
-        .select("id, importe, created_at, orden:ordenes_trabajo(profesional:profesionales(nombre, apellido))")
-        .gte("created_at", fechaDesde + "T00:00:00")
-        .lte("created_at", fechaHasta + "T23:59:59"),
+        .select("id, importe, orden:ordenes_trabajo(profesional:profesionales(nombre, apellido))"),
 
       supabase
         .from("atenciones" as any)
