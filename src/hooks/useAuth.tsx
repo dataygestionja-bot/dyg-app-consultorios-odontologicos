@@ -7,6 +7,8 @@ interface AuthContextValue {
   user: User | null;
   session: Session | null;
   roles: AppRole[];
+  activeRole: AppRole | null;
+  setActiveRole: (role: AppRole) => void;
   loading: boolean;
   signOut: () => Promise<void>;
   hasRole: (role: AppRole) => boolean;
@@ -19,7 +21,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [activeRole, setActiveRoleState] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
+
+  function setActiveRole(role: AppRole) {
+    localStorage.setItem("activeRole", role);
+    setActiveRoleState(role);
+  }
+
+  useEffect(() => {
+    if (roles.length === 0) return;
+    const saved = localStorage.getItem("activeRole") as AppRole | null;
+    if (saved && roles.includes(saved)) {
+      setActiveRoleState(saved);
+    } else {
+      setActiveRoleState(roles[0]);
+      localStorage.setItem("activeRole", roles[0]);
+    }
+  }, [roles]);
 
   useEffect(() => {
     // 1. Listener primero (sincrónico), 2. luego getSession
@@ -83,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, roles, loading, signOut, hasRole, hasAnyRole }}>
+    <AuthContext.Provider value={{ user, session, roles, activeRole, setActiveRole, loading, signOut, hasRole, hasAnyRole }}>
       {children}
     </AuthContext.Provider>
   );

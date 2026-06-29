@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { LogOut } from "lucide-react";
+import { LogOut, Check } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
@@ -16,14 +16,14 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { user, roles, signOut } = useAuth();
+  const { user, roles, activeRole, setActiveRole, signOut } = useAuth();
 
   const initials = (user?.email ?? "U")
     .split("@")[0]
     .slice(0, 2)
     .toUpperCase();
 
-  const rolesText = roles.map((r) => ROLE_LABELS[r]).join(", ") || "Sin rol";
+  const rolesText = activeRole ? ROLE_LABELS[activeRole] : (roles.map((r) => ROLE_LABELS[r]).join(", ") || "Sin rol");
 
   return (
     <SidebarProvider>
@@ -58,6 +58,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     <span className="text-xs text-muted-foreground">{rolesText}</span>
                   </div>
                 </DropdownMenuLabel>
+                {roles.length > 1 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                      Vista activa
+                    </DropdownMenuLabel>
+                    {roles.map((r) => (
+                      <DropdownMenuItem key={r} onClick={() => setActiveRole(r)} className="gap-2">
+                        <Check className={`h-4 w-4 ${activeRole === r ? "opacity-100" : "opacity-0"}`} />
+                        {ROLE_LABELS[r]}
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut} className="text-destructive">
                   <LogOut className="h-4 w-4 mr-2" /> Cerrar sesión

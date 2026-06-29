@@ -13,7 +13,7 @@ interface PermissionsContextValue {
 const PermissionsContext = createContext<PermissionsContextValue | undefined>(undefined);
 
 export function PermissionsProvider({ children }: { children: ReactNode }) {
-  const { roles, user } = useAuth();
+  const { roles, user, activeRole } = useAuth();
   const [perms, setPerms] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
@@ -27,7 +27,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase
       .from("role_permissions")
       .select("module, action, allowed, role")
-      .in("role", roles)
+      .in("role", activeRole ? [activeRole] : roles)
       .eq("allowed", true);
     if (error) {
       console.error("Error cargando permisos:", error);
@@ -36,7 +36,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       setPerms(new Set((data ?? []).map((r) => permKey(r.module, r.action as PermissionAction))));
     }
     setLoading(false);
-  }, [user, roles]);
+  }, [user, roles, activeRole]);
 
   useEffect(() => {
     load();

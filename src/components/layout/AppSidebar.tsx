@@ -99,12 +99,14 @@ const itemsSeguridad: Item[] = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { roles } = useAuth();
+  const { roles, activeRole } = useAuth();
   const { can } = usePermissions();
   const location = useLocation();
 
+  const effectiveRoles = activeRole ? [activeRole] : roles;
+
   const canSee = (i: Item) => {
-    if (i.roles && !i.roles.some((r) => roles.includes(r))) return false;
+    if (i.roles && !i.roles.some((r) => effectiveRoles.includes(r))) return false;
     if (i.perm && !can(i.perm.module, i.perm.action)) return false;
     return true;
   };
