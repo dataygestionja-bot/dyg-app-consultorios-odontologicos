@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { format, parseISO, startOfMonth, differenceInCalendarDays } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -32,6 +32,13 @@ interface Egreso {
   caja: { fecha: string } | null;
 }
 
+interface PagoLab {
+  id: string;
+  importe: number;
+  fecha: string;
+  orden: { profesional: { nombre: string; apellido: string } | null } | null;
+}
+
 const MEDIO_LABEL: Record<string, string> = {
   efectivo: "Efectivo",
   transferencia: "Transferencia",
@@ -40,6 +47,8 @@ const MEDIO_LABEL: Record<string, string> = {
   mercadopago: "MercadoPago",
   otro: "Otro",
 };
+
+const PIE_COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#3b82f6", "#8b5cf6"];
 
 function formatMoney(n: number) {
   return `$ ${n.toLocaleString("es-AR")}`;
@@ -53,6 +62,7 @@ export default function ManagerFinanciero() {
   const [fechaHasta, setFechaHasta] = useState(hoy);
   const [cobros, setCobros] = useState<Cobro[]>([]);
   const [egresos, setEgresos] = useState<Egreso[]>([]);
+  const [pagosLab, setPagosLab] = useState<PagoLab[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -63,7 +73,7 @@ export default function ManagerFinanciero() {
   async function cargar() {
     setLoading(true);
 
-    const [{ data: cobrosData }, cajaResult] = await Promise.all([
+    const [{ data: cobrosData }, cajaResult, { data: labData }] = await Promise.all([
       supabase
         .from("cobros")
         .select("id, fecha, importe, medio_pago, referencia, paciente:pacientes(nombre, apellido), cobro_aplicaciones(importe_aplicado, atencion:atenciones(profesional:profesionales(nombre, apellido)))")
@@ -76,9 +86,16 @@ export default function ManagerFinanciero() {
         .select("id")
         .gte("fecha", fechaDesde)
         .lte("fecha", fechaHasta),
+
+      supabase
+        .from("pagos_laboratorio" as any)
+        .select("id, importe, fecha, orden:ordenes_trabajo(profesional:profesionales(nombre, apellido))")
+        .gte("fecha", fechaDesde)
+        .lte("fecha", fechaHasta),
     ]);
 
     setCobros((cobrosData ?? []) as unknown as Cobro[]);
+    setPagosLab((labData ?? []) as unknown as PagoLab[]);
 
     const cajaIds = ((cajaResult.data ?? []) as any[]).map((c) => c.id);
     if (cajaIds.length > 0) {
@@ -87,6 +104,7 @@ export default function ManagerFinanciero() {
         .select("id, concepto, categoria, importe, medio_pago, created_at, caja:caja_diaria(fecha)")
         .in("caja_id", cajaIds)
         .eq("tipo", "egreso")
+        .eq("origen", "egreso_manual")
         .order("created_at", { ascending: false });
       setEgresos((egresosData ?? []) as unknown as Egreso[]);
     } else {
@@ -99,25 +117,45 @@ export default function ManagerFinanciero() {
   const totalIngresos = cobros.reduce((s, c) => s + c.importe, 0);
   const totalEgresos = egresos.reduce((s, e) => s + e.importe, 0);
 
-  const diasEnRango = differenceInCalendarDays(
-    parseISO(fechaHasta),
-    parseISO(fechaDesde)
-  ) + 1;
+  const diasEnRango = differenceInCalendarDays(parseISO(fechaHasta), parseISO(fechaDesde)) + 1;
   const promedioDiario = diasEnRango > 0 ? totalIngresos / diasEnRango : 0;
 
-  // Agrupación de cobros por medio de pago
+  // Cobros por medio de pago
   const cobrosPorMedio = cobros.reduce<Record<string, number>>((acc, c) => {
     acc[c.medio_pago] = (acc[c.medio_pago] ?? 0) + c.importe;
     return acc;
   }, {});
 
-  // Agrupación de cobros por profesional (via cobro_aplicaciones → atenciones → profesionales)
+  // Cobros por profesional (via cobro_aplicaciones → atenciones → profesionales)
   const cobrosPorProfesional = Object.values(
     cobros.reduce<Record<string, { nombre: string; total: number; cantidad: number }>>((acc, c) => {
       const prof = c.cobro_aplicaciones?.[0]?.atencion?.profesional;
       const key = prof ? `${prof.apellido}, ${prof.nombre}` : "Sin profesional asignado";
       if (!acc[key]) acc[key] = { nombre: key, total: 0, cantidad: 0 };
       acc[key].total += c.importe;
+      acc[key].cantidad += 1;
+      return acc;
+    }, {})
+  ).sort((a, b) => b.total - a.total);
+
+  // Estructura de gastos por categoría (para el pie chart)
+  const gastosEstructura = Object.entries(
+    egresos.reduce<Record<string, number>>((acc, e) => {
+      const cat = e.categoria ?? "Sin categoría";
+      acc[cat] = (acc[cat] ?? 0) + e.importe;
+      return acc;
+    }, {})
+  )
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+
+  // Pagos de laboratorio por profesional
+  const labPorProfesional = Object.values(
+    pagosLab.reduce<Record<string, { nombre: string; total: number; cantidad: number }>>((acc, p) => {
+      const prof = (p.orden as any)?.profesional;
+      const key = prof ? `${prof.apellido}, ${prof.nombre}` : "Sin profesional";
+      if (!acc[key]) acc[key] = { nombre: key, total: 0, cantidad: 0 };
+      acc[key].total += p.importe;
       acc[key].cantidad += 1;
       return acc;
     }, {})
@@ -146,7 +184,7 @@ export default function ManagerFinanciero() {
       </div>
 
       {/* Cards de resumen */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-green-600 mb-1">
@@ -169,7 +207,7 @@ export default function ManagerFinanciero() {
           </CardContent>
         </Card>
 
-<Card>
+        <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <BarChart3 className="h-4 w-4" />
@@ -181,7 +219,7 @@ export default function ManagerFinanciero() {
         </Card>
       </div>
 
-      {/* Cobros por medio de pago */}
+      {/* Ingresos por medio de pago */}
       {Object.keys(cobrosPorMedio).length > 0 && (
         <Card>
           <CardHeader><CardTitle className="text-base">Ingresos por medio de pago</CardTitle></CardHeader>
@@ -200,7 +238,7 @@ export default function ManagerFinanciero() {
         </Card>
       )}
 
-      {/* Cobros por profesional */}
+      {/* Facturado por profesional */}
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
           Facturado por profesional
@@ -226,44 +264,65 @@ export default function ManagerFinanciero() {
         )}
       </div>
 
-      {/* Panel B: Gastos (egresos) */}
+      {/* Estructura de gastos — gráfico de torta */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Gastos registrados</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Estructura de gastos</CardTitle></CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Concepto</TableHead>
-                <TableHead className="hidden md:table-cell">Categoría</TableHead>
-                <TableHead className="hidden sm:table-cell">Medio</TableHead>
-                <TableHead className="text-right">Importe</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
-              ) : egresos.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin gastos en el período</TableCell></TableRow>
-              ) : egresos.map((e) => (
-                <TableRow key={e.id}>
-                  <TableCell className="text-xs whitespace-nowrap">
-                    {e.caja?.fecha
-                      ? format(parseISO(e.caja.fecha), "dd/MM/yyyy", { locale: es })
-                      : format(parseISO(e.created_at), "dd/MM/yyyy", { locale: es })}
-                  </TableCell>
-                  <TableCell className="text-sm font-medium">{e.concepto}</TableCell>
-                  <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{e.categoria ?? "—"}</TableCell>
-                  <TableCell className="hidden sm:table-cell text-xs">{MEDIO_LABEL[e.medio_pago] ?? e.medio_pago}</TableCell>
-                  <TableCell className="text-right font-mono text-sm text-red-500">
-                    {formatMoney(e.importe)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Cargando...</p>
+          ) : gastosEstructura.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin gastos en el período</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={320}>
+              <PieChart>
+                <Pie
+                  data={gastosEstructura}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={110}
+                  dataKey="value"
+                  label={({ name, value, percent }) =>
+                    `${name}: ${formatMoney(value)} (${(percent * 100).toFixed(1)}%)`
+                  }
+                  labelLine={true}
+                >
+                  {gastosEstructura.map((_, i) => (
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v: number) => formatMoney(v)} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
+
+      {/* Pagos de laboratorio por profesional */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+          Pagos de laboratorio por profesional
+        </h2>
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Cargando...</p>
+        ) : labPorProfesional.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin pagos de laboratorio en el período</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {labPorProfesional.map((prof) => (
+              <Card key={prof.nombre}>
+                <CardContent className="pt-5">
+                  <p className="font-semibold text-base leading-tight">{prof.nombre}</p>
+                  <p className="text-2xl font-bold text-red-500 mt-2">{formatMoney(prof.total)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {prof.cantidad} pago{prof.cantidad !== 1 ? "s" : ""} en el período
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
