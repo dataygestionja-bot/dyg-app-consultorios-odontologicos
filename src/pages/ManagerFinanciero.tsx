@@ -239,30 +239,28 @@ export default function ManagerFinanciero() {
       )}
 
       {/* Facturado por profesional */}
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-          Facturado por profesional
-        </h2>
-        {loading ? (
-          <p className="text-sm text-muted-foreground">Cargando...</p>
-        ) : cobrosPorProfesional.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin cobros en el período</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {cobrosPorProfesional.map((prof) => (
-              <Card key={prof.nombre}>
-                <CardContent className="pt-5">
-                  <p className="font-semibold text-base leading-tight">{prof.nombre}</p>
-                  <p className="text-2xl font-bold text-green-600 mt-2">{formatMoney(prof.total)}</p>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Facturado por profesional</CardTitle></CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Cargando...</p>
+          ) : cobrosPorProfesional.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin cobros en el período</p>
+          ) : (
+            <div className="flex flex-wrap gap-4">
+              {cobrosPorProfesional.map((prof) => (
+                <div key={prof.nombre} className="bg-muted rounded-lg px-4 py-3 min-w-[160px]">
+                  <p className="text-xs text-muted-foreground mb-1">{prof.nombre}</p>
+                  <p className="font-semibold text-green-600">{formatMoney(prof.total)}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {prof.cantidad} cobro{prof.cantidad !== 1 ? "s" : ""} en el período
+                    {prof.cantidad} cobro{prof.cantidad !== 1 ? "s" : ""}
                   </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Estructura de gastos — gráfico de torta */}
       <Card>
@@ -298,31 +296,29 @@ export default function ManagerFinanciero() {
         </CardContent>
       </Card>
 
-      {/* Pagos de laboratorio por profesional */}
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-          Pagos de laboratorio por profesional
-        </h2>
-        {loading ? (
-          <p className="text-sm text-muted-foreground">Cargando...</p>
-        ) : labPorProfesional.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin pagos de laboratorio en el período</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {labPorProfesional.map((prof) => (
-              <Card key={prof.nombre}>
-                <CardContent className="pt-5">
-                  <p className="font-semibold text-base leading-tight">{prof.nombre}</p>
-                  <p className="text-2xl font-bold text-red-500 mt-2">{formatMoney(prof.total)}</p>
+      {/* Gastos en laboratorio por profesional */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Gastos en laboratorio por profesional</CardTitle></CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Cargando...</p>
+          ) : labPorProfesional.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin pagos de laboratorio en el período</p>
+          ) : (
+            <div className="flex flex-wrap gap-4">
+              {labPorProfesional.map((prof) => (
+                <div key={prof.nombre} className="bg-muted rounded-lg px-4 py-3 min-w-[160px]">
+                  <p className="text-xs text-muted-foreground mb-1">{prof.nombre}</p>
+                  <p className="font-semibold text-red-500">{formatMoney(prof.total)}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {prof.cantidad} pago{prof.cantidad !== 1 ? "s" : ""} en el período
+                    {prof.cantidad} pago{prof.cantidad !== 1 ? "s" : ""}
                   </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
