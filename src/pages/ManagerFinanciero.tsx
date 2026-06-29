@@ -16,6 +16,7 @@ interface Cobro {
   medio_pago: string;
   referencia: string | null;
   paciente: { nombre: string; apellido: string } | null;
+  atencion: { profesional: { nombre: string; apellido: string } | null } | null;
 }
 
 interface Egreso {
@@ -52,7 +53,7 @@ export default function ManagerFinanciero() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    document.title = "Panel financiero | Consultorio";
+    document.title = "Indicadores financieros | Consultorio";
     cargar();
   }, []);
 
@@ -62,7 +63,7 @@ export default function ManagerFinanciero() {
     const [{ data: cobrosData }, cajaResult] = await Promise.all([
       supabase
         .from("cobros")
-        .select("id, fecha, importe, medio_pago, referencia, paciente:pacientes(nombre, apellido)")
+        .select("id, fecha, importe, medio_pago, referencia, paciente:pacientes(nombre, apellido), atencion:atenciones(profesional:profesionales(nombre, apellido))")
         .gte("fecha", fechaDesde)
         .lte("fecha", fechaHasta)
         .order("fecha", { ascending: false }),
@@ -108,10 +109,22 @@ export default function ManagerFinanciero() {
     return acc;
   }, {});
 
+  // Agrupación de cobros por profesional
+  const cobrosPorProfesional = Object.values(
+    cobros.reduce<Record<string, { nombre: string; total: number; cantidad: number }>>((acc, c) => {
+      const prof = (c.atencion as any)?.profesional;
+      const key = prof ? `${prof.apellido}, ${prof.nombre}` : "Sin profesional asignado";
+      if (!acc[key]) acc[key] = { nombre: key, total: 0, cantidad: 0 };
+      acc[key].total += c.importe;
+      acc[key].cantidad += 1;
+      return acc;
+    }, {})
+  ).sort((a, b) => b.total - a.total);
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Panel financiero</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Indicadores financieros</h1>
         <p className="text-sm text-muted-foreground">Ingresos y egresos del consultorio</p>
       </div>
 
@@ -197,44 +210,31 @@ export default function ManagerFinanciero() {
         </Card>
       )}
 
-      {/* Panel A: Cobros (ingresos) */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Cobros a pacientes</CardTitle></CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Paciente</TableHead>
-                <TableHead className="hidden sm:table-cell">Medio</TableHead>
-                <TableHead className="hidden md:table-cell">Referencia</TableHead>
-                <TableHead className="text-right">Importe</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Cargando...</TableCell></TableRow>
-              ) : cobros.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin cobros en el período</TableCell></TableRow>
-              ) : cobros.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="text-xs whitespace-nowrap">
-                    {format(parseISO(c.fecha), "dd/MM/yyyy", { locale: es })}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {c.paciente ? `${c.paciente.apellido}, ${c.paciente.nombre}` : "—"}
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell text-xs">{MEDIO_LABEL[c.medio_pago] ?? c.medio_pago}</TableCell>
-                  <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{c.referencia ?? "—"}</TableCell>
-                  <TableCell className="text-right font-mono text-sm text-green-600">
-                    {formatMoney(c.importe)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* Cobros por profesional */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+          Facturado por profesional
+        </h2>
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Cargando...</p>
+        ) : cobrosPorProfesional.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin cobros en el período</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {cobrosPorProfesional.map((prof) => (
+              <Card key={prof.nombre}>
+                <CardContent className="pt-5">
+                  <p className="font-semibold text-base leading-tight">{prof.nombre}</p>
+                  <p className="text-2xl font-bold text-green-600 mt-2">{formatMoney(prof.total)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {prof.cantidad} cobro{prof.cantidad !== 1 ? "s" : ""} en el período
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Panel B: Gastos (egresos) */}
       <Card>
