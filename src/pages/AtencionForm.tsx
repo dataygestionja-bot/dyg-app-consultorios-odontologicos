@@ -1223,7 +1223,7 @@ export default function AtencionForm() {
                     <HistorialAtenciones pacienteId={form.paciente_id} />
                   </TabsContent>
                   <TabsContent value="cuenta-corriente" className="pt-2 mt-0">
-                    <CuentaCorriente pacienteId={form.paciente_id} />
+                    <CuentaCorriente pacienteId={form.paciente_id} profesionalId={form.profesional_id || undefined} />
                   </TabsContent>
                 </Tabs>
               </CardContent>

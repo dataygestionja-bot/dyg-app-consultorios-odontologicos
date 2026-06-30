@@ -35,17 +35,17 @@ function saldoPractica(p: Practica): number {
   return (p.debe ?? 0) - haberPractica(p);
 }
 
-export default function CuentaCorriente({ pacienteId }: { pacienteId: string }) {
+export default function CuentaCorriente({ pacienteId, profesionalId }: { pacienteId: string; profesionalId?: string }) {
   const [loading, setLoading] = useState(true);
   const [atenciones, setAtenciones] = useState<Atencion[]>([]);
 
   useEffect(() => {
     cargar();
-  }, [pacienteId]);
+  }, [pacienteId, profesionalId]);
 
   async function cargar() {
     setLoading(true);
-    const { data } = await supabase
+    let query = supabase
       .from("atenciones")
       .select(`
         id, fecha,
@@ -58,6 +58,10 @@ export default function CuentaCorriente({ pacienteId }: { pacienteId: string }) 
       `)
       .eq("paciente_id", pacienteId)
       .order("fecha", { ascending: false });
+
+    if (profesionalId) query = query.eq("profesional_id", profesionalId) as typeof query;
+
+    const { data } = await query;
 
     const rows = (data ?? []) as unknown as Atencion[];
 
