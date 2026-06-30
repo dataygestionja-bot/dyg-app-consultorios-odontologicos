@@ -61,6 +61,10 @@ interface PracticaRow {
 const MEDIOS_PAGO = [
   { value: "efectivo", label: "Efectivo" },
   { value: "transferencia", label: "Transferencia" },
+  { value: "debito", label: "Débito" },
+  { value: "credito", label: "Crédito" },
+  { value: "mercadopago", label: "MercadoPago" },
+  { value: "otro", label: "Otro" },
 ];
 
 const empty = {
@@ -1124,7 +1128,7 @@ export default function AtencionForm() {
                           </SelectContent>
                         </Select>
                       </div>
-                      {p.medio_pago === "transferencia" && (
+                      {(p.medio_pago === "transferencia" || p.medio_pago === "mercadopago" || p.medio_pago === "otro") && (
                         <div className="flex flex-wrap gap-2 items-center">
                           <span className="text-xs text-muted-foreground w-[140px]">Detalle</span>
                           <Input
