@@ -108,7 +108,7 @@ export default function AtencionForm() {
   const turnoIdParam = params.get("turno");
   const estadoPrevParam = params.get("estadoPrev");
   const navigate = useNavigate();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const isEdit = id && id !== "nuevo";
   const esProfRestringido = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
   const camposGeneralesBloqueados = !!isEdit && esProfRestringido;
@@ -363,6 +363,17 @@ export default function AtencionForm() {
       setTurnosDisponibles(turnosList);
       if (isEdit || turnoIdParam) setForm(formInicial);
       if (practicasIniciales) setPracticas(practicasIniciales);
+
+      // Auto-rellenar profesional para usuario con rol profesional en atención nueva
+      if (!isEdit && !turnoIdParam && esProfRestringido && user?.id) {
+        const { data: profData } = await supabase
+          .from("profesionales")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("activo", true)
+          .maybeSingle();
+        if (profData) setForm((prev) => ({ ...prev, profesional_id: profData.id }));
+      }
 
       setLoading(false);
     }
