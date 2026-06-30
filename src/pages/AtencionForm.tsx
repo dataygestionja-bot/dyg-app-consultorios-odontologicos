@@ -21,6 +21,7 @@ import type { DienteEstado } from "@/lib/constants";
 import { internoToFdi, internoToFdiTemporal } from "@/lib/odontograma";
 import HistorialAtenciones from "@/components/paciente/HistorialAtenciones";
 import HistorialOdontograma from "@/components/paciente/HistorialOdontograma";
+import CuentaCorriente from "@/components/paciente/CuentaCorriente";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { IntegracionRctaInline } from "@/components/integraciones/IntegracionRctaInline";
@@ -1212,6 +1213,7 @@ export default function AtencionForm() {
                     <TabsList className="inline-flex w-max min-w-full justify-start gap-1">
                       <TabsTrigger value="odontograma" className="whitespace-nowrap">Historial odontograma</TabsTrigger>
                       <TabsTrigger value="atenciones" className="whitespace-nowrap">Historial de atenciones</TabsTrigger>
+                      <TabsTrigger value="cuenta-corriente" className="whitespace-nowrap">Cuenta corriente</TabsTrigger>
                     </TabsList>
                   </div>
                   <TabsContent value="odontograma" className="pt-2 mt-0">
@@ -1219,6 +1221,9 @@ export default function AtencionForm() {
                   </TabsContent>
                   <TabsContent value="atenciones" className="pt-2 mt-0">
                     <HistorialAtenciones pacienteId={form.paciente_id} />
+                  </TabsContent>
+                  <TabsContent value="cuenta-corriente" className="pt-2 mt-0">
+                    <CuentaCorriente pacienteId={form.paciente_id} />
                   </TabsContent>
                 </Tabs>
               </CardContent>
