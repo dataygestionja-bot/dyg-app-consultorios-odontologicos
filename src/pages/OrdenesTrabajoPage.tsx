@@ -21,6 +21,8 @@ interface Orden {
   fecha_pedido: string | null;
   costo_presupuestado: number;
   costo_final: number;
+  pieza_dental: string | null;
+  indicaciones: string | null;
   created_at: string;
   profesional_id: string | null;
   paciente: { nombre: string; apellido: string } | null;
@@ -110,7 +112,7 @@ export default function OrdenesTrabajoPage() {
 
     let ordenesQuery = supabase.from("ordenes_trabajo").select(`
       id, tipo_trabajo, prioridad, estado, fecha_estimada_entrega, fecha_pedido,
-      costo_presupuestado, costo_final, created_at, profesional_id,
+      costo_presupuestado, costo_final, pieza_dental, indicaciones, created_at, profesional_id,
       paciente:pacientes(nombre, apellido),
       profesional:profesionales(nombre, apellido),
       laboratorio:laboratorios(id, nombre),

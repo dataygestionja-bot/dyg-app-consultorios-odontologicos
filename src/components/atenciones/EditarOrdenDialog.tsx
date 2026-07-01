@@ -35,6 +35,8 @@ interface Orden {
   fecha_pedido: string | null;
   costo_presupuestado: number;
   costo_final: number;
+  pieza_dental: string | null;
+  indicaciones: string | null;
   laboratorio: { id: string; nombre: string } | null;
   paciente: { nombre: string; apellido: string } | null;
   pagos_laboratorio?: Pago[];
@@ -49,7 +51,9 @@ interface Props {
 
 export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props) {
   const { user } = useAuth();
+  const [modoEdicion, setModoEdicion] = useState(false);
   const [tipoTrabajo, setTipoTrabajo] = useState("");
+  const [indicaciones, setIndicaciones] = useState("");
   const [prioridad, setPrioridad] = useState<Prioridad>("media");
   const [estado, setEstado] = useState<"gestionar_pedido" | "enviado" | "entregado">("gestionar_pedido");
   const [fechaPedido, setFechaPedido] = useState("");
@@ -66,7 +70,9 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
 
   useEffect(() => {
     if (!open || !orden) return;
+    setModoEdicion(false);
     setTipoTrabajo(orden.tipo_trabajo ?? "");
+    setIndicaciones(orden.indicaciones ?? "");
     setPrioridad((orden.prioridad ?? "media") as Prioridad);
     setEstado(orden.estado);
     setFechaPedido(orden.fecha_pedido ?? "");
@@ -113,6 +119,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
     // Actualizar orden
     const { error } = await supabase.from("ordenes_trabajo").update({
       tipo_trabajo: tipoTrabajo.trim() || orden.tipo_trabajo,
+      indicaciones: indicaciones.trim() || null,
       prioridad,
       estado,
       fecha_pedido: estado === "enviado" ? (fechaPedido || null) : null,
@@ -187,35 +194,77 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
             </p>
           </div>
 
-          {/* Tipo de trabajo + Prioridad */}
-          <div className="grid grid-cols-[1fr_120px] gap-2">
-            <div className="space-y-1">
-              <Label className="text-xs">Tipo de trabajo</Label>
-              <Input
-                className="h-8 text-xs"
-                value={tipoTrabajo}
-                onChange={(e) => setTipoTrabajo(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
-              />
+          {/* Tipo de trabajo / Indicaciones / Prioridad — modo lectura o edición */}
+          {!modoEdicion ? (
+            <div className="bg-muted/50 rounded-md px-3 py-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="space-y-0.5 flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{tipoTrabajo}</p>
+                  {indicaciones && <p className="text-xs text-muted-foreground">{indicaciones}</p>}
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                      prioridad === "alta" ? "bg-red-500 text-white" :
+                      prioridad === "media" ? "bg-yellow-400 text-yellow-950" :
+                      "bg-[#78e911] text-green-950"
+                    }`}>{PRIORIDAD_LABELS[prioridad]}</span>
+                    {orden.pieza_dental && (
+                      <span className="text-xs text-muted-foreground">Pieza: {orden.pieza_dental}</span>
+                    )}
+                  </div>
+                </div>
+                <Button type="button" size="sm" variant="outline" className="h-7 text-xs shrink-0"
+                  onClick={() => setModoEdicion(true)}>
+                  Editar
+                </Button>
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Prioridad</Label>
-              <Select value={prioridad} onValueChange={(v) => setPrioridad(v as Prioridad)}>
-                <SelectTrigger className={`h-8 text-xs font-medium ${
-                  prioridad === "alta" ? "bg-red-500 text-white border-red-500" :
-                  prioridad === "media" ? "bg-yellow-400 text-yellow-950 border-yellow-400" :
-                  "bg-[#78e911] text-green-950 border-[#78e911]"
-                }`}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(PRIORIDAD_LABELS) as Prioridad[]).map((p) => (
-                    <SelectItem key={p} value={p}>{PRIORIDAD_LABELS[p]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          ) : (
+            <div className="space-y-2 border rounded-md px-3 py-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Editando datos del pedido</Label>
+                <Button type="button" size="sm" variant="ghost" className="h-6 text-xs"
+                  onClick={() => setModoEdicion(false)}>
+                  Listo
+                </Button>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Tipo de trabajo</Label>
+                <Input className="h-8 text-xs" value={tipoTrabajo}
+                  onChange={(e) => setTipoTrabajo(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Indicaciones</Label>
+                <Input className="h-8 text-xs" value={indicaciones}
+                  onChange={(e) => setIndicaciones(e.target.value)}
+                  placeholder="Detalles técnicos, color, medidas..."
+                  onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} />
+              </div>
+              <div className={`grid gap-2 ${orden.pieza_dental ? "grid-cols-2" : "grid-cols-1"}`}>
+                <div className="space-y-1">
+                  <Label className="text-xs">Prioridad</Label>
+                  <Select value={prioridad} onValueChange={(v) => setPrioridad(v as Prioridad)}>
+                    <SelectTrigger className={`h-8 text-xs font-medium ${
+                      prioridad === "alta" ? "bg-red-500 text-white border-red-500" :
+                      prioridad === "media" ? "bg-yellow-400 text-yellow-950 border-yellow-400" :
+                      "bg-[#78e911] text-green-950 border-[#78e911]"
+                    }`}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(PRIORIDAD_LABELS) as Prioridad[]).map((p) => (
+                        <SelectItem key={p} value={p}>{PRIORIDAD_LABELS[p]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {orden.pieza_dental && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Pieza</Label>
+                    <Input readOnly className="h-8 text-xs bg-muted" value={orden.pieza_dental} />
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Estado, Fecha de pedido y Fecha estimada entrega */}
           <div className={`grid gap-2 ${estado === "enviado" ? "grid-cols-3" : "grid-cols-2"}`}>
