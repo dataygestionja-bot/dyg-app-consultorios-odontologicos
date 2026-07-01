@@ -113,7 +113,7 @@ export default function AtencionForm() {
   const turnoIdParam = params.get("turno");
   const estadoPrevParam = params.get("estadoPrev");
   const navigate = useNavigate();
-  const { hasRole, user } = useAuth();
+  const { hasRole, user, roles } = useAuth();
   const isEdit = id && id !== "nuevo";
   const esProfRestringido = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
   const camposGeneralesBloqueados = !!isEdit && esProfRestringido;
@@ -369,17 +369,6 @@ export default function AtencionForm() {
       if (isEdit || turnoIdParam) setForm(formInicial);
       if (practicasIniciales) setPracticas(practicasIniciales);
 
-      // Auto-rellenar profesional para usuario con rol profesional en atención nueva
-      if (!isEdit && !turnoIdParam && esProfRestringido && user?.id) {
-        const { data: profData } = await supabase
-          .from("profesionales")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("activo", true)
-          .maybeSingle();
-        if (profData) setForm((prev) => ({ ...prev, profesional_id: profData.id }));
-      }
-
       setLoading(false);
     }
 
@@ -388,6 +377,24 @@ export default function AtencionForm() {
       cancelled = true;
     };
   }, [id, isEdit, turnoIdParam]);
+
+  // Auto-rellenar profesional cuando los roles y el usuario están disponibles.
+  // Efecto separado para que funcione aunque auth cargue después del componente.
+  // Aplica a cualquier usuario con rol "profesional", sin importar otros roles adicionales.
+  useEffect(() => {
+    if (isEdit || turnoIdParam) return;
+    if (!hasRole("profesional") || !user?.id) return;
+    supabase
+      .from("profesionales")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("activo", true)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setForm((prev) => ({ ...prev, profesional_id: data.id }));
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, roles]);
 
   // Auto-abrir dialog de orden de trabajo cuando se navega con ?abrir_orden=1
   useEffect(() => {
