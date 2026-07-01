@@ -346,8 +346,8 @@ export function RegistrarCobroDialog({ atencionId, pacienteId, fecha, open, onOp
             )}
 
             {/* Medio de pago */}
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t">
-              <div className="space-y-1">
+            <div className="flex flex-wrap gap-3 pt-2 border-t">
+              <div className="space-y-1 min-w-[160px]">
                 <Label className="text-xs">Medio de pago *</Label>
                 <Select value={medioPago} onValueChange={(v) => setMedioPago(v as MedioPago)}>
                   <SelectTrigger className="h-8 text-xs">
@@ -361,7 +361,7 @@ export function RegistrarCobroDialog({ atencionId, pacienteId, fecha, open, onOp
                 </Select>
               </div>
               {medioPago !== "efectivo" && (
-                <div className="space-y-1">
+                <div className="space-y-1 flex-1 min-w-[200px]">
                   <Label className="text-xs">Referencia *</Label>
                   <Input
                     className="h-8 text-xs"

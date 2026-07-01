@@ -393,7 +393,7 @@ export default function CuentaCorriente({ pacienteId, profesionalId }: { pacient
                           <Input
                             value={pagoReferencia}
                             onChange={(e) => setPagoReferencia(e.target.value)}
-                            className="w-40 h-8 text-sm"
+                            className="w-64 h-8 text-sm"
                             placeholder="Nro. / detalle"
                           />
                         </div>
