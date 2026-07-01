@@ -104,6 +104,14 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
 
   async function guardarDatosPedido() {
     if (!orden) return;
+    const sinCambios =
+      tipoTrabajo.trim() === (orden.tipo_trabajo ?? "") &&
+      indicaciones.trim() === (orden.indicaciones ?? "") &&
+      prioridad === orden.prioridad;
+    if (sinCambios) {
+      setModoEdicion(false);
+      return;
+    }
     const { error } = await supabase.from("ordenes_trabajo").update({
       tipo_trabajo: tipoTrabajo.trim() || orden.tipo_trabajo,
       indicaciones: indicaciones.trim() || null,
