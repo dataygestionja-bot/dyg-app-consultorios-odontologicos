@@ -113,7 +113,7 @@ export default function AtencionForm() {
   const turnoIdParam = params.get("turno");
   const estadoPrevParam = params.get("estadoPrev");
   const navigate = useNavigate();
-  const { hasRole, user, roles } = useAuth();
+  const { hasRole, user, roles, loading: authLoading } = useAuth();
   const isEdit = id && id !== "nuevo";
   const esProfRestringido = hasRole("profesional") && !hasRole("admin") && !hasRole("recepcion");
   const camposGeneralesBloqueados = !!isEdit && esProfRestringido;
@@ -369,32 +369,27 @@ export default function AtencionForm() {
       if (isEdit || turnoIdParam) setForm(formInicial);
       if (practicasIniciales) setPracticas(practicasIniciales);
 
+      // Auto-rellenar profesional para cualquier usuario con rol profesional en atención nueva.
+      // Se ejecuta aquí para garantizar que auth ya cargó (controlado por authLoading en deps).
+      if (!isEdit && !turnoIdParam && hasRole("profesional") && user?.id) {
+        const { data: profData } = await supabase
+          .from("profesionales")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("activo", true)
+          .maybeSingle();
+        if (profData) setForm((prev) => ({ ...prev, profesional_id: profData.id }));
+      }
+
       setLoading(false);
     }
 
+    if (authLoading) return;
     cargar();
     return () => {
       cancelled = true;
     };
-  }, [id, isEdit, turnoIdParam]);
-
-  // Auto-rellenar profesional cuando los roles y el usuario están disponibles.
-  // Efecto separado para que funcione aunque auth cargue después del componente.
-  // Aplica a cualquier usuario con rol "profesional", sin importar otros roles adicionales.
-  useEffect(() => {
-    if (isEdit || turnoIdParam) return;
-    if (!hasRole("profesional") || !user?.id) return;
-    supabase
-      .from("profesionales")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("activo", true)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setForm((prev) => ({ ...prev, profesional_id: data.id }));
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, roles]);
+  }, [id, isEdit, turnoIdParam, authLoading]);
 
   // Auto-abrir dialog de orden de trabajo cuando se navega con ?abrir_orden=1
   useEffect(() => {
