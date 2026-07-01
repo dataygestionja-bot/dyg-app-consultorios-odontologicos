@@ -11,10 +11,17 @@ import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
 type MedioPago = "efectivo" | "transferencia";
+type Prioridad = "alta" | "media" | "baja";
 
 const MEDIO_PAGO_LABELS: Record<MedioPago, string> = {
   efectivo: "Efectivo",
   transferencia: "Transferencia",
+};
+
+const PRIORIDAD_LABELS: Record<Prioridad, string> = {
+  alta: "Alta",
+  media: "Media",
+  baja: "Baja",
 };
 
 interface Pago { id: string; fecha: string; importe: number; medio_pago: string; }
@@ -22,6 +29,7 @@ interface Pago { id: string; fecha: string; importe: number; medio_pago: string;
 interface Orden {
   id: string;
   tipo_trabajo: string;
+  prioridad: "alta" | "media" | "baja";
   estado: "gestionar_pedido" | "enviado" | "entregado";
   fecha_estimada_entrega: string | null;
   fecha_pedido: string | null;
@@ -41,6 +49,8 @@ interface Props {
 
 export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props) {
   const { user } = useAuth();
+  const [tipoTrabajo, setTipoTrabajo] = useState("");
+  const [prioridad, setPrioridad] = useState<Prioridad>("media");
   const [estado, setEstado] = useState<"gestionar_pedido" | "enviado" | "entregado">("gestionar_pedido");
   const [fechaPedido, setFechaPedido] = useState("");
   const [fechaEntrega, setFechaEntrega] = useState("");
@@ -56,6 +66,8 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
 
   useEffect(() => {
     if (!open || !orden) return;
+    setTipoTrabajo(orden.tipo_trabajo ?? "");
+    setPrioridad((orden.prioridad ?? "media") as Prioridad);
     setEstado(orden.estado);
     setFechaPedido(orden.fecha_pedido ?? "");
     setFechaEntrega(orden.fecha_estimada_entrega ?? "");
@@ -100,6 +112,8 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
 
     // Actualizar orden
     const { error } = await supabase.from("ordenes_trabajo").update({
+      tipo_trabajo: tipoTrabajo.trim() || orden.tipo_trabajo,
+      prioridad,
       estado,
       fecha_pedido: estado === "enviado" ? (fechaPedido || null) : null,
       fecha_estimada_entrega: fechaEntrega || null,
@@ -165,13 +179,42 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
         </DialogHeader>
 
         <div className="space-y-3 py-1">
-          {/* Info de la orden */}
-          <div className="text-xs bg-muted/50 rounded-md px-3 py-2 space-y-0.5">
-            <p className="font-medium">{orden.tipo_trabajo}</p>
+          {/* Info fija */}
+          <div className="text-xs bg-muted/50 rounded-md px-3 py-2">
             <p className="text-muted-foreground">
               {orden.paciente ? `${orden.paciente.apellido}, ${orden.paciente.nombre}` : "—"}
               {orden.laboratorio ? ` · ${orden.laboratorio.nombre}` : ""}
             </p>
+          </div>
+
+          {/* Tipo de trabajo + Prioridad */}
+          <div className="grid grid-cols-[1fr_120px] gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Tipo de trabajo</Label>
+              <Input
+                className="h-8 text-xs"
+                value={tipoTrabajo}
+                onChange={(e) => setTipoTrabajo(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Prioridad</Label>
+              <Select value={prioridad} onValueChange={(v) => setPrioridad(v as Prioridad)}>
+                <SelectTrigger className={`h-8 text-xs font-medium ${
+                  prioridad === "alta" ? "bg-red-500 text-white border-red-500" :
+                  prioridad === "media" ? "bg-yellow-400 text-yellow-950 border-yellow-400" :
+                  "bg-[#78e911] text-green-950 border-[#78e911]"
+                }`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(PRIORIDAD_LABELS) as Prioridad[]).map((p) => (
+                    <SelectItem key={p} value={p}>{PRIORIDAD_LABELS[p]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Estado, Fecha de pedido y Fecha estimada entrega */}
