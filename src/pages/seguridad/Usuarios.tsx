@@ -116,6 +116,28 @@ export default function Usuarios() {
     toast.success("Perfil profesional vinculado correctamente");
   }
 
+  async function crearPerfil() {
+    if (!editing) return;
+    setVinculando(true);
+    const { data, error } = await supabase
+      .from("profesionales")
+      .insert({
+        user_id: editing.id,
+        nombre: editing.nombre ?? "",
+        apellido: editing.apellido ?? "",
+        activo: true,
+      })
+      .select("id, nombre, apellido")
+      .single();
+    setVinculando(false);
+    if (error) {
+      toast.error("No se pudo crear el perfil", { description: error.message });
+      return;
+    }
+    setProfVinculado(data as ProfesionalOpcion);
+    toast.success("Perfil profesional creado y vinculado");
+  }
+
   function toggleRole(role: AppRole, checked: boolean) {
     setSelectedRoles((prev) => (checked ? [...new Set([...prev, role])] : prev.filter((r) => r !== role)));
   }
@@ -305,7 +327,7 @@ export default function Usuarios() {
               ) : (
                 <div className="space-y-2">
                   <p className="text-xs text-amber-600 dark:text-amber-400">Sin vínculo — el auto-completado no funcionará</p>
-                  {todosProfesionales.length > 0 && (
+                  {todosProfesionales.length > 0 ? (
                     <div className="flex gap-2">
                       <Select value={profParaVincular} onValueChange={setProfParaVincular}>
                         <SelectTrigger className="flex-1 h-8 text-xs">
@@ -330,6 +352,17 @@ export default function Usuarios() {
                         {vinculando ? "Vinculando..." : "Vincular"}
                       </Button>
                     </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={vinculando}
+                      onClick={crearPerfil}
+                      className="h-8 text-xs"
+                    >
+                      <Link className="h-3 w-3 mr-1" />
+                      {vinculando ? "Creando..." : "Crear perfil profesional"}
+                    </Button>
                   )}
                 </div>
               )}
