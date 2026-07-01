@@ -217,6 +217,7 @@ export default function CuentaCorriente({ pacienteId, profesionalId }: { pacient
                       Saldo: {fmt(saldoAtencion)}
                     </Badge>
                     <Button
+                      type="button"
                       size="sm"
                       variant="outline"
                       className="h-7 text-xs"
@@ -316,6 +317,7 @@ export default function CuentaCorriente({ pacienteId, profesionalId }: { pacient
                         </div>
                       )}
                       <Button
+                        type="button"
                         size="sm"
                         className="h-8"
                         onClick={() => handleRegistrarPago(a)}
@@ -324,6 +326,7 @@ export default function CuentaCorriente({ pacienteId, profesionalId }: { pacient
                         {guardando ? "Guardando..." : "Confirmar"}
                       </Button>
                       <Button
+                        type="button"
                         size="sm"
                         variant="ghost"
                         className="h-8"
