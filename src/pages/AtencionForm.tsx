@@ -1104,7 +1104,10 @@ export default function AtencionForm() {
                       className="h-8 text-xs text-right"
                       placeholder="0"
                       value={p.haber || ""}
-                      onChange={(e) => updatePractica(idx, { haber: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value) || 0;
+                        updatePractica(idx, { haber: Math.min(val, p.debe) });
+                      }}
                       onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
                     />
                     <Input
