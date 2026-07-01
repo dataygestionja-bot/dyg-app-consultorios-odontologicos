@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
 
 type MedioPago = "efectivo" | "transferencia";
 
@@ -15,7 +17,7 @@ const MEDIO_PAGO_LABELS: Record<MedioPago, string> = {
   transferencia: "Transferencia",
 };
 
-interface Pago { importe: number; }
+interface Pago { id: string; fecha: string; importe: number; medio_pago: string; }
 
 interface Orden {
   id: string;
@@ -49,6 +51,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
   const [referencia, setReferencia] = useState("");
   const [comprobanteFile, setComprobanteFile] = useState<File | null>(null);
   const [pagoAcumulado, setPagoAcumulado] = useState(0);
+  const [pagos, setPagos] = useState<Pago[]>([]);
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
@@ -69,10 +72,12 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
     if (!orden) return;
     const { data } = await supabase
       .from("pagos_laboratorio")
-      .select("importe")
-      .eq("orden_id", orden.id);
-    const total = (data ?? []).reduce((s, p) => s + Number(p.importe), 0);
-    setPagoAcumulado(total);
+      .select("id, fecha, importe, medio_pago")
+      .eq("orden_id", orden.id)
+      .order("fecha", { ascending: false });
+    const lista = (data ?? []) as unknown as Pago[];
+    setPagos(lista);
+    setPagoAcumulado(lista.reduce((s, p) => s + Number(p.importe), 0));
   }
 
   const costo = parseFloat(costoFinal) || 0;
@@ -255,6 +260,22 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
               />
             </div>
           </div>
+
+          {/* Historial de pagos */}
+          {pagos.length > 0 && (
+            <div className="border-t pt-2 space-y-1">
+              <p className="text-xs text-muted-foreground font-medium">Pagos registrados</p>
+              {pagos.map((p) => (
+                <div key={p.id} className="flex gap-4 text-xs">
+                  <span>{format(parseISO(p.fecha), "dd/MM/yyyy", { locale: es })}</span>
+                  <span className="font-mono text-green-600">
+                    $ {Number(p.importe).toLocaleString("es-AR")}
+                  </span>
+                  <span className="text-muted-foreground capitalize">{p.medio_pago}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Medio de pago — solo si hay nuevo pago */}
           {pago > 0 && (
