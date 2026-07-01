@@ -11,6 +11,8 @@ import { format, parseISO, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import { EditarOrdenDialog } from "@/components/atenciones/EditarOrdenDialog";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Orden {
   id: string;
@@ -159,6 +161,49 @@ export default function OrdenesTrabajoPage() {
     return true;
   });
 
+  function exportarPDF() {
+    const doc = new jsPDF({ orientation: "landscape" });
+    const hoy = format(new Date(), "dd/MM/yyyy", { locale: es });
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Detalle de órdenes de trabajo", 14, 18);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Fecha del informe: ${hoy}`, 14, 26);
+
+    autoTable(doc, {
+      startY: 32,
+      head: [[
+        "Paciente", "Profesional", "Laboratorio",
+        "Tipo de trabajo", "Indicaciones", "Pieza",
+        "Prioridad", "Fecha de pedido",
+      ]],
+      body: filtered.map((o) => [
+        o.paciente ? `${o.paciente.apellido}, ${o.paciente.nombre}` : "—",
+        o.profesional ? `${o.profesional.apellido}, ${o.profesional.nombre}` : "—",
+        o.laboratorio?.nombre ?? "—",
+        o.tipo_trabajo ?? "—",
+        o.indicaciones ?? "—",
+        o.pieza_dental ?? "—",
+        o.prioridad ? o.prioridad.charAt(0).toUpperCase() + o.prioridad.slice(1) : "—",
+        o.fecha_pedido
+          ? format(parseISO(o.fecha_pedido), "dd/MM/yyyy", { locale: es })
+          : "—",
+      ]),
+      styles: { fontSize: 8, cellPadding: 2.5 },
+      headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      columnStyles: {
+        3: { cellWidth: 35 },
+        4: { cellWidth: 40 },
+      },
+    });
+
+    doc.save(`ordenes_trabajo_${format(new Date(), "yyyyMMdd")}.pdf`);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -220,6 +265,15 @@ export default function OrdenesTrabajoPage() {
                 ))}
               </SelectContent>
             </Select>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportarPDF}
+              disabled={filtered.length === 0}
+            >
+              Exportar a PDF
+            </Button>
           </div>
 
           <div className="overflow-x-auto">
