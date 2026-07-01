@@ -43,7 +43,7 @@ interface Atencion {
 }
 
 const fmt = (n: number) =>
-  `$ ${Number(n).toLocaleString("es-AR", { minimumFractionDigits: 0 })}`;
+  `$ ${Number(n).toLocaleString("es-AR", { minimumFractionDigits: 0 })}`;
 
 function haberPractica(p: Practica): number {
   return p.cobro_aplicaciones.reduce((s, c) => s + (c.importe_aplicado ?? 0), 0);
@@ -57,6 +57,10 @@ export default function CuentaCorriente({ pacienteId, profesionalId }: { pacient
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [atenciones, setAtenciones] = useState<Atencion[]>([]);
+  const [filtroActivo, setFiltroActivo] = useState(false);
+  const [mostrarHistorial, setMostrarHistorial] = useState(false);
+  const [fechaDesde, setFechaDesde] = useState("");
+  const [fechaHasta, setFechaHasta] = useState("");
   const [pagoAbierto, setPagoAbierto] = useState<string | null>(null);
   const [pagoImporte, setPagoImporte] = useState("");
   const [pagoMedio, setPagoMedio] = useState<MedioPago>("efectivo");
@@ -64,10 +68,10 @@ export default function CuentaCorriente({ pacienteId, profesionalId }: { pacient
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
-    cargar();
+    cargar("", "");
   }, [pacienteId, profesionalId]);
 
-  async function cargar() {
+  async function cargar(desde: string, hasta: string) {
     setLoading(true);
     let query = supabase
       .from("atenciones")
@@ -84,18 +88,31 @@ export default function CuentaCorriente({ pacienteId, profesionalId }: { pacient
       .order("fecha", { ascending: false });
 
     if (profesionalId) query = query.eq("profesional_id", profesionalId) as typeof query;
+    if (desde) query = query.gte("fecha", desde) as typeof query;
+    if (hasta) query = query.lte("fecha", hasta) as typeof query;
 
     const { data } = await query;
-
     const rows = (data ?? []) as unknown as Atencion[];
 
-    // Solo atenciones que tienen al menos una práctica con saldo > 0
-    const conSaldo = rows.filter((a) =>
-      a.atencion_practicas.some((p) => saldoPractica(p) > 0)
-    );
+    const conFiltro = !!(desde || hasta);
+    const resultado = conFiltro
+      ? rows
+      : rows.filter((a) => a.atencion_practicas.some((p) => saldoPractica(p) > 0));
 
-    setAtenciones(conSaldo);
+    setAtenciones(resultado);
+    setFiltroActivo(conFiltro);
     setLoading(false);
+  }
+
+  function aplicarFiltro() {
+    cargar(fechaDesde, fechaHasta);
+  }
+
+  function limpiarFiltro() {
+    setFechaDesde("");
+    setFechaHasta("");
+    setMostrarHistorial(false);
+    cargar("", "");
   }
 
   async function handleRegistrarPago(atencion: Atencion) {
@@ -148,7 +165,7 @@ export default function CuentaCorriente({ pacienteId, profesionalId }: { pacient
     setPagoMedio("efectivo");
     setPagoReferencia("");
     setGuardando(false);
-    cargar();
+    cargar(fechaDesde, fechaHasta);
   }
 
   const totalDebe = atenciones.reduce((s, a) =>
@@ -161,6 +178,52 @@ export default function CuentaCorriente({ pacienteId, profesionalId }: { pacient
 
   return (
     <div className="space-y-4">
+      {/* Botón Ver historial + panel de filtros */}
+      <div className="flex flex-col gap-2">
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            size="sm"
+            variant={mostrarHistorial ? "default" : "outline"}
+            className="h-8 text-xs"
+            onClick={() => {
+              if (mostrarHistorial) {
+                limpiarFiltro();
+              } else {
+                setMostrarHistorial(true);
+              }
+            }}
+          >
+            {mostrarHistorial ? "Ver solo pendientes" : "Ver historial"}
+          </Button>
+        </div>
+        {mostrarHistorial && (
+          <div className="flex flex-wrap gap-2 items-end">
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Desde</label>
+              <Input
+                type="date"
+                className="w-36 h-8 text-sm"
+                value={fechaDesde}
+                onChange={(e) => setFechaDesde(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Hasta</label>
+              <Input
+                type="date"
+                className="w-36 h-8 text-sm"
+                value={fechaHasta}
+                onChange={(e) => setFechaHasta(e.target.value)}
+              />
+            </div>
+            <Button type="button" size="sm" className="h-8" onClick={aplicarFiltro}>
+              Filtrar
+            </Button>
+          </div>
+        )}
+      </div>
+
       {/* Cards resumen */}
       <div className="grid grid-cols-3 gap-3">
         <Card>
@@ -189,13 +252,16 @@ export default function CuentaCorriente({ pacienteId, profesionalId }: { pacient
       {atenciones.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground text-sm">
-            No hay prestaciones con saldo pendiente.
+            {filtroActivo
+              ? "No hay atenciones en el período seleccionado."
+              : "No hay prestaciones con saldo pendiente."}
           </CardContent>
         </Card>
       ) : (
         atenciones.map((a) => {
           const practicasConSaldo = a.atencion_practicas.filter((p) => saldoPractica(p) > 0);
-          if (practicasConSaldo.length === 0) return null;
+          const practicasAMostrar = filtroActivo ? a.atencion_practicas : practicasConSaldo;
+          if (practicasAMostrar.length === 0) return null;
 
           const saldoAtencion = practicasConSaldo.reduce((s, p) => s + saldoPractica(p), 0);
 
@@ -221,27 +287,35 @@ export default function CuentaCorriente({ pacienteId, profesionalId }: { pacient
                     )}
                   </CardTitle>
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-amber-600 border-amber-300 bg-amber-50">
-                      Saldo: {fmt(saldoAtencion)}
-                    </Badge>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs"
-                      onClick={() => {
-                        if (pagoAbierto === a.id) {
-                          setPagoAbierto(null);
-                        } else {
-                          setPagoAbierto(a.id);
-                          setPagoImporte(String(saldoAtencion));
-                          setPagoMedio("efectivo");
-                          setPagoReferencia("");
-                        }
-                      }}
-                    >
-                      Registrar pago
-                    </Button>
+                    {saldoAtencion > 0 ? (
+                      <>
+                        <Badge variant="secondary" className="text-amber-600 border-amber-300 bg-amber-50">
+                          Saldo: {fmt(saldoAtencion)}
+                        </Badge>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() => {
+                            if (pagoAbierto === a.id) {
+                              setPagoAbierto(null);
+                            } else {
+                              setPagoAbierto(a.id);
+                              setPagoImporte(String(saldoAtencion));
+                              setPagoMedio("efectivo");
+                              setPagoReferencia("");
+                            }
+                          }}
+                        >
+                          Registrar pago
+                        </Button>
+                      </>
+                    ) : (
+                      <Badge className="bg-green-500/20 text-green-600 border border-green-300">
+                        Saldada
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -256,7 +330,7 @@ export default function CuentaCorriente({ pacienteId, profesionalId }: { pacient
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {practicasConSaldo.map((p) => (
+                    {practicasAMostrar.map((p) => (
                       <TableRow key={p.id}>
                         <TableCell>
                           <span className="font-medium text-xs">{p.prestacion?.codigo}</span>
@@ -264,7 +338,7 @@ export default function CuentaCorriente({ pacienteId, profesionalId }: { pacient
                         </TableCell>
                         <TableCell className="text-right text-xs font-mono">{fmt(p.debe ?? 0)}</TableCell>
                         <TableCell className="text-right text-xs font-mono text-green-600">{fmt(haberPractica(p))}</TableCell>
-                        <TableCell className="text-right text-xs font-mono font-semibold text-amber-600">
+                        <TableCell className={`text-right text-xs font-mono font-semibold ${saldoPractica(p) > 0 ? "text-amber-600" : "text-green-600"}`}>
                           {fmt(saldoPractica(p))}
                         </TableCell>
                       </TableRow>
