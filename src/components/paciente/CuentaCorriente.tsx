@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -119,6 +120,7 @@ export default function CuentaCorriente({ pacienteId, profesionalId }: { pacient
       .single();
 
     if (error || !cobro) {
+      toast.error("Error al registrar el cobro", { description: error?.message });
       setGuardando(false);
       return;
     }
@@ -127,11 +129,17 @@ export default function CuentaCorriente({ pacienteId, profesionalId }: { pacient
     for (const p of practicasConSaldo) {
       if (remaining <= 0) break;
       const aplicar = Math.min(remaining, saldoPractica(p));
-      await supabase.from("cobro_aplicaciones").insert({
+      const { error: errApl } = await supabase.from("cobro_aplicaciones").insert({
         cobro_id: cobro.id,
         atencion_id: atencion.id,
+        practica_id: p.id,
         importe_aplicado: aplicar,
-      });
+      } as any);
+      if (errApl) {
+        toast.error("Error al aplicar el cobro", { description: errApl.message });
+        setGuardando(false);
+        return;
+      }
       remaining -= aplicar;
     }
 
