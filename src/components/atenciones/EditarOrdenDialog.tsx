@@ -102,6 +102,22 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
   const pago = parseFloat(nuevoPago) || 0;
   const saldo = costo - pagoAcumulado - pago;
 
+  async function guardarDatosPedido() {
+    if (!orden) return;
+    const { error } = await supabase.from("ordenes_trabajo").update({
+      tipo_trabajo: tipoTrabajo.trim() || orden.tipo_trabajo,
+      indicaciones: indicaciones.trim() || null,
+      prioridad,
+    }).eq("id", orden.id);
+    if (error) {
+      toast.error("Error guardando los datos", { description: error.message });
+      return;
+    }
+    toast.success("Datos del pedido actualizados");
+    setModoEdicion(false);
+    onSaved();
+  }
+
   async function guardar() {
     if (!orden) return;
     if (pago > 0 && !nroOrden.trim()) {
@@ -223,7 +239,7 @@ export function EditarOrdenDialog({ orden, open, onOpenChange, onSaved }: Props)
               <div className="flex items-center justify-between">
                 <Label className="text-xs text-muted-foreground">Editando datos del pedido</Label>
                 <Button type="button" size="sm" variant="ghost" className="h-6 text-xs"
-                  onClick={() => setModoEdicion(false)}>
+                  onClick={guardarDatosPedido}>
                   Listo
                 </Button>
               </div>
