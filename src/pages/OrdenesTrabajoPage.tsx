@@ -267,10 +267,10 @@ export default function OrdenesTrabajoPage() {
             </Select>
 
             <Button
-              variant="outline"
               size="sm"
               onClick={exportarPDF}
               disabled={filtered.length === 0}
+              className="bg-sky-500 hover:bg-sky-600 text-white disabled:opacity-50"
             >
               Exportar a PDF
             </Button>
